@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from 'firebase/auth';
@@ -103,6 +105,8 @@ interface CommunityContextType {
   // Firebase Auth Session
   firebaseUser: User | null;
   authLoading: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   loginWithGoogle: () => Promise<boolean>;
   logoutGoogle: () => Promise<void>;
 
@@ -845,10 +849,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Firebase Auth State
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
   const [grantedRole, setGrantedRole] = useState<Role | null>(null);
   const [grantedMemberId, setGrantedMemberId] = useState<string | null>(null);
   const [firestoreSeeded, setFirestoreSeeded] = useState<boolean>(false);
+
+  const clearAuthError = () => setAuthError(null);
 
   // Live Community Data (starts with initial defaults until Firestore snapshot arrives)
   const [members, setMembers] = useState<Member[]>(initialMembers);
@@ -909,10 +916,42 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setModalPayload(null);
   };
 
-  // 1. Listen to Firebase Auth State & Resolve Admin / Member Role Grants
+  // 1. Complete any pending redirect sign-in and listen to Firebase Auth State
   useEffect(() => {
+    void (async () => {
+      try {
+        const res = await getRedirectResult(auth);
+        if (res?.user) {
+          setAuthError(null);
+          showToast(
+            t(
+              `Signed in as ${res.user.displayName || res.user.email}`,
+              `${res.user.displayName || res.user.email} হিসেবে লগইন সফল হয়েছে`
+            ),
+            'success'
+          );
+        }
+      } catch (err: any) {
+        console.error('Google redirect sign-in error:', err);
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        if (err?.code === 'auth/unauthorized-domain') {
+          setAuthError(
+            t(
+              `This domain (${host}) is not authorized for Google Sign-In. Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains.`,
+              `এই ডোমেইন (${host}) Google লগইনের জন্য অনুমোদিত নয়। Firebase Console → Authentication → Settings → Authorized domains-এ "${host}" যুক্ত করুন।`
+            )
+          );
+        } else if (err?.code) {
+          setAuthError(`${err.code}: ${err.message || 'Google Sign-In failed.'}`);
+        }
+      }
+    })();
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      if (user) {
+        setAuthError(null);
+      }
       if (!user || !user.emailVerified || !user.email) {
         setIsAdminLoggedIn(false);
         setGrantedRole(null);
@@ -1360,12 +1399,53 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [firebaseUser, members, isAdminLoggedIn, grantedRole, grantedMemberId]);
 
   // ───────── Authentication Actions ─────────
+  const formatAuthError = (err: any): string => {
+    const code = err?.code || '';
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    if (code === 'auth/unauthorized-domain') {
+      return t(
+        `Domain "${host}" is not authorized for Google Sign-In. Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains.`,
+        `ডোমেইন "${host}" Google লগইনের জন্য অনুমোদিত নয়। Firebase Console → Authentication → Settings → Authorized domains-এ "${host}" যুক্ত করুন।`
+      );
+    }
+    if (code === 'auth/popup-blocked') {
+      return t(
+        'Sign-in popup was blocked by your browser. Please allow popups or try again.',
+        'ব্রাউজার পপআপ ব্লক করেছে। পপআপ অনুমতি দিন অথবা আবার চেষ্টা করুন।'
+      );
+    }
+    if (code === 'auth/operation-not-supported-in-this-environment') {
+      return t(
+        'Popup sign-in is not supported in this browser environment. Opening redirect sign-in...',
+        'এই ব্রাউজারে পপআপ লগইন সমর্থিত নয়। রিডাইরেক্ট লগইন চালু হচ্ছে...'
+      );
+    }
+    if (code === 'auth/network-request-failed') {
+      return t(
+        'Network error while contacting Google. Please check your connection and try again.',
+        'নেটওয়ার্ক সমস্যার কারণে Google লগইন করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।'
+      );
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return t(
+        'Google Sign-In provider is disabled in Firebase Authentication settings.',
+        'Firebase Authentication-এ Google Sign-In চালু করা নেই।'
+      );
+    }
+    return err?.message
+      ? `${t('Google sign-in failed:', 'Google লগইন ব্যর্থ হয়েছে:')} ${err.message}`
+      : t('Google sign-in failed. Please try again.', 'Google লগইন সফল হয়নি। আবার চেষ্টা করুন।');
+  };
+
   const loginWithGoogle = async (): Promise<boolean> => {
+    setAuthError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       if (!user.emailVerified || !user.email) {
-        showToast(t('Please use a verified Google account.', 'যাচাইকৃত Google অ্যাকাউন্ট দিয়ে লগইন করুন।'), 'warning');
+        const msg = t('Please use a verified Google account.', 'যাচাইকৃত Google অ্যাকাউন্ট দিয়ে লগইন করুন।');
+        setAuthError(msg);
+        showToast(msg, 'warning');
         return false;
       }
       showToast(
@@ -1374,9 +1454,30 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       return true;
     } catch (err: any) {
-      const msg = err?.code === 'auth/popup-closed-by-user'
-        ? t('Google sign-in popup was closed.', 'Google লগইন পপআপ বন্ধ করা হয়েছে।')
-        : t('Google sign-in failed. Please try again.', 'Google লগইন সফল হয়নি। আবার চেষ্টা করুন।');
+      console.error('Google sign-in error:', err);
+      const code = err?.code || '';
+
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        showToast(t('Google sign-in popup was closed.', 'Google লগইন পপআপ বন্ধ করা হয়েছে।'), 'warning');
+        return false;
+      }
+
+      // Fallback to full-page redirect when popups are blocked or unsupported (e.g., mobile / in-app browsers)
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return false;
+        } catch (redirectErr: any) {
+          console.error('Google redirect fallback error:', redirectErr);
+          const msg = formatAuthError(redirectErr);
+          setAuthError(msg);
+          showToast(msg, 'warning');
+          return false;
+        }
+      }
+
+      const msg = formatAuthError(err);
+      setAuthError(msg);
       showToast(msg, 'warning');
       return false;
     }
@@ -1385,6 +1486,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logoutGoogle = async () => {
     try {
       await signOut(auth);
+      setAuthError(null);
       setCurrentMember(null);
       setIsAdminLoggedIn(false);
       showToast(t('Signed out successfully', 'সফলভাবে লগআউট হয়েছে'), 'info');
@@ -2230,6 +2332,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setTheme,
         firebaseUser,
         authLoading,
+        authError,
+        clearAuthError,
         loginWithGoogle,
         logoutGoogle,
         currentMember,

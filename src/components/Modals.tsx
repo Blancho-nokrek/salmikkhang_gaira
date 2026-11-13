@@ -28,6 +28,8 @@ export const Modals: React.FC<ModalsProps> = ({
     submitJoinRequest,
     firebaseUser,
     authLoading,
+    authError,
+    clearAuthError,
     loginWithGoogle,
     logoutGoogle,
     currentMember,
@@ -324,6 +326,20 @@ export const Modals: React.FC<ModalsProps> = ({
               </div>
             ) : (
               <div className="space-y-3">
+                {authError && (
+                  <div className="p-3 rounded-2xl bg-rose-50/90 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-xs text-rose-950 dark:text-rose-200 flex items-start justify-between gap-2">
+                    <span className="leading-relaxed break-words">{authError}</span>
+                    <button
+                      type="button"
+                      onClick={clearAuthError}
+                      className="p-0.5 text-rose-600 dark:text-rose-300 hover:text-rose-900 shrink-0"
+                      aria-label="Dismiss error"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => void handleGoogleSignIn()}
