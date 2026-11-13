@@ -1,4 +1,51 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  type User,
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import {
+  auth,
+  db,
+  googleProvider,
+  BOOTSTRAP_ADMIN_EMAIL,
+  OperationType,
+  handleFirestoreError,
+} from '../lib/firebase';
+import {
+  cleanObj,
+  clampStr,
+  sanitizeId,
+  toSettingsMainPayload,
+  toMemberPublicPayload,
+  toMemberPrivatePayload,
+  toResidentPublicPayload,
+  toResidentPrivatePayload,
+  toNewsPayload,
+  toEventPayload,
+  toProjectPayload,
+  toGalleryPayload,
+  toFundPayload,
+  toDiscussionPayload,
+  toNotificationPayload,
+  toJoinRequestPayload,
+  toMessagePayload,
+  fsSet,
+  fsDelete,
+  seedInitialFirestoreIfEmpty,
+  syncMemberRoleGrant,
+  removeMemberRoleGrant,
+} from '../lib/firestoreSync';
 import {
   Member,
   Role,
@@ -53,15 +100,21 @@ interface CommunityContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
 
+  // Firebase Auth Session
+  firebaseUser: User | null;
+  authLoading: boolean;
+  loginWithGoogle: () => Promise<boolean>;
+  logoutGoogle: () => Promise<void>;
+
   // Active Member Session & Auth
   currentMember: Member | null;
-  loginAsMember: (memberOrEmail: string, password?: string) => boolean;
+  loginAsMember: (memberOrEmail?: string, password?: string) => boolean | Promise<boolean>;
   logoutMember: () => void;
   quickSwitchMember: (memberId: string) => void;
 
   // Admin Session & Auth
   isAdminLoggedIn: boolean;
-  adminLogin: (password: string) => boolean;
+  adminLogin: (password?: string) => boolean | Promise<boolean>;
   adminLogout: () => void;
   registerMemberByAdmin: (data: {
     name: string;
@@ -192,7 +245,6 @@ const initialMembers: Member[] = [
     name: 'Blancho Nokrek',
     email: 'blancho.261071027@smuct.ac.bd',
     phone: '+880 1712-889900',
-    password: 'password123',
     role: 'General Secretary',
     status: 'Active',
     village: 'Gaira',
@@ -208,7 +260,6 @@ const initialMembers: Member[] = [
     name: 'Subrata Marak',
     email: 'subrata.cashier@example.com',
     phone: '+880 1715-443322',
-    password: 'password123',
     role: 'Cashier',
     status: 'Active',
     village: 'Gaira',
@@ -224,7 +275,6 @@ const initialMembers: Member[] = [
     name: 'Riton Chisim',
     email: 'riton.assis@example.com',
     phone: '+880 1819-778899',
-    password: 'password123',
     role: 'Assistant Cashier',
     status: 'Active',
     village: 'Jolchotro',
@@ -240,7 +290,6 @@ const initialMembers: Member[] = [
     name: 'Pritom Sangma',
     email: 'pritom.data@example.com',
     phone: '+880 1912-334455',
-    password: 'password123',
     role: 'Data Collector',
     status: 'Active',
     village: 'Gaira',
@@ -256,7 +305,6 @@ const initialMembers: Member[] = [
     name: 'Bipul Rema',
     email: 'bipul.president@example.com',
     phone: '+880 1711-998877',
-    password: 'password123',
     role: 'President',
     status: 'Active',
     village: 'Gaira',
@@ -272,7 +320,6 @@ const initialMembers: Member[] = [
     name: 'Suman Mankhin',
     email: 'suman.org@example.com',
     phone: '+880 1822-114477',
-    password: 'password123',
     role: 'Organizing Secretary',
     status: 'Active',
     village: 'Jolchotro',
@@ -288,7 +335,6 @@ const initialMembers: Member[] = [
     name: 'Nabila Rahman',
     email: 'nabila.media@example.com',
     phone: '+880 1799-556677',
-    password: 'password123',
     role: 'Publicity Secretary',
     status: 'Active',
     village: 'Jolchotro',
@@ -304,7 +350,6 @@ const initialMembers: Member[] = [
     name: 'Rakib Hasan',
     email: 'rakib.sports@example.com',
     phone: '+880 1819-445566',
-    password: 'password123',
     role: 'Sports & Cultural Secretary',
     status: 'Active',
     village: 'Gaira',
@@ -320,7 +365,6 @@ const initialMembers: Member[] = [
     name: 'Ayesha Akter',
     email: 'ayesha.welfare@example.com',
     phone: '+880 1711-223344',
-    password: 'password123',
     role: 'Social Welfare Secretary',
     status: 'Active',
     village: 'Jolchotro',
@@ -336,7 +380,6 @@ const initialMembers: Member[] = [
     name: 'Subir Rema',
     email: 'subir.advisor@example.com',
     phone: '+880 1723-556677',
-    password: 'password123',
     role: 'Advisor',
     status: 'Active',
     village: 'Gaira',
@@ -352,7 +395,6 @@ const initialMembers: Member[] = [
     name: 'Nusrat Jahan',
     email: 'nusrat.j@example.com',
     phone: '+880 1912-778899',
-    password: 'password123',
     role: 'Executive Member',
     status: 'Active',
     village: 'Jolchotro',
@@ -368,7 +410,6 @@ const initialMembers: Member[] = [
     name: 'Joyanto Marak',
     email: 'joyanto.m@example.com',
     phone: '+880 1733-882211',
-    password: 'password123',
     role: 'Member',
     status: 'Active',
     village: 'Gaira',
@@ -796,73 +837,48 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => mediaQuery.removeEventListener('change', listener);
   }, [theme]);
 
-  const setTheme = (t: Theme) => {
-    setThemeState(t);
-    safeStorage.set('salmikkhang_theme', t);
+  const setTheme = (tVal: Theme) => {
+    setThemeState(tVal);
+    safeStorage.set('salmikkhang_theme', tVal);
   };
 
-  const [members, setMembers] = useState<Member[]>(() => loadData('members', initialMembers));
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(() => loadData('joinRequests', initialJoinRequests));
-  const [events, setEvents] = useState<CommunityEvent[]>(() => loadData('events', initialEvents));
-  const [news, setNews] = useState<NewsItem[]>(() => loadData('news', initialNews));
-  const [notifications, setNotifications] = useState<MemberNotification[]>(() => loadData('notifications', initialNotifications));
-  const [projects, setProjects] = useState<Project[]>(() => loadData('projects', initialProjects));
-  const [gallery, setGallery] = useState<GalleryItem[]>(() => loadData('gallery', initialGallery));
-  const [messages, setMessages] = useState<ContactMessage[]>(() => loadData('messages', initialMessages));
-  const [discussions, setDiscussions] = useState<DiscussionPost[]>(() => loadData('discussions', initialDiscussions));
-  const [funds, setFunds] = useState<FundTransaction[]>(() => loadData('funds', initialDetailedFunds));
-  const [villageResidents, setVillageResidents] = useState<VillageResident[]>(() => loadData('villageResidents', initialVillageResidents));
-  const [settings, setSettings] = useState<CommunitySettings>(() => loadData('settings', initialSettings));
+  // Firebase Auth State
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [grantedRole, setGrantedRole] = useState<Role | null>(null);
+  const [grantedMemberId, setGrantedMemberId] = useState<string | null>(null);
+  const [firestoreSeeded, setFirestoreSeeded] = useState<boolean>(false);
 
-  // Current logged in member session
-  const [currentMember, setCurrentMember] = useState<Member | null>(() => {
-    const saved = safeStorage.get('salmikkhang_current_member_id');
-    if (saved) {
-      const found = members.find(m => m.id === saved || m.email === saved);
-      if (found) return found;
-    }
-    return null;
-  });
+  // Live Community Data (starts with initial defaults until Firestore snapshot arrives)
+  const [members, setMembers] = useState<Member[]>(initialMembers);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(initialJoinRequests);
+  const [events, setEvents] = useState<CommunityEvent[]>(initialEvents);
+  const [news, setNews] = useState<NewsItem[]>(initialNews);
+  const [notifications, setNotifications] = useState<MemberNotification[]>(initialNotifications);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [gallery, setGallery] = useState<GalleryItem[]>(initialGallery);
+  const [messages, setMessages] = useState<ContactMessage[]>(initialMessages);
+  const [discussions, setDiscussions] = useState<DiscussionPost[]>(initialDiscussions);
+  const [funds, setFunds] = useState<FundTransaction[]>(initialDetailedFunds);
+  const [villageResidents, setVillageResidents] = useState<VillageResident[]>(initialVillageResidents);
+  const [settingsMain, setSettingsMain] = useState<CommunitySettings>(initialSettings);
+  const [heroBgAsset, setHeroBgAsset] = useState<string | undefined>(undefined);
+  const [siteBgAsset, setSiteBgAsset] = useState<string | undefined>(undefined);
 
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    return safeStorage.get('salmikkhang_admin_auth') === 'true';
-  });
+  const settings: CommunitySettings = {
+    ...settingsMain,
+    ...(heroBgAsset ? { heroBackground: heroBgAsset } : {}),
+    ...(siteBgAsset ? { siteBackground: siteBgAsset } : {}),
+  };
+
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const seededOnceRef = useRef(false);
 
   // Modals & Feedback
   const [toast, setToast] = useState<ToastInfo | null>(null);
   const [activeModal, setActiveModal] = useState<'join' | 'contact' | 'login' | 'rsvp' | null>(null);
   const [modalPayload, setModalPayload] = useState<any>(null);
-
-  // Persistence helpers
-  function loadData<T>(key: string, fallback: T): T {
-    try {
-      const data = safeStorage.get(`${STORAGE_KEY}_${key}`);
-      return data ? JSON.parse(data) : fallback;
-    } catch (e) {
-      return fallback;
-    }
-  }
-
-  function saveData<T>(key: string, val: T) {
-    try {
-      safeStorage.set(`${STORAGE_KEY}_${key}`, JSON.stringify(val));
-    } catch (e) {
-      console.warn('Storage save failed:', e);
-    }
-  }
-
-  useEffect(() => saveData('members', members), [members]);
-  useEffect(() => saveData('joinRequests', joinRequests), [joinRequests]);
-  useEffect(() => saveData('events', events), [events]);
-  useEffect(() => saveData('news', news), [news]);
-  useEffect(() => saveData('notifications', notifications), [notifications]);
-  useEffect(() => saveData('projects', projects), [projects]);
-  useEffect(() => saveData('gallery', gallery), [gallery]);
-  useEffect(() => saveData('messages', messages), [messages]);
-  useEffect(() => saveData('discussions', discussions), [discussions]);
-  useEffect(() => saveData('funds', funds), [funds]);
-  useEffect(() => saveData('villageResidents', villageResidents), [villageResidents]);
-  useEffect(() => saveData('settings', settings), [settings]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -880,7 +896,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setToast({ message, type });
     setTimeout(() => {
       setToast(prev => (prev?.message === message ? null : prev));
-    }, 3200);
+    }, 3400);
   };
 
   const openModal = (modal: 'join' | 'contact' | 'login' | 'rsvp', payload?: any) => {
@@ -893,59 +909,515 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setModalPayload(null);
   };
 
-  // Member Authentication
-  const loginAsMember = (nameOrEmailOrPhone: string, password?: string): boolean => {
-    const q = nameOrEmailOrPhone.trim().toLowerCase();
-    const found = members.find(
-      m => m.email.toLowerCase() === q ||
-           m.name.toLowerCase() === q ||
-           m.phone.replace(/[\s-]/g, '').includes(q.replace(/[\s-]/g, ''))
+  // 1. Listen to Firebase Auth State & Resolve Admin / Member Role Grants
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user);
+      if (!user || !user.emailVerified || !user.email) {
+        setIsAdminLoggedIn(false);
+        setGrantedRole(null);
+        setGrantedMemberId(null);
+        setCurrentMember(null);
+        setAuthLoading(false);
+        return;
+      }
+
+      const emailLower = user.email.toLowerCase();
+      const isBootstrap = emailLower === BOOTSTRAP_ADMIN_EMAIL;
+      let adminAllowed = isBootstrap;
+
+      try {
+        if (!isBootstrap) {
+          const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+          if (adminSnap.exists()) adminAllowed = true;
+        }
+      } catch (err) {
+        console.warn('Admin doc lookup skipped:', err);
+      }
+
+      setIsAdminLoggedIn(adminAllowed);
+
+      // Seed initial Firestore data automatically on first Admin login
+      if (adminAllowed && !seededOnceRef.current) {
+        seededOnceRef.current = true;
+        try {
+          const didSeed = await seedInitialFirestoreIfEmpty({
+            settings: initialSettings,
+            members: initialMembers,
+            joinRequests: initialJoinRequests,
+            events: initialEvents,
+            news: initialNews,
+            notifications: initialNotifications,
+            projects: initialProjects,
+            gallery: initialGallery,
+            messages: initialMessages,
+            discussions: initialDiscussions,
+            funds: initialDetailedFunds,
+            villageResidents: initialVillageResidents,
+          });
+          if (didSeed) {
+            showToast(t('Cloud database initialized with community records!', 'ক্লাউড ডেটাবেস সফলভাবে সেটআপ হয়েছে!'), 'success');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      // Check role grant by verified email
+      try {
+        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
+        if (grantSnap.exists()) {
+          const data = grantSnap.data();
+          setGrantedRole((data.role as Role) || 'Member');
+          setGrantedMemberId(data.memberId || null);
+        } else {
+          setGrantedRole(adminAllowed ? 'President' : null);
+          setGrantedMemberId(null);
+        }
+      } catch (err) {
+        console.warn('Role grant lookup:', err);
+        setGrantedRole(adminAllowed ? 'President' : null);
+      }
+
+      setAuthLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  // 2. Public Firestore Listeners (always active for all website visitors)
+  useEffect(() => {
+    const unsubs: (() => void)[] = [];
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'settings', 'main'),
+        (snap) => {
+          if (snap.exists()) {
+            setFirestoreSeeded(true);
+            setSettingsMain(snap.data() as CommunitySettings);
+          } else {
+            setFirestoreSeeded(false);
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'settings/main')
+      )
     );
-    if (found) {
-      if (password && found.password && found.password !== password && password !== '123456') {
-        showToast(t('Incorrect password for this member account.', 'সদস্যের পাসওয়ার্ডটি সঠিক নয়।'), 'warning');
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'settings', 'heroBackground'),
+        (snap) => {
+          setHeroBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'settings/heroBackground')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'settings', 'siteBackground'),
+        (snap) => {
+          setSiteBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
+        },
+        (error) => handleFirestoreError(error, OperationType.GET, 'settings/siteBackground')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'projects'), where('status', 'in', ['Ongoing', 'Planning', 'Completed'])),
+        (snap) => {
+          if (!snap.empty || firestoreSeeded) {
+            setProjects(snap.docs.map(d => d.data() as Project));
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'projects')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'gallery'), where('visibility', '==', 'public')),
+        (snap) => {
+          if (!snap.empty || firestoreSeeded) {
+            const list = snap.docs.map(d => d.data() as GalleryItem);
+            list.sort((a, b) => b.date.localeCompare(a.date));
+            setGallery(list);
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'gallery')
+      )
+    );
+
+    return () => unsubs.forEach(u => u());
+  }, [firestoreSeeded]);
+
+  // 3. News & Events Listeners (public-only for guests; full list when signed in)
+  useEffect(() => {
+    const isVerified = Boolean(firebaseUser?.emailVerified && firebaseUser?.email);
+    const newsQuery = isVerified
+      ? query(collection(db, 'news'), where('status', 'in', ['Published', 'Draft']))
+      : query(collection(db, 'news'), where('visibility', '==', 'public'));
+
+    const eventsQuery = isVerified
+      ? query(collection(db, 'events'), where('status', 'in', ['Upcoming', 'Past', 'Planning']))
+      : query(collection(db, 'events'), where('visibility', '==', 'public'));
+
+    const unsubNews = onSnapshot(
+      newsQuery,
+      (snap) => {
+        if (!snap.empty || firestoreSeeded) {
+          const items = snap.docs.map(d => d.data() as NewsItem);
+          items.sort((a, b) => b.date.localeCompare(a.date));
+          setNews(items);
+        }
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'news')
+    );
+
+    const unsubEvents = onSnapshot(
+      eventsQuery,
+      (snap) => {
+        if (!snap.empty || firestoreSeeded) {
+          const items = snap.docs.map(d => d.data() as CommunityEvent);
+          items.sort((a, b) => a.date.localeCompare(b.date));
+          setEvents(items);
+        }
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'events')
+    );
+
+    return () => {
+      unsubNews();
+      unsubEvents();
+    };
+  }, [firebaseUser, firestoreSeeded]);
+
+  // 4. Member & Authenticated Listeners (only attached when verified user is signed in)
+  useEffect(() => {
+    if (!firebaseUser?.emailVerified || !firebaseUser?.email) return;
+
+    const uid = firebaseUser.uid;
+    const emailLower = firebaseUser.email.toLowerCase();
+    const unsubs: (() => void)[] = [];
+
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'members'), where('status', 'in', ['Active', 'Inactive'])),
+        async (snap) => {
+          if (snap.empty && !firestoreSeeded) return;
+          const baseMembers = snap.docs.map(d => ({
+            ...(d.data() as Member),
+            email: (d.data() as Member).ownerEmail || '',
+            phone: '',
+          }));
+
+          // Hydrate private contact info only for Admin or the member owner
+          const hydrated = await Promise.all(
+            baseMembers.map(async (m) => {
+              const isOwner =
+                m.ownerUid === uid || (m.ownerEmail && m.ownerEmail.toLowerCase() === emailLower);
+              if (!isAdminLoggedIn && !isOwner) return m;
+              try {
+                const privSnap = await getDoc(doc(db, 'members', m.id, 'private', 'contact'));
+                if (privSnap.exists()) {
+                  const pData = privSnap.data();
+                  return {
+                    ...m,
+                    email: pData.email || m.email,
+                    phone: pData.phone || '',
+                  };
+                }
+              } catch {
+                // Keep non-PII fields if private doc is restricted
+              }
+              return m;
+            })
+          );
+
+          hydrated.sort((a, b) => a.memberNo.localeCompare(b.memberNo));
+          setMembers(hydrated);
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'members')
+      )
+    );
+
+    const isCollector = isAdminLoggedIn || grantedRole === 'Data Collector';
+
+    if (isCollector) {
+      const residentGroupA = ['General Resident', 'Eligible for Aid', 'Senior Citizen'];
+      const residentGroupB = ['Student / Youth', 'Medical Assistance', 'Farmer / Daily Wage Earner'];
+      let groupARows: VillageResident[] = [];
+      let groupBRows: VillageResident[] = [];
+      let groupAReady = false;
+      let groupBReady = false;
+
+      const hydrateAndPublishResidents = async () => {
+        if (!groupAReady && !groupBReady) return;
+        const combinedMap = new Map<string, VillageResident>();
+        for (const r of [...groupARows, ...groupBRows]) {
+          combinedMap.set(r.id, r);
+        }
+        const baseResidents = Array.from(combinedMap.values());
+        if (baseResidents.length === 0 && !firestoreSeeded) return;
+
+        const hydrated = await Promise.all(
+          baseResidents.map(async (r) => {
+            try {
+              const privSnap = await getDoc(doc(db, 'villageResidents', r.id, 'private', 'info'));
+              if (privSnap.exists()) {
+                const p = privSnap.data();
+                return {
+                  ...r,
+                  guardianName: p.guardianName || '',
+                  phone: p.phone || '',
+                  nidOrBirthCert: p.nidOrBirthCert || '',
+                };
+              }
+            } catch {
+              // Keep non-PII census fields
+            }
+            return r;
+          })
+        );
+
+        hydrated.sort((a, b) => b.collectedDate.localeCompare(a.collectedDate));
+        setVillageResidents(hydrated);
+      };
+
+      const mapResidentSnapshot = (snap: { docs: Array<{ data: () => unknown }> }): VillageResident[] =>
+        snap.docs.map(d => ({
+          ...(d.data() as VillageResident),
+          guardianName: '',
+          phone: '',
+          nidOrBirthCert: '',
+        }));
+
+      unsubs.push(
+        onSnapshot(
+          query(collection(db, 'villageResidents'), where('aidStatus', 'in', residentGroupA)),
+          async (snap) => {
+            groupAReady = true;
+            groupARows = mapResidentSnapshot(snap);
+            await hydrateAndPublishResidents();
+          },
+          (error) => handleFirestoreError(error, OperationType.LIST, 'villageResidents')
+        )
+      );
+
+      unsubs.push(
+        onSnapshot(
+          query(collection(db, 'villageResidents'), where('aidStatus', 'in', residentGroupB)),
+          async (snap) => {
+            groupBReady = true;
+            groupBRows = mapResidentSnapshot(snap);
+            await hydrateAndPublishResidents();
+          },
+          (error) => handleFirestoreError(error, OperationType.LIST, 'villageResidents')
+        )
+      );
+    } else {
+      setVillageResidents([]);
+    }
+
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'funds'), where('type', 'in', ['Inflow', 'Outflow'])),
+        (snap) => {
+          if (!snap.empty || firestoreSeeded) {
+            const list = snap.docs.map(d => d.data() as FundTransaction);
+            list.sort((a, b) => b.date.localeCompare(a.date));
+            setFunds(list);
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'funds')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        query(
+          collection(db, 'discussions'),
+          where('category', 'in', ['General', 'Project Idea', 'Question', 'Event Prep'])
+        ),
+        (snap) => {
+          if (!snap.empty || firestoreSeeded) {
+            const list = snap.docs.map(d => {
+              const data = d.data() as DiscussionPost;
+              return {
+                ...data,
+                likedByMe: Array.isArray(data.likedByUids) ? data.likedByUids.includes(uid) : false,
+              };
+            });
+            list.sort((a, b) => b.date.localeCompare(a.date));
+            setDiscussions(list);
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'discussions')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'notifications'), where('type', 'in', ['notice', 'event', 'system'])),
+        (snap) => {
+          if (!snap.empty || firestoreSeeded) {
+            const list = snap.docs.map(d => d.data() as MemberNotification);
+            list.sort((a, b) => b.date.localeCompare(a.date));
+            setNotifications(list);
+          }
+        },
+        (error) => handleFirestoreError(error, OperationType.LIST, 'notifications')
+      )
+    );
+
+    return () => unsubs.forEach(u => u());
+  }, [firebaseUser, isAdminLoggedIn, grantedRole, firestoreSeeded]);
+
+  // 5. Admin-Only Listeners (Join Requests & Contact Inbox)
+  useEffect(() => {
+    if (
+      !isAdminLoggedIn ||
+      !firebaseUser?.emailVerified ||
+      firebaseUser.email?.toLowerCase() !== BOOTSTRAP_ADMIN_EMAIL
+    ) {
+      return;
+    }
+
+    const unsubRequests = onSnapshot(
+      collection(db, 'joinRequests'),
+      (snap) => {
+        if (!snap.empty || firestoreSeeded) {
+          const list = snap.docs.map(d => d.data() as JoinRequest);
+          list.sort((a, b) => b.date.localeCompare(a.date));
+          setJoinRequests(list);
+        }
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'joinRequests')
+    );
+
+    const unsubMessages = onSnapshot(
+      collection(db, 'messages'),
+      (snap) => {
+        if (!snap.empty || firestoreSeeded) {
+          const list = snap.docs.map(d => d.data() as ContactMessage);
+          list.sort((a, b) => b.date.localeCompare(a.date));
+          setMessages(list);
+        }
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'messages')
+    );
+
+    return () => {
+      unsubRequests();
+      unsubMessages();
+    };
+  }, [isAdminLoggedIn, firebaseUser, firestoreSeeded]);
+
+  // 6. Sync currentMember profile from signed-in Google user + live members list
+  useEffect(() => {
+    if (!firebaseUser?.emailVerified || !firebaseUser?.email) {
+      setCurrentMember(null);
+      return;
+    }
+
+    const emailLower = firebaseUser.email.toLowerCase();
+    const matched = members.find(
+      m =>
+        (grantedMemberId && m.id === grantedMemberId) ||
+        m.ownerEmail?.toLowerCase() === emailLower ||
+        m.email?.toLowerCase() === emailLower
+    );
+
+    if (matched) {
+      setCurrentMember({
+        ...matched,
+        role: grantedRole || matched.role,
+      });
+    } else if (isAdminLoggedIn || grantedRole) {
+      setCurrentMember({
+        id: `auth-${firebaseUser.uid}`,
+        memberNo: isAdminLoggedIn ? 'SMK-ADMIN' : 'SMK-MEMBER',
+        name: firebaseUser.displayName || 'Community Executive',
+        email: emailLower,
+        phone: '',
+        role: grantedRole || 'President',
+        status: 'Active',
+        village: 'Gaira',
+        bloodGroup: 'O+',
+        skills: ['Community Leadership'],
+        interests: ['Village Development'],
+        joinDate: new Date().toISOString().split('T')[0],
+        avatar: firebaseUser.photoURL || '',
+        bio: 'Verified Salmikkhang Youth Council account.',
+        ownerUid: firebaseUser.uid,
+        ownerEmail: emailLower,
+      });
+    } else {
+      setCurrentMember(null);
+    }
+  }, [firebaseUser, members, isAdminLoggedIn, grantedRole, grantedMemberId]);
+
+  // ───────── Authentication Actions ─────────
+  const loginWithGoogle = async (): Promise<boolean> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      if (!user.emailVerified || !user.email) {
+        showToast(t('Please use a verified Google account.', 'যাচাইকৃত Google অ্যাকাউন্ট দিয়ে লগইন করুন।'), 'warning');
         return false;
       }
-      setCurrentMember(found);
-      safeStorage.set('salmikkhang_current_member_id', found.id);
-      showToast(t(`Welcome back, ${found.name}!`, `স্বাগতম, ${found.name}!`), 'success');
+      showToast(
+        t(`Signed in as ${user.displayName || user.email}`, `${user.displayName || user.email} হিসেবে লগইন সফল হয়েছে`),
+        'success'
+      );
       return true;
+    } catch (err: any) {
+      const msg = err?.code === 'auth/popup-closed-by-user'
+        ? t('Google sign-in popup was closed.', 'Google লগইন পপআপ বন্ধ করা হয়েছে।')
+        : t('Google sign-in failed. Please try again.', 'Google লগইন সফল হয়নি। আবার চেষ্টা করুন।');
+      showToast(msg, 'warning');
+      return false;
     }
-    showToast(t('Member not found. Only registered members can log in.', 'সদস্যের তথ্য পাওয়া যায়নি। শুধুমাত্র নিবন্ধিত সদস্যরাই লগইন করতে পারবেন।'), 'warning');
-    return false;
+  };
+
+  const logoutGoogle = async () => {
+    try {
+      await signOut(auth);
+      setCurrentMember(null);
+      setIsAdminLoggedIn(false);
+      showToast(t('Signed out successfully', 'সফলভাবে লগআউট হয়েছে'), 'info');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loginAsMember = async (): Promise<boolean> => {
+    return loginWithGoogle();
   };
 
   const logoutMember = () => {
-    setCurrentMember(null);
-    safeStorage.remove('salmikkhang_current_member_id');
-    showToast(t('Logged out successfully', 'সফলভাবে লগআউট হয়েছে'), 'info');
+    void logoutGoogle();
   };
 
-  // Admin Authentication
-  const adminLogin = (password: string): boolean => {
-    const trimmed = password.trim();
-    if (trimmed === 'salmikkhang2026' || trimmed === 'admin' || trimmed === '1234' || trimmed === 'admin123') {
-      setIsAdminLoggedIn(true);
-      safeStorage.set('salmikkhang_admin_auth', 'true');
-      showToast(t('Admin login successful! Welcome to Executive Workspace.', 'অ্যাডমিন লগইন সফল হয়েছে! ড্যাশবোর্ডে স্বাগতম।'), 'success');
-      return true;
-    }
-    showToast(t('Incorrect password! Default is: salmikkhang2026 or admin', 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড: salmikkhang2026 অথবা admin'), 'warning');
-    return false;
+  const adminLogin = async (): Promise<boolean> => {
+    const ok = await loginWithGoogle();
+    return ok;
   };
 
   const adminLogout = () => {
-    setIsAdminLoggedIn(false);
-    safeStorage.remove('salmikkhang_admin_auth');
-    showToast(t('Logged out from Admin Workspace', 'অ্যাডমিন প্যানেল থেকে সফলভাবে লগআউট হয়েছে'), 'info');
+    void logoutGoogle();
   };
 
   const quickSwitchMember = (memberId: string) => {
     const found = members.find(m => m.id === memberId);
-    if (found) {
+    if (found && isAdminLoggedIn) {
       setCurrentMember(found);
-      safeStorage.set('salmikkhang_current_member_id', found.id);
-      showToast(t(`Switched to active session: ${found.name} (${found.role})`, `${found.name} (${found.role}) হিসেবে অ্যাক্টিভ সেশন স্যুইচ করা হয়েছে`), 'success');
+      showToast(
+        t(`Previewing profile: ${found.name} (${found.role})`, `${found.name} (${found.role}) প্রোফাইল প্রিভিউ চলছে`),
+        'info'
+      );
     }
   };
 
@@ -979,52 +1451,99 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const assignMemberRole = (memberId: string, newRole: Role) => {
-    if (!isAdminLoggedIn && currentMember?.role !== 'President' && currentMember?.role !== 'General Secretary' && currentMember?.role !== 'Organizing Secretary') {
-      showToast(t('Permission denied! Only Admin or Executive Leadership can assign roles.', 'অনুমতি নেই! শুধুমাত্র অ্যাডমিন বা নির্বাহী নেতৃত্ব পদবি নির্ধারণ করতে পারবেন।'), 'warning');
+    if (!isAdminLoggedIn) {
+      showToast(
+        t('Permission denied! Only Admin can assign roles in the database.', 'অনুমতি নেই! শুধুমাত্র অ্যাডমিন ডেটাবেসে পদবি নির্ধারণ করতে পারবেন।'),
+        'warning'
+      );
       return;
     }
-    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+    const target = members.find(m => m.id === memberId);
+    if (!target) return;
+    const updated: Member = { ...target, role: newRole };
+    setMembers(prev => prev.map(m => (m.id === memberId ? updated : m)));
     if (currentMember?.id === memberId) {
-      setCurrentMember(prev => prev ? { ...prev, role: newRole } : null);
+      setCurrentMember(prev => (prev ? { ...prev, role: newRole } : null));
     }
+    void (async () => {
+      await fsSet(`members/${sanitizeId(memberId)}`, toMemberPublicPayload(updated), OperationType.UPDATE);
+      await syncMemberRoleGrant(updated);
+    })();
     showToast(t(`Role updated to ${newRole}`, `নতুন পদবি ${newRole} নির্ধারণ করা হয়েছে`), 'success');
   };
 
   // Village Public Records (Confidential to Members & Admin; Add/Edit by Admin & Data Collector)
   const addVillageResident = (data: Omit<VillageResident, 'id' | 'residentNo' | 'collectedDate'>): boolean => {
     if (!canCollectDataPermission()) {
-      showToast(t('Access Denied: Only Admin or authorized Data Collector can add resident records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন বা দায়িত্বপ্রাপ্ত তথ্য সংগ্রাহক নাগরিক তথ্য যোগ করতে পারেন।'), 'warning');
+      showToast(
+        t('Access Denied: Only Admin or authorized Data Collector can add resident records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন বা দায়িত্বপ্রাপ্ত তথ্য সংগ্রাহক নাগরিক তথ্য যোগ করতে পারেন।'),
+        'warning'
+      );
       return false;
     }
     const newNo = `RES-2026-${String(villageResidents.length + 1).padStart(3, '0')}`;
+    const uid = auth.currentUser?.uid || 'admin';
     const newResident: VillageResident = {
       ...data,
       id: `res-${Date.now()}`,
       residentNo: newNo,
       collectedDate: new Date().toISOString().split('T')[0],
-      collectedBy: isAdminLoggedIn ? 'Admin Council' : (currentMember?.name ? `${currentMember.name} (${currentMember.role})` : 'Data Collector')
+      collectedBy: isAdminLoggedIn
+        ? 'Admin Council'
+        : currentMember?.name
+        ? `${currentMember.name} (${currentMember.role})`
+        : 'Data Collector',
+      collectedByUid: uid,
     };
     setVillageResidents(prev => [newResident, ...prev]);
+    void (async () => {
+      const rId = sanitizeId(newResident.id);
+      await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(newResident, uid), OperationType.CREATE);
+      await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(newResident, uid), OperationType.CREATE);
+    })();
     showToast(t(`Resident ${newResident.name} recorded into registry!`, `নাগরিক ${newResident.name}-এর তথ্য সফলভাবে সংরক্ষিত হয়েছে!`), 'success');
     return true;
   };
 
   const updateVillageResident = (id: string, updated: Partial<VillageResident>): boolean => {
     if (!canCollectDataPermission()) {
-      showToast(t('Access Denied: Only Admin or authorized Data Collector can edit resident records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন বা দায়িত্বপ্রাপ্ত তথ্য সংগ্রাহক নাগরিক তথ্য এডিট করতে পারেন।'), 'warning');
+      showToast(
+        t('Access Denied: Only Admin or authorized Data Collector can edit resident records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন বা দায়িত্বপ্রাপ্ত তথ্য সংগ্রাহক নাগরিক তথ্য এডিট করতে পারেন।'),
+        'warning'
+      );
       return false;
     }
-    setVillageResidents(prev => prev.map(r => r.id === id ? { ...r, ...updated, updatedDate: new Date().toISOString().split('T')[0] } : r));
+    const existingRes = villageResidents.find(r => r.id === id);
+    if (!existingRes) return false;
+    const merged: VillageResident = {
+      ...existingRes,
+      ...updated,
+      updatedDate: new Date().toISOString().split('T')[0],
+    };
+    setVillageResidents(prev => prev.map(r => (r.id === id ? merged : r)));
+    void (async () => {
+      const rId = sanitizeId(id);
+      await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(merged), OperationType.UPDATE);
+      await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(merged), OperationType.UPDATE);
+    })();
     showToast(t('Resident record updated successfully', 'নাগরিক তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
     return true;
   };
 
   const deleteVillageResident = (id: string): boolean => {
-    if (!canCollectDataPermission()) {
-      showToast(t('Access Denied: Only Admin or authorized Data Collector can delete records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন বা তথ্য সংগ্রাহক রেকর্ড মুছতে পারেন।'), 'warning');
+    if (!isAdminLoggedIn) {
+      showToast(
+        t('Access Denied: Only Admin can delete resident records.', 'অনুমতি নেই: শুধুমাত্র অ্যাডমিন নাগরিক তথ্য মুছতে পারবেন।'),
+        'warning'
+      );
       return false;
     }
     setVillageResidents(prev => prev.filter(r => r.id !== id));
+    void (async () => {
+      const rId = sanitizeId(id);
+      await fsDelete(`villageResidents/${rId}/private/info`);
+      await fsDelete(`villageResidents/${rId}`);
+    })();
     showToast(t('Resident record deleted', 'তথ্যটি মুছে ফেলা হয়েছে'), 'info');
     return true;
   };
@@ -1032,38 +1551,55 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Funds Management (Admin, Cashier, Assistant Cashier)
   const addFundTransaction = (txn: Omit<FundTransaction, 'id'>): boolean => {
     if (!canManageFundsPermission()) {
-      showToast(t('Access Denied: Only Cashier, Assistant Cashier, or Admin can manage funds.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন তহবিল এন্ট্রি ও হিসাব পরিচালনা করতে পারেন।'), 'warning');
+      showToast(
+        t('Access Denied: Only Cashier, Assistant Cashier, or Admin can manage funds.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন তহবিল এন্ট্রি ও হিসাব পরিচালনা করতে পারেন।'),
+        'warning'
+      );
       return false;
     }
+    const uid = auth.currentUser?.uid || 'admin';
     const voucherNo = txn.voucherNo || `VCH-2026-${String(funds.length + 1).padStart(3, '0')}`;
     const recordedBy = txn.recordedBy || (isAdminLoggedIn ? 'Admin Council' : `${currentMember?.name} (${currentMember?.role})`);
     const newTxn: FundTransaction = {
       ...txn,
       id: `f-${Date.now()}`,
       voucherNo,
-      recordedBy
+      recordedBy,
+      recordedByUid: uid,
     };
     setFunds(prev => [newTxn, ...prev]);
+    void fsSet(`funds/${sanitizeId(newTxn.id)}`, toFundPayload(newTxn, uid), OperationType.CREATE);
     showToast(t(`Voucher ${voucherNo} for ৳${txn.amount.toLocaleString()} recorded!`, `৳${txn.amount.toLocaleString()} টাকার ভাউচার ${voucherNo} সফলভাবে যুক্ত হয়েছে!`), 'success');
     return true;
   };
 
   const deleteFundTransaction = (id: string): boolean => {
     if (!canManageFundsPermission()) {
-      showToast(t('Access Denied: Only Cashier, Assistant Cashier, or Admin can delete transactions.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন লেনদেন বাতিল করতে পারেন।'), 'warning');
+      showToast(
+        t('Access Denied: Only Cashier, Assistant Cashier, or Admin can delete transactions.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন লেনদেন বাতিল করতে পারেন।'),
+        'warning'
+      );
       return false;
     }
     setFunds(prev => prev.filter(f => f.id !== id));
+    void fsDelete(`funds/${sanitizeId(id)}`);
     showToast(t('Transaction voucher deleted from ledger', 'ভাউচারটি সফলভাবে বাতিল করা হয়েছে'), 'info');
     return true;
   };
 
   const updateFundTransaction = (id: string, updated: Partial<FundTransaction>): boolean => {
     if (!canManageFundsPermission()) {
-      showToast(t('Access Denied: Only Cashier, Assistant Cashier, or Admin can edit transactions.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন লেনদেন এডিট করতে পারেন।'), 'warning');
+      showToast(
+        t('Access Denied: Only Cashier, Assistant Cashier, or Admin can edit transactions.', 'অনুমতি নেই: শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন লেনদেন এডিট করতে পারেন।'),
+        'warning'
+      );
       return false;
     }
-    setFunds(prev => prev.map(f => f.id === id ? { ...f, ...updated } : f));
+    const existingTxn = funds.find(f => f.id === id);
+    if (!existingTxn) return false;
+    const merged = { ...existingTxn, ...updated };
+    setFunds(prev => prev.map(f => (f.id === id ? merged : f)));
+    void fsSet(`funds/${sanitizeId(id)}`, toFundPayload(merged), OperationType.UPDATE);
     showToast(t('Transaction record updated', 'লেনদেনের বিবরণ সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
     return true;
   };
@@ -1082,13 +1618,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     avatar?: string;
     bio?: string;
   }) => {
+    if (!isAdminLoggedIn) {
+      showToast(t('Only Admin can register members.', 'শুধুমাত্র অ্যাডমিন নতুন সদস্য নিবন্ধন করতে পারেন।'), 'warning');
+      return;
+    }
+    const emailLower = data.email.trim().toLowerCase();
     const newMember: Member = {
       id: `m-${Date.now()}`,
       memberNo: `SMK-2026-00${members.length + 1}`,
       name: data.name,
-      email: data.email,
+      email: emailLower,
       phone: data.phone,
-      password: data.password || 'password123',
       role: data.role || 'Member',
       status: 'Active',
       village: data.village || 'Gaira',
@@ -1097,12 +1637,21 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       interests: data.interests || ['Community Care'],
       joinDate: new Date().toISOString().split('T')[0],
       avatar: data.avatar || '',
-      bio: data.bio || 'Registered youth member of Salmikkhang community.'
+      bio: data.bio || 'Registered youth member of Salmikkhang community.',
+      ownerEmail: emailLower,
     };
     setMembers(prev => [newMember, ...prev]);
+    void (async () => {
+      const mId = sanitizeId(newMember.id);
+      await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
+      await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
+      await syncMemberRoleGrant(newMember);
+    })();
     showToast(
-      t(`Member ${newMember.name} registered! ID: ${newMember.memberNo}. They can now login with password: ${newMember.password}`,
-        `সদস্য ${newMember.name} নিবন্ধিত হয়েছেন! আইডি: ${newMember.memberNo}। পাসওয়ার্ড: ${newMember.password}`),
+      t(
+        `Member ${newMember.name} registered! ID: ${newMember.memberNo}. They can sign in with Google (${emailLower}).`,
+        `সদস্য ${newMember.name} নিবন্ধিত হয়েছেন! আইডি: ${newMember.memberNo}। Google (${emailLower}) দিয়ে লগইন করতে পারবেন।`
+      ),
       'success'
     );
   };
@@ -1113,9 +1662,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...req,
       id: `jr-${Date.now()}`,
       status: 'Pending',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
     };
     setJoinRequests(prev => [newReq, ...prev]);
+    void fsSet(`joinRequests/${sanitizeId(newReq.id)}`, toJoinRequestPayload(newReq), OperationType.CREATE);
     showToast(
       t('Application sent to Admin! The council will verify your information and register you.', 'আবেদনটি অ্যাডমিনের নিকট পাঠানো হয়েছে! তথ্যাদি যাচাই করে অ্যাডমিন আপনাকে নিবন্ধন করবেন।'),
       'success'
@@ -1123,49 +1673,120 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const approveJoinRequest = (requestId: string, role: Member['role'] = 'Member') => {
+    if (!isAdminLoggedIn) return;
     const req = joinRequests.find(r => r.id === requestId);
     if (!req) return;
 
+    const emailLower = (req.email || '').trim().toLowerCase();
     const newMember: Member = {
       id: `m-${Date.now()}`,
       memberNo: `SMK-2026-00${members.length + 1}`,
       name: req.name,
-      email: req.email,
+      email: emailLower,
       phone: req.phone,
-      password: 'password123',
-      role: role,
+      role,
       status: 'Active',
       village: req.village,
       bloodGroup: req.bloodGroup || 'O+',
       skills: req.skills ? req.skills.split(',').map(s => s.trim()) : ['Volunteering'],
       interests: req.interests ? req.interests.split(',').map(s => s.trim()) : ['Community Development'],
       joinDate: new Date().toISOString().split('T')[0],
-      bio: req.reason || 'Active member of Salmikkhang Youth Community.'
+      bio: req.reason || 'Active member of Salmikkhang Youth Community.',
+      ownerEmail: emailLower,
     };
 
+    const updatedReq: JoinRequest = { ...req, status: 'Approved' };
     setMembers(prev => [newMember, ...prev]);
-    setJoinRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'Approved' } : r));
-    showToast(t(`${req.name} has been enrolled as an active member (Password: password123)!`, `${req.name}-কে সদস্য হিসেবে নিবন্ধন করা হয়েছে (পাসওয়ার্ড: password123)!`), 'success');
+    setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+
+    void (async () => {
+      const mId = sanitizeId(newMember.id);
+      await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
+      await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
+      await syncMemberRoleGrant(newMember);
+      await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
+    })();
+
+    showToast(
+      t(`${req.name} has been enrolled as an active member!`, `${req.name}-কে সদস্য হিসেবে নিবন্ধন করা হয়েছে!`),
+      'success'
+    );
   };
 
   const rejectJoinRequest = (requestId: string) => {
-    setJoinRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'Rejected' } : r));
+    if (!isAdminLoggedIn) return;
+    const req = joinRequests.find(r => r.id === requestId);
+    if (!req) return;
+    const updatedReq: JoinRequest = { ...req, status: 'Rejected' };
+    setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+    void fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
     showToast(t('Join request status updated to Rejected', 'আবেদনটি বাতিল হিসেবে চিহ্নিত হয়েছে'), 'info');
   };
 
   const updateMember = (id: string, updated: Partial<Member>) => {
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, ...updated } : m));
+    const existingMember = members.find(m => m.id === id);
+    if (!existingMember) return;
+    const merged: Member = {
+      ...existingMember,
+      ...updated,
+      ownerEmail: (updated.email || existingMember.ownerEmail || existingMember.email || '').toLowerCase(),
+    };
+    setMembers(prev => prev.map(m => (m.id === id ? merged : m)));
     if (currentMember?.id === id) {
-      setCurrentMember(prev => prev ? { ...prev, ...updated } : null);
+      setCurrentMember(prev => (prev ? { ...prev, ...updated } : null));
+    }
+
+    const mId = sanitizeId(id);
+    if (isAdminLoggedIn) {
+      void (async () => {
+        await fsSet(`members/${mId}`, toMemberPublicPayload(merged), OperationType.UPDATE);
+        await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(merged), OperationType.UPDATE);
+        await syncMemberRoleGrant(merged);
+      })();
+    } else if (auth.currentUser?.uid) {
+      const uid = auth.currentUser.uid;
+      void (async () => {
+        try {
+          await updateDoc(
+            doc(db, 'members', mId),
+            cleanObj({
+              ...(updated.village !== undefined ? { village: clampStr(updated.village, 100) } : {}),
+              ...(updated.bloodGroup !== undefined ? { bloodGroup: clampStr(updated.bloodGroup, 10) } : {}),
+              ...(updated.bio !== undefined ? { bio: clampStr(updated.bio, 1000) } : {}),
+              ...(updated.avatar !== undefined ? { avatar: clampStr(updated.avatar, 450000) } : {}),
+              ownerUid: uid,
+            })
+          );
+          if (updated.phone !== undefined) {
+            await updateDoc(
+              doc(db, 'members', mId, 'private', 'contact'),
+              cleanObj({
+                phone: clampStr(updated.phone, 40),
+                ownerUid: uid,
+              })
+            );
+          }
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `members/${mId}`);
+        }
+      })();
     }
     showToast(t('Member details updated', 'সদস্যের তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
   };
 
   const deleteMember = (id: string) => {
+    if (!isAdminLoggedIn) return;
+    const target = members.find(m => m.id === id);
     setMembers(prev => prev.filter(m => m.id !== id));
     if (currentMember?.id === id) {
       setCurrentMember(null);
     }
+    void (async () => {
+      const mId = sanitizeId(id);
+      await fsDelete(`members/${mId}/private/contact`);
+      await fsDelete(`members/${mId}`);
+      if (target?.email) await removeMemberRoleGrant(target.email);
+    })();
     showToast(t('Member removed from directory', 'সদস্য তালিকা থেকে অপসারিত হয়েছে'), 'info');
   };
 
@@ -1174,9 +1795,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...msg,
       id: `msg-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
-      status: 'Unread'
+      status: 'Unread',
     };
     setMessages(prev => [newMsg, ...prev]);
+    void fsSet(`messages/${sanitizeId(newMsg.id)}`, toMessagePayload(newMsg), OperationType.CREATE);
     showToast(
       t('Your message has been sent to Salmikkhang organizers!', 'আপনার বার্তা সফলভাবে সালমিকখাং আয়োজকদের কাছে পাঠানো হয়েছে!'),
       'success'
@@ -1184,43 +1806,67 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const markMessageStatus = (id: string, status: ContactMessage['status']) => {
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, status } : m));
+    if (!isAdminLoggedIn) return;
+    const existingMsg = messages.find(m => m.id === id);
+    if (!existingMsg) return;
+    const merged: ContactMessage = { ...existingMsg, status };
+    setMessages(prev => prev.map(m => (m.id === id ? merged : m)));
+    void fsSet(`messages/${sanitizeId(id)}`, toMessagePayload(merged), OperationType.UPDATE);
   };
 
   const deleteMessage = (id: string) => {
+    if (!isAdminLoggedIn) return;
     setMessages(prev => prev.filter(m => m.id !== id));
+    void fsDelete(`messages/${sanitizeId(id)}`);
     showToast(t('Message deleted', 'বার্তা মুছে ফেলা হয়েছে'), 'info');
   };
 
   const toggleEventRsvp = (eventId: string, userNameOrEmail: string) => {
-    setEvents(prev =>
-      prev.map(ev => {
-        if (ev.id !== eventId) return ev;
-        const exists = ev.rsvps.includes(userNameOrEmail);
-        const updatedRsvps = exists
-          ? ev.rsvps.filter(u => u !== userNameOrEmail)
-          : [...ev.rsvps, userNameOrEmail];
-        
-        showToast(
-          exists
-            ? t('You canceled your RSVP for this event.', 'আপনি এই ইভেন্টের অংশগ্রহণ বাতিল করেছেন।')
-            : t('RSVP confirmed! See you at the event.', 'আপনার অংশগ্রহণ নিশ্চিত হয়েছে! অনুষ্ঠানে দেখা হবে।'),
-          exists ? 'info' : 'success'
-        );
-        return { ...ev, rsvps: updatedRsvps };
-      })
+    if (!auth.currentUser || !auth.currentUser.emailVerified) {
+      showToast(
+        t('Please sign in with Google to RSVP for community events.', 'অনুষ্ঠানে অংশগ্রহণ নিশ্চিত করতে অনুগ্রহ করে Google দিয়ে লগইন করুন।'),
+        'info'
+      );
+      openModal('login');
+      return;
+    }
+
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+
+    const identifier = currentMember?.name || auth.currentUser.displayName || userNameOrEmail;
+    const exists = ev.rsvps.includes(identifier);
+    const updatedRsvps = exists ? ev.rsvps.filter(u => u !== identifier) : [...ev.rsvps, identifier];
+
+    setEvents(prev => prev.map(item => (item.id === eventId ? { ...item, rsvps: updatedRsvps } : item)));
+
+    void (async () => {
+      try {
+        await updateDoc(doc(db, 'events', sanitizeId(eventId)), {
+          rsvps: updatedRsvps.slice(0, 500),
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `events/${eventId}`);
+      }
+    })();
+
+    showToast(
+      exists
+        ? t('You canceled your RSVP for this event.', 'আপনি এই ইভেন্টের অংশগ্রহণ বাতিল করেছেন।')
+        : t('RSVP confirmed! See you at the event.', 'আপনার অংশগ্রহণ নিশ্চিত হয়েছে! অনুষ্ঠানে দেখা হবে।'),
+      exists ? 'info' : 'success'
     );
   };
 
   const addEvent = (event: Omit<CommunityEvent, 'id' | 'rsvps'>) => {
+    if (!canManageEventsPermission()) return;
     const newEvent: CommunityEvent = {
       ...event,
       id: `ev-${Date.now()}`,
-      rsvps: []
+      rsvps: [],
     };
     setEvents(prev => [newEvent, ...prev]);
 
-    // Send notification to members
     const notif: MemberNotification = {
       id: `notif-${Date.now()}`,
       title: `New Event: ${event.title}`,
@@ -1229,33 +1875,48 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       messageBn: `${event.date} · ${event.locationBn || event.location}`,
       date: event.date,
       type: 'event',
-      read: false
+      read: false,
     };
     setNotifications(prev => [notif, ...prev]);
 
-    showToast(t('Event announced and notification sent to members', 'নতুন অনুষ্ঠান যুক্ত হয়েছে এবং সদস্যদের নোটিফিকেশন পাঠানো হয়েছে'), 'success');
+    void (async () => {
+      await fsSet(`events/${sanitizeId(newEvent.id)}`, toEventPayload(newEvent), OperationType.CREATE);
+      await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+    })();
+
+    showToast(
+      t('Event announced and notification sent to members', 'নতুন অনুষ্ঠান যুক্ত হয়েছে এবং সদস্যদের নোটিফিকেশন পাঠানো হয়েছে'),
+      'success'
+    );
   };
 
   const updateEvent = (id: string, event: Partial<CommunityEvent>) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, ...event } : e));
+    if (!canManageEventsPermission()) return;
+    const existingEv = events.find(e => e.id === id);
+    if (!existingEv) return;
+    const merged = { ...existingEv, ...event };
+    setEvents(prev => prev.map(e => (e.id === id ? merged : e)));
+    void fsSet(`events/${sanitizeId(id)}`, toEventPayload(merged), OperationType.UPDATE);
     showToast(t('Event updated successfully', 'ইভেন্ট সফলভাবে হালনাগাদ হয়েছে'), 'success');
   };
 
   const deleteEvent = (id: string) => {
+    if (!canManageEventsPermission()) return;
     setEvents(prev => prev.filter(e => e.id !== id));
+    void fsDelete(`events/${sanitizeId(id)}`);
     showToast(t('Event removed', 'অনুষ্ঠানটি মুছে ফেলা হয়েছে'), 'info');
   };
 
   // Add Notice with PDF & Notification dispatch
   const addNewsItem = (item: Omit<NewsItem, 'id'>) => {
+    if (!canManageNoticesPermission()) return;
     const newItem: NewsItem = {
       ...item,
       visibility: item.visibility || 'public',
-      id: `n-${Date.now()}`
+      id: `n-${Date.now()}`,
     };
     setNews(prev => [newItem, ...prev]);
 
-    // Dispatch notification to all members
     const notif: MemberNotification = {
       id: `notif-${Date.now()}`,
       title: item.title,
@@ -1265,9 +1926,14 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       date: item.date || new Date().toISOString().split('T')[0],
       type: 'notice',
       pdfAttachment: item.pdfAttachment,
-      read: false
+      read: false,
     };
     setNotifications(prev => [notif, ...prev]);
+
+    void (async () => {
+      await fsSet(`news/${sanitizeId(newItem.id)}`, toNewsPayload(newItem), OperationType.CREATE);
+      await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+    })();
 
     showToast(
       item.visibility === 'members_only'
@@ -1280,62 +1946,105 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateNewsItem = (id: string, item: Partial<NewsItem>) => {
-    setNews(prev => prev.map(n => n.id === id ? { ...n, ...item } : n));
+    if (!canManageNoticesPermission()) return;
+    const existingNews = news.find(n => n.id === id);
+    if (!existingNews) return;
+    const merged = { ...existingNews, ...item };
+    setNews(prev => prev.map(n => (n.id === id ? merged : n)));
+    void fsSet(`news/${sanitizeId(id)}`, toNewsPayload(merged), OperationType.UPDATE);
     showToast(t('News item updated', 'সংবাদটি হালনাগাদ করা হয়েছে'), 'success');
   };
 
   const deleteNewsItem = (id: string) => {
+    if (!canManageNoticesPermission()) return;
     setNews(prev => prev.filter(n => n.id !== id));
+    void fsDelete(`news/${sanitizeId(id)}`);
     showToast(t('News item deleted', 'সংবাদটি মুছে ফেলা হয়েছে'), 'info');
   };
 
   const markNotificationAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+    if (auth.currentUser?.emailVerified) {
+      void (async () => {
+        try {
+          await updateDoc(doc(db, 'notifications', sanitizeId(id)), { read: true });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`);
+        }
+      })();
+    }
   };
 
   const clearAllNotifications = () => {
+    const ids = notifications.filter(n => !n.read).map(n => n.id);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (auth.currentUser?.emailVerified) {
+      ids.forEach((id) => {
+        void updateDoc(doc(db, 'notifications', sanitizeId(id)), { read: true }).catch((err) =>
+          handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`)
+        );
+      });
+    }
     showToast(t('All notifications marked as read', 'সব নোটিফিকেশন পঠিত হিসেবে চিহ্নিত করা হয়েছে'), 'info');
   };
 
   const addProject = (proj: Omit<Project, 'id'>) => {
+    if (!canManageProjectsPermission()) return;
     const newProj: Project = {
       ...proj,
-      id: `p-${Date.now()}`
+      id: `p-${Date.now()}`,
     };
     setProjects(prev => [newProj, ...prev]);
+    void fsSet(`projects/${sanitizeId(newProj.id)}`, toProjectPayload(newProj), OperationType.CREATE);
     showToast(t('Project added', 'নতুন উদ্যোগ যুক্ত হয়েছে'), 'success');
   };
 
   const updateProject = (id: string, proj: Partial<Project>) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...proj } : p));
+    if (!canManageProjectsPermission()) return;
+    const existingProj = projects.find(p => p.id === id);
+    if (!existingProj) return;
+    const merged = { ...existingProj, ...proj };
+    setProjects(prev => prev.map(p => (p.id === id ? merged : p)));
+    void fsSet(`projects/${sanitizeId(id)}`, toProjectPayload(merged), OperationType.UPDATE);
     showToast(t('Project updated', 'প্রকল্প হালনাগাদ হয়েছে'), 'success');
   };
 
   const deleteProject = (id: string) => {
+    if (!canManageProjectsPermission()) return;
     setProjects(prev => prev.filter(p => p.id !== id));
+    void fsDelete(`projects/${sanitizeId(id)}`);
     showToast(t('Project removed', 'উদ্যোগটি অপসারণ করা হয়েছে'), 'info');
   };
 
   const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
+    if (!canManageGalleryPermission()) return;
     const newItem: GalleryItem = {
       ...item,
-      id: `g-${Date.now()}`
+      id: `g-${Date.now()}`,
     };
     setGallery(prev => [newItem, ...prev]);
+    void fsSet(`gallery/${sanitizeId(newItem.id)}`, toGalleryPayload(newItem), OperationType.CREATE);
     showToast(t('Photo album item added', 'গ্যালারিতে নতুন ছবি যুক্ত হয়েছে'), 'success');
   };
 
   const deleteGalleryItem = (id: string) => {
+    if (!canManageGalleryPermission()) return;
     setGallery(prev => prev.filter(g => g.id !== id));
+    void fsDelete(`gallery/${sanitizeId(id)}`);
     showToast(t('Gallery photo deleted', 'ছবিটি মুছে ফেলা হয়েছে'), 'info');
   };
 
   const addDiscussionPost = (text: string, category: DiscussionPost['category']) => {
-    const author = currentMember?.name || 'Village Member';
+    if (!auth.currentUser?.uid || !auth.currentUser.emailVerified) {
+      showToast(t('Please sign in with Google to post.', 'পোস্ট করতে Google দিয়ে লগইন করুন।'), 'warning');
+      return;
+    }
+    const uid = auth.currentUser.uid;
+    const author = currentMember?.name || auth.currentUser.displayName || 'Village Member';
     const role = currentMember?.role || 'Member';
     const newPost: DiscussionPost = {
       id: `d-${Date.now()}`,
+      authorUid: uid,
       authorName: author,
       authorRole: role,
       date: new Date().toISOString().split('T')[0],
@@ -1343,48 +2052,114 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       category,
       likes: 0,
       likedByMe: false,
-      replies: []
+      likedByUids: [],
+      replies: [],
     };
     setDiscussions(prev => [newPost, ...prev]);
+    void fsSet(`discussions/${sanitizeId(newPost.id)}`, toDiscussionPayload(newPost, uid), OperationType.CREATE);
     showToast(t('Your thought has been posted on the Youth Wall!', 'আপনার বার্তাটি যুব ফোরামে যুক্ত হয়েছে!'), 'success');
   };
 
   const likeDiscussionPost = (id: string) => {
+    if (!auth.currentUser?.uid || !auth.currentUser.emailVerified) return;
+    const uid = auth.currentUser.uid;
+    const target = discussions.find(p => p.id === id);
+    if (!target) return;
+
+    const uids = Array.isArray(target.likedByUids) ? target.likedByUids : [];
+    const alreadyLiked = uids.includes(uid);
+    const updatedUids = alreadyLiked ? uids.filter(u => u !== uid) : [...uids, uid];
+    const updatedLikes = alreadyLiked ? Math.max(0, target.likes - 1) : target.likes + 1;
+
     setDiscussions(prev =>
-      prev.map(p => {
-        if (p.id !== id) return p;
-        const liked = !p.likedByMe;
-        return {
-          ...p,
-          likedByMe: liked,
-          likes: liked ? p.likes + 1 : Math.max(0, p.likes - 1)
-        };
-      })
+      prev.map(p => (p.id === id ? { ...p, likedByMe: !alreadyLiked, likedByUids: updatedUids, likes: updatedLikes } : p))
     );
+
+    void (async () => {
+      try {
+        await updateDoc(doc(db, 'discussions', sanitizeId(id)), {
+          likes: updatedLikes,
+          likedByUids: updatedUids.slice(0, 500),
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `discussions/${id}`);
+      }
+    })();
   };
 
   const addDiscussionReply = (postId: string, text: string) => {
-    const author = currentMember?.name || 'Community Member';
+    if (!auth.currentUser?.uid || !auth.currentUser.emailVerified) return;
+    const target = discussions.find(p => p.id === postId);
+    if (!target) return;
+
+    const author = currentMember?.name || auth.currentUser.displayName || 'Community Member';
     const role = currentMember?.role || 'Member';
     const replyItem = {
       id: `dr-${Date.now()}`,
       author,
       role,
       text,
-      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+    const updatedReplies = [...target.replies, replyItem].slice(0, 200);
+
     setDiscussions(prev =>
-      prev.map(p => (p.id === postId ? { ...p, replies: [...p.replies, replyItem] } : p))
+      prev.map(p => (p.id === postId ? { ...p, replies: updatedReplies } : p))
     );
+
+    void (async () => {
+      try {
+        await updateDoc(doc(db, 'discussions', sanitizeId(postId)), {
+          replies: updatedReplies,
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `discussions/${postId}`);
+      }
+    })();
     showToast(t('Reply added to discussion', 'মন্তব্য সফলভাবে যুক্ত হয়েছে'), 'success');
   };
 
   const updateSettings = (newSettings: Partial<CommunitySettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-    showToast(t('Community settings saved', 'কমিউনিটির সেটিংস সংরক্ষিত হয়েছে'), 'success');
+    if (!isAdminLoggedIn) {
+      showToast(t('Only Admin can update site settings.', 'শুধুমাত্র অ্যাডমিন সাইটের সেটিংস পরিবর্তন করতে পারবেন।'), 'warning');
+      return;
+    }
+
+    const hasHeroUpdate = Object.prototype.hasOwnProperty.call(newSettings, 'heroBackground');
+    const hasSiteUpdate = Object.prototype.hasOwnProperty.call(newSettings, 'siteBackground');
+
+    if (hasHeroUpdate) {
+      const val = newSettings.heroBackground;
+      setHeroBgAsset(val);
+      if (val) {
+        void fsSet('settings/heroBackground', { dataUrl: clampStr(val, 600000), updatedAt: new Date().toISOString() }, OperationType.WRITE);
+      } else {
+        void fsDelete('settings/heroBackground');
+      }
+    }
+
+    if (hasSiteUpdate) {
+      const val = newSettings.siteBackground;
+      setSiteBgAsset(val);
+      if (val) {
+        void fsSet('settings/siteBackground', { dataUrl: clampStr(val, 600000), updatedAt: new Date().toISOString() }, OperationType.WRITE);
+      } else {
+        void fsDelete('settings/siteBackground');
+      }
+    }
+
+    const { heroBackground: _hb, siteBackground: _sb, ...mainUpdates } = newSettings;
+    if (Object.keys(mainUpdates).length > 0) {
+      const mergedMain = { ...settingsMain, ...mainUpdates };
+      setSettingsMain(mergedMain);
+      void fsSet('settings/main', toSettingsMainPayload(mergedMain), OperationType.WRITE);
+    }
+
+    showToast(t('Community settings saved to cloud database', 'কমিউনিটির সেটিংস ক্লাউড ডেটাবেসে সংরক্ষিত হয়েছে'), 'success');
   };
 
   const resetAllData = () => {
+    if (!isAdminLoggedIn) return;
     setMembers(initialMembers);
     setJoinRequests(initialJoinRequests);
     setEvents(initialEvents);
@@ -1396,9 +2171,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setDiscussions(initialDiscussions);
     setFunds(initialDetailedFunds);
     setVillageResidents(initialVillageResidents);
-    setSettings(initialSettings);
-    setCurrentMember(null);
-    showToast(t('Demo data reset to initial values', 'ডেমো তথ্য প্রাথমিক অবস্থায় ফিরিয়ে নেওয়া হয়েছে'), 'info');
+    setSettingsMain(initialSettings);
+    setHeroBgAsset(undefined);
+    setSiteBgAsset(undefined);
+
+    void (async () => {
+      await fsSet('settings/main', toSettingsMainPayload(initialSettings), OperationType.WRITE);
+      await fsDelete('settings/heroBackground');
+      await fsDelete('settings/siteBackground');
+    })();
+
+    showToast(t('Settings reset to initial values', 'সেটিংস প্রাথমিক অবস্থায় ফিরিয়ে নেওয়া হয়েছে'), 'info');
   };
 
   const exportDataJSON = () => {
@@ -1415,7 +2198,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       discussions,
       funds,
       villageResidents,
-      exportedAt: new Date().toISOString()
+      exportedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1438,6 +2221,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         t,
         theme,
         setTheme,
+        firebaseUser,
+        authLoading,
+        loginWithGoogle,
+        logoutGoogle,
         currentMember,
         loginAsMember,
         logoutMember,
@@ -1505,7 +2292,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addDiscussionReply,
         updateSettings,
         resetAllData,
-        exportDataJSON
+        exportDataJSON,
       }}
     >
       {children}

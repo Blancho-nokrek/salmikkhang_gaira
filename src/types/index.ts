@@ -45,6 +45,7 @@ export interface VillageResident {
   aidStatusBn: string;
   notes?: string; // জরুরি সহায়তা প্রয়োজন বা মন্তব্য
   collectedBy: string; // তথ্য সংগ্রাহক (Data Collector) বা অ্যাডমিনের নাম
+  collectedByUid?: string;
   collectedDate: string;
   updatedDate?: string;
 }
@@ -85,6 +86,8 @@ export interface Member {
   joinDate: string;
   avatar?: string;
   bio?: string;
+  ownerUid?: string;
+  ownerEmail?: string;
 }
 
 export interface JoinRequest {
@@ -180,6 +183,7 @@ export interface GalleryItem {
   categoryBn: string;
   image: string;
   date: string;
+  visibility?: 'public';
 }
 
 export interface ContactMessage {
@@ -193,6 +197,7 @@ export interface ContactMessage {
 
 export interface DiscussionPost {
   id: string;
+  authorUid?: string;
   authorName: string;
   authorRole: string;
   authorAvatar?: string;
@@ -201,6 +206,7 @@ export interface DiscussionPost {
   category: 'General' | 'Project Idea' | 'Question' | 'Event Prep';
   likes: number;
   likedByMe?: boolean;
+  likedByUids?: string[];
   replies: {
     id: string;
     author: string;
@@ -229,6 +235,7 @@ export interface FundTransaction {
     | 'Office & Printing'
     | 'Community Welfare';
   recordedBy?: string; // Recorded by Cashier / Assistant Cashier / Admin
+  recordedByUid?: string;
   voucherNo?: string;
   notes?: string;
 }

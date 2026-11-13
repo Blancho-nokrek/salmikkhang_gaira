@@ -32,7 +32,7 @@ export const BackgroundSettings: React.FC = () => {
     if (!file) return;
     setBusy(key);
     try {
-      const dataUrl = await compressImage(file, 1920);
+      const dataUrl = await compressImage(file, 1280, 350_000);
       updateSettings({ [key]: dataUrl } as any);
       showToast(t('Background updated.', 'ব্যাকগ্রাউন্ড আপডেট হয়েছে।'), 'success');
     } catch (err: any) {

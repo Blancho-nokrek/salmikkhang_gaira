@@ -33,13 +33,16 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
     updateVillageResident,
     deleteVillageResident,
     canCollectDataPermission,
+    isAdminLoggedIn,
     currentMember,
     members,
     assignMemberRole,
+    showToast,
     t
   } = useCommunity();
 
   const canCollect = canCollectDataPermission();
+  const canDelete = isAdminLoggedIn || isAdmin;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [villageFilter, setVillageFilter] = useState('All');
@@ -50,6 +53,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingResident, setEditingResident] = useState<VillageResident | null>(null);
   const [viewingResident, setViewingResident] = useState<VillageResident | null>(null);
+  const [deletingResident, setDeletingResident] = useState<VillageResident | null>(null);
   const [assignCollectorModalOpen, setAssignCollectorModalOpen] = useState(false);
 
   // Form state
@@ -126,7 +130,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.guardianName.trim() || !formData.phone.trim()) {
-      alert(t('Please fill in Name, Guardian Name, and Phone number.', 'নাম, অভিভাবকের নাম ও ফোন নম্বর প্রদান করুন।'));
+      showToast(t('Please fill in Name, Guardian Name, and Phone number.', 'নাম, অভিভাবকের নাম ও ফোন নম্বর প্রদান করুন।'), 'warning');
       return;
     }
 
@@ -492,18 +496,25 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                 </div>
 
                 <div className="text-[11px] text-slate-800 dark:text-slate-300 space-y-0.5">
-                  <div><span className="font-bold">{t('Guardian:', 'অভিভাবক:')}</span> {res.guardianName}</div>
+                  <div><span className="font-bold">{t('Guardian:', 'অভিভাবক:')}</span> {res.guardianName || t('Restricted (Collector/Admin)', 'সংরক্ষিত (তথ্য সংগ্রাহক/অ্যাডমিন)')}</div>
                   <div><span className="font-bold">{t('Occupation:', 'পেশা:')}</span> {res.occupation}</div>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                  <a
-                    href={`tel:${res.phone}`}
-                    className="font-mono text-emerald-900 dark:text-emerald-400 hover:underline flex items-center gap-1 font-bold"
-                  >
-                    <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <span>{res.phone}</span>
-                  </a>
+                  {res.phone ? (
+                    <a
+                      href={`tel:${res.phone}`}
+                      className="font-mono text-emerald-900 dark:text-emerald-400 hover:underline flex items-center gap-1 font-bold"
+                    >
+                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      <span>{res.phone}</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <Lock className="w-3 h-3 shrink-0" />
+                      <span>{t('Restricted', 'সংরক্ষিত')}</span>
+                    </span>
+                  )}
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setViewingResident(res)}
@@ -513,26 +524,22 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                       <span>{t('View', 'দেখুন')}</span>
                     </button>
                     {canCollect && (
-                      <>
-                        <button
-                          onClick={() => openEdit(res)}
-                          className="p-1.5 text-slate-800 dark:text-slate-300 hover:text-blue-700 rounded-lg"
-                          title={t('Edit Resident Record', 'নাগরিক তথ্য এডিট করুন')}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(t(`Delete record of ${res.name}?`, `${res.name}-এর রেকর্ডটি ডিলিট করতে চান?`))) {
-                              deleteVillageResident(res.id);
-                            }
-                          }}
-                          className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
-                          title={t('Delete Record', 'রেকর্ড মুছুন')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => openEdit(res)}
+                        className="p-1.5 text-slate-800 dark:text-slate-300 hover:text-blue-700 rounded-lg"
+                        title={t('Edit Resident Record', 'নাগরিক তথ্য এডিট করুন')}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeletingResident(res)}
+                        className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                        title={t('Delete Record', 'রেকর্ড মুছুন')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -577,7 +584,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                     </td>
 
                     <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                      <div>{res.guardianName}</div>
+                      <div>{res.guardianName || <span className="text-slate-400 italic">{t('Restricted', 'সংরক্ষিত')}</span>}</div>
                       {res.nidOrBirthCert && (
                         <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                           ID: {res.nidOrBirthCert}
@@ -591,13 +598,20 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <a
-                        href={`tel:${res.phone}`}
-                        className="font-mono text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <Phone className="w-3 h-3 shrink-0" />
-                        <span>{res.phone}</span>
-                      </a>
+                      {res.phone ? (
+                        <a
+                          href={`tel:${res.phone}`}
+                          className="font-mono text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+                        >
+                          <Phone className="w-3 h-3 shrink-0" />
+                          <span>{res.phone}</span>
+                        </a>
+                      ) : (
+                        <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <Lock className="w-3 h-3 shrink-0" />
+                          <span>{t('Restricted', 'সংরক্ষিত')}</span>
+                        </div>
+                      )}
                       <div className="mt-0.5 inline-block text-[10px] font-bold px-1.5 py-0.2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 rounded">
                         {t('Blood:', 'রক্ত:')} {res.bloodGroup}
                       </div>
@@ -632,26 +646,22 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                         </button>
 
                         {canCollect && (
-                          <>
-                            <button
-                              onClick={() => openEdit(res)}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                              title={t('Edit Resident Record', 'নাগরিক তথ্য এডিট করুন')}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(t(`Delete record of ${res.name}?`, `${res.name}-এর রেকর্ডটি ডিলিট করতে চান?`))) {
-                                  deleteVillageResident(res.id);
-                                }
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                              title={t('Delete Record', 'রেকর্ড মুছুন')}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+                          <button
+                            onClick={() => openEdit(res)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title={t('Edit Resident Record', 'নাগরিক তথ্য এডিট করুন')}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeletingResident(res)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title={t('Delete Record', 'রেকর্ড মুছুন')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -932,7 +942,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl">
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('Father / Guardian:', 'অভিভাবক:')}</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{viewingResident.guardianName}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{viewingResident.guardianName || t('Restricted (Collector/Admin)', 'সংরক্ষিত')}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('Category / Status:', 'ক্যাটাগরি:')}</span>
@@ -948,9 +958,13 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('Contact Phone:', 'মোবাইল:')}</span>
-                  <a href={`tel:${viewingResident.phone}`} className="font-mono text-emerald-700 dark:text-emerald-400 font-bold hover:underline">
-                    {viewingResident.phone}
-                  </a>
+                  {viewingResident.phone ? (
+                    <a href={`tel:${viewingResident.phone}`} className="font-mono text-emerald-700 dark:text-emerald-400 font-bold hover:underline">
+                      {viewingResident.phone}
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 italic">{t('Restricted (Collector/Admin)', 'সংরক্ষিত')}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('Family Size:', 'পরিবারের সদস্য:')}</span>
@@ -962,7 +976,9 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('NID / Birth Certificate:', 'জাতীয় পরিচয়পত্র:')}</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300">{viewingResident.nidOrBirthCert || t('Not recorded', 'নিবন্ধিত নয়')}</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                    {viewingResident.nidOrBirthCert || (canCollect ? t('Not recorded', 'নিবন্ধিত নয়') : t('Restricted (Collector/Admin)', 'সংরক্ষিত'))}
+                  </span>
                 </div>
               </div>
 
@@ -990,6 +1006,19 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
               >
                 {t('Close', 'বন্ধ করুন')}
               </button>
+              {canDelete && (
+                <button
+                  onClick={() => {
+                    const toDel = viewingResident;
+                    setViewingResident(null);
+                    setDeletingResident(toDel);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('Delete', 'ডিলিট করুন')}</span>
+                </button>
+              )}
               {canCollect && (
                 <button
                   onClick={() => {
@@ -1085,6 +1114,51 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                 className="px-5 py-2 bg-slate-900 dark:bg-slate-800 text-white font-bold text-xs rounded-xl"
               >
                 {t('Done', 'সম্পন্ন')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE RESIDENT CONFIRMATION MODAL (Admin Only) */}
+      {deletingResident && canDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-rose-700 dark:text-rose-400">
+                {t('Confirm Delete Citizen Record', 'নাগরিক তথ্য মুছে ফেলা নিশ্চিত করুন')}
+              </h3>
+              <button
+                onClick={() => setDeletingResident(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              {t(
+                `Are you sure you want to permanently delete the record for "${deletingResident.name}" (${deletingResident.residentNo})?`,
+                `আপনি কি "${deletingResident.name}" (${deletingResident.residentNo})-এর নাগরিক তথ্যটি স্থায়ীভাবে মুছে ফেলতে চান?`
+              )}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingResident(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {t('Cancel', 'বাতিল')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteVillageResident(deletingResident.id);
+                  setDeletingResident(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t('Delete Permanently', 'স্থায়ীভাবে মুছুন')}</span>
               </button>
             </div>
           </div>

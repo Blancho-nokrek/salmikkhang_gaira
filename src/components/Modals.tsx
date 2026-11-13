@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
-import { X, Search, Phone, Download, ExternalLink } from 'lucide-react';
+import { X, Search, Download, ExternalLink, Shield } from 'lucide-react';
 
 interface ModalsProps {
   searchOpen: boolean;
@@ -22,14 +22,18 @@ export const Modals: React.FC<ModalsProps> = ({
   const {
     t,
     activeModal,
+    openModal,
     closeModal,
     submitJoinRequest,
-    loginAsMember,
+    firebaseUser,
+    authLoading,
+    loginWithGoogle,
+    logoutGoogle,
+    currentMember,
     members,
     news,
     events,
     projects,
-    gallery,
     setCurrentView
   } = useCommunity();
 
@@ -43,10 +47,6 @@ export const Modals: React.FC<ModalsProps> = ({
   const [joinInterests, setJoinInterests] = useState('');
   const [joinReason, setJoinReason] = useState('');
 
-  // Login form state
-  const [loginInput, setLoginInput] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
   // Global search input
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -54,7 +54,7 @@ export const Modals: React.FC<ModalsProps> = ({
     e.preventDefault();
     submitJoinRequest({
       name: joinName,
-      email: joinEmail || `${joinName.toLowerCase().replace(/\s+/g, '')}@example.com`,
+      email: joinEmail || firebaseUser?.email || `${joinName.toLowerCase().replace(/\s+/g, '')}@example.com`,
       phone: joinPhone,
       village: joinVillage,
       bloodGroup: joinBlood,
@@ -71,13 +71,9 @@ export const Modals: React.FC<ModalsProps> = ({
     closeModal();
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginInput.trim()) return;
-    const ok = loginAsMember(loginInput.trim(), loginPassword.trim());
+  const handleGoogleSignIn = async () => {
+    const ok = await loginWithGoogle();
     if (ok) {
-      setLoginInput('');
-      setLoginPassword('');
       closeModal();
       setCurrentView('member');
     }
@@ -259,7 +255,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   🌿
                 </div>
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                  {t('Salmikkhang Member Portal', 'সদস্য প্যানেলে প্রবেশ')}
+                  {t('Salmikkhang Member & Admin Portal', 'সদস্য ও অ্যাডমিন প্যানেলে প্রবেশ')}
                 </h3>
               </div>
               <button onClick={closeModal} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -269,71 +265,78 @@ export const Modals: React.FC<ModalsProps> = ({
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {t(
-                'Enter your registered member email/phone and password, or choose a member below.',
-                'আপনার নিবন্ধিত ইমেইল বা ফোন এবং পাসওয়ার্ড দিন, অথবা তালিকা থেকে নির্বাচন করুন।'
+                'Sign in securely with Google using your registered Gmail address to access the Member Portal or Admin Dashboard.',
+                'সদস্য পোর্টাল বা অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে আপনার নিবন্ধিত Gmail অ্যাকাউন্ট দিয়ে নিরাপদে Google সাইন-ইন করুন।'
               )}
             </p>
 
-            <form onSubmit={handleLoginSubmit} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('Member Name, Email or Phone', 'সদস্যের নাম, ইমেইল বা ফোন')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={loginInput}
-                  onChange={e => setLoginInput(e.target.value)}
-                  placeholder="e.g. blancho.261071027@smuct.ac.bd"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
-                />
+            {authLoading ? (
+              <div className="py-4 text-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
               </div>
+            ) : firebaseUser ? (
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
+                  <div className="font-bold text-slate-900 dark:text-slate-100">
+                    {t('Signed in as:', 'বর্তমান অ্যাকাউন্ট:')} <span className="font-mono">{firebaseUser.email}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                    {currentMember
+                      ? t(`Active role: ${currentMember.role}`, `সক্রিয় পদবি: ${currentMember.role}`)
+                      : t('Not registered as an approved member yet.', 'এখনো অনুমোদিত সদস্য তালিকায় যুক্ত নয়।')}
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('Password', 'পাসওয়ার্ড')}
-                </label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                  placeholder="password123"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs"
-              >
-                {t('Continue to Portal →', 'পোর্টালে প্রবেশ করুন →')}
-              </button>
-            </form>
-
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                {t('Quick demo login:', 'ক্লিক করে দ্রুত লগইন:')}
-              </span>
-              <div className="space-y-1.5">
-                {members.slice(0, 3).map(m => (
+                <div className="flex gap-2">
+                  {currentMember ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeModal();
+                        setCurrentView('member');
+                      }}
+                      className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                    >
+                      {t('Open Member Portal →', 'সদস্য পোর্টালে যান →')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openModal('join')}
+                      className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                    >
+                      {t('Apply for Membership →', 'সদস্যপদের আবেদন করুন →')}
+                    </button>
+                  )}
                   <button
-                    key={m.id}
-                    onClick={() => {
-                      loginAsMember(m.email, m.password || 'password123');
-                      closeModal();
-                      setCurrentView('member');
-                    }}
-                    className="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs text-left transition-colors"
+                    type="button"
+                    onClick={() => void logoutGoogle()}
+                    className="px-3.5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl"
                   >
-                    <div>
-                      <div className="font-bold text-slate-900 dark:text-slate-100">{m.name}</div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{m.role} · {m.village}</div>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Select →</span>
+                    {t('Sign Out', 'লগআউট')}
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => void handleGoogleSignIn()}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>{t('Sign in with Google →', 'Google দিয়ে লগইন করুন →')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openModal('join')}
+                  className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl"
+                >
+                  {t('New here? Apply for Membership', 'নতুন সদস্য? আবেদন পাঠান')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

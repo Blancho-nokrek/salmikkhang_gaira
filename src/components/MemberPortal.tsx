@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { Member, DiscussionPost } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
@@ -51,7 +51,12 @@ export const MemberPortal: React.FC = () => {
     addDiscussionReply,
     updateMember,
     toggleEventRsvp,
-    loginAsMember
+    firebaseUser,
+    authLoading,
+    loginWithGoogle,
+    logoutGoogle,
+    isAdminLoggedIn,
+    quickSwitchMember
   } = useCommunity();
 
   // Active tab inside member portal
@@ -83,12 +88,16 @@ export const MemberPortal: React.FC = () => {
   const [editBlood, setEditBlood] = useState(currentMember?.bloodGroup || '');
   const [editBio, setEditBio] = useState(currentMember?.bio || '');
 
-  const [loginInputName, setLoginInputName] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
   const unreadNotifsCount = notifications.filter(n => !n.read).length;
+  const canAccessDataCollectorTab = isAdminLoggedIn || currentMember?.role === 'Data Collector';
 
-  // 1. MEMBER LOGIN GATEWAY (If not logged in as Member)
+  useEffect(() => {
+    if (activeTab === 'residents' && !canAccessDataCollectorTab) {
+      setActiveTab('wall');
+    }
+  }, [activeTab, canAccessDataCollectorTab]);
+
+  // 1. MEMBER LOGIN GATEWAY (Google Auth + Admin-verified Membership)
   if (!currentMember) {
     return (
       <div className="max-w-xl mx-auto py-8 sm:py-16 px-4 transition-colors">
@@ -102,85 +111,66 @@ export const MemberPortal: React.FC = () => {
             </h2>
             <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto">
               {t(
-                'Enter your registered member email/phone and password to enter the youth portal.',
-                'সদস্য পোর্টালে প্রবেশের জন্য আপনার নিবন্ধিত ইমেইল বা ফোন এবং পাসওয়ার্ড দিন।'
+                'Sign in with your registered Google account to access notices, village records, treasury, and discussions.',
+                'নোটিশ, গ্রামের তথ্য ভাণ্ডার, তহবিল ও ফোরামে প্রবেশ করতে আপনার নিবন্ধিত Google অ্যাকাউন্ট দিয়ে লগইন করুন।'
               )}
             </p>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (loginInputName.trim()) {
-                loginAsMember(loginInputName.trim(), loginPassword.trim());
-              }
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                {t('Member Name / Email / Phone *', 'সদস্যের নাম / ইমেইল / ফোন *')}
-              </label>
-              <input
-                type="text"
-                required
-                value={loginInputName}
-                onChange={(e) => setLoginInputName(e.target.value)}
-                placeholder={t('e.g. blancho.261071027@smuct.ac.bd or 01712-889900', 'যেমন: blancho.261071027@smuct.ac.bd')}
-                className="w-full px-4 py-3 text-sm rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-slate-400"
-              />
+          {authLoading ? (
+            <div className="py-6 text-center text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
             </div>
+          ) : firebaseUser ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs space-y-2">
+                <div className="font-bold text-amber-950 dark:text-amber-200">
+                  {t('Membership Pending / Not Registered Yet', 'আপনার ইমেইল এখনো সদস্য হিসেবে নিবন্ধিত নয়')}
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {t(
+                    `You are signed in as ${firebaseUser.email}, which is not yet linked to an approved Salmikkhang member profile. Please submit an application or contact Council Admin to add your Gmail.`,
+                    `আপনি ${firebaseUser.email} দিয়ে লগইন করেছেন, কিন্তু এই Gmail এখনো সদস্য তালিকায় যুক্ত হয়নি। আবেদন পাঠান অথবা অ্যাডমিনের সাথে যোগাযোগ করুন।`
+                  )}
+                </p>
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                {t('Member Password *', 'পাসওয়ার্ড *')}
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="password123"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20"
-            >
-              {t('Login to Member Portal →', 'সদস্য পোর্টালে প্রবেশ করুন →')}
-            </button>
-          </form>
-
-          {/* Quick 1-click Demo Profiles */}
-          <div className="pt-4 border-t border-white/20 dark:border-white/10 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-              {t('Quick 1-Click Member Login (Demo):', 'এক ক্লিকে ডেমো লগইন:')}
-            </span>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {members.slice(0, 6).map((m) => (
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <button
-                  key={m.id}
-                  onClick={() => loginAsMember(m.email, m.password || 'password123')}
-                  className="p-2.5 rounded-xl bg-white/40 dark:bg-white/5 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 border border-white/30 dark:border-white/10 flex items-center justify-between text-xs text-left transition-all backdrop-blur-md group"
+                  type="button"
+                  onClick={() => openModal('join')}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/20">
-                      {m.name[0]}
-                    </div>
-                    <div className="truncate">
-                      <div className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 truncate">{m.name}</div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">{m.role}</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                    {t('Login', 'লগইন')}
-                  </span>
+                  {t('Submit Membership Application →', 'সদস্যপদের আবেদন পাঠান →')}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => void logoutGoogle()}
+                  className="py-3 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
+                >
+                  {t('Switch Google Account', 'অন্য অ্যাকাউন্ট দিন')}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => void loginWithGoogle()}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                <span>{t('Sign in with Google →', 'Google দিয়ে লগইন করুন →')}</span>
+              </button>
+
+              <p className="text-[11px] text-center text-slate-600 dark:text-slate-400">
+                {t(
+                  'Use the Gmail address approved by Salmikkhang Executive Admin.',
+                  'অ্যাডমিন কর্তৃক অনুমোদিত আপনার Gmail ঠিকানা দিয়ে সাইন-ইন করুন।'
+                )}
+              </p>
+            </div>
+          )}
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
             <button
@@ -307,23 +297,25 @@ export const MemberPortal: React.FC = () => {
             )}
           </p>
 
-          {/* Quick Member Switcher Bar for demo convenience */}
-          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-bold text-emerald-900 dark:text-emerald-300">{t('Switch demo profile:', 'প্রোফাইল পরিবর্তন:')}</span>
-            {members.slice(0, 4).map(m => (
-              <button
-                key={m.id}
-                onClick={() => loginAsMember(m.email, m.password || 'password123')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  m.id === currentMember.id
-                    ? 'bg-emerald-700 text-white font-bold'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-slate-700 border border-emerald-200 dark:border-slate-700'
-                }`}
-              >
-                {m.name.split(' ')[0]} ({m.role.split(' ')[0]})
-              </button>
-            ))}
-          </div>
+          {/* Admin Role Preview Switcher (visible only to signed-in Admin) */}
+          {isAdminLoggedIn && (
+            <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-emerald-900 dark:text-emerald-300">{t('Admin preview profile:', 'প্রোফাইল প্রিভিউ (অ্যাডমিন):')}</span>
+              {members.slice(0, 4).map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => quickSwitchMember(m.id)}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                    m.id === currentMember.id
+                      ? 'bg-emerald-700 text-white font-bold'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-slate-700 border border-emerald-200 dark:border-slate-700'
+                  }`}
+                >
+                  {m.name.split(' ')[0]} ({m.role.split(' ')[0]})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Digital Membership ID Card */}
@@ -545,7 +537,9 @@ export const MemberPortal: React.FC = () => {
           <div className="flex flex-col space-y-1">
             {[
               { id: 'wall', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare },
-              { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
+              ...(canAccessDataCollectorTab
+                ? [{ id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length }]
+                : []),
               { id: 'fund', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
               { id: 'roles', labelEn: 'Organization Structure & Roles', labelBn: 'পদবি ও দায়িত্ব বণ্টন', icon: Award },
               { id: 'directory', labelEn: 'Member Directory & Blood Donors', labelBn: 'সদস্য তালিকা ও রক্তদাতা', icon: Users, count: members.length },
@@ -1018,12 +1012,16 @@ export const MemberPortal: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
-                    <span className="font-mono">{member.phone}</span>
+                    <span className="font-mono">
+                      {member.phone || t('Private (Owner/Admin only)', 'গোপনীয় (শুধু অ্যাডমিন/নিজ)')}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 truncate">
-                    <Mail className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
-                    <span className="truncate">{member.email}</span>
-                  </div>
+                  {(member.email || member.ownerEmail) && (
+                    <div className="flex items-center gap-2 truncate">
+                      <Mail className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
+                      <span className="truncate">{member.email || member.ownerEmail}</span>
+                    </div>
+                  )}
                 </div>
 
                 {member.skills && member.skills.length > 0 && (
@@ -1135,9 +1133,9 @@ export const MemberPortal: React.FC = () => {
         </div>
       )}
 
-      {/* TAB: Village Public Records (Confidential to Members & Admin; Add/Edit by Data Collector) */}
-      {activeTab === 'residents' && (
-        <VillageResidentsManager isAdmin={false} />
+      {/* TAB: Village Public Records (Visible only to Admin & Data Collector) */}
+      {activeTab === 'residents' && canAccessDataCollectorTab && (
+        <VillageResidentsManager isAdmin={isAdminLoggedIn} />
       )}
 
       {/* TAB: Treasury & Cash Book (Add/Remove by Cashier, Assistant Cashier & Admin) */}

@@ -262,7 +262,6 @@ export const ORGANIZATION_ROLES: RoleDetail[] = [
       'গ্রামের রাস্তাঘাট পরিষ্কার ও পরিবেশ সচেতনতামূলক ক্যাম্পেইন পরিচালনা'
     ],
     canManageProjects: true,
-    canCollectData: true,
     badgeColor: 'bg-lime-100 text-lime-900 dark:bg-lime-950 dark:text-lime-300 border-lime-200 dark:border-lime-800'
   },
   {
@@ -416,7 +415,7 @@ export function canManageFunds(role?: Role, isAdmin = false): boolean {
 export function canCollectData(role?: Role, isAdmin = false): boolean {
   if (isAdmin) return true;
   if (!role) return false;
-  return role === 'Data Collector' || role === 'Social Welfare Secretary';
+  return role === 'Data Collector';
 }
 
 export function canManageNotices(role?: Role, isAdmin = false): boolean {

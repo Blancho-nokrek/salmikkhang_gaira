@@ -5,6 +5,8 @@ import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
+import { compressImage } from '../lib/imageUpload';
+import { BOOTSTRAP_ADMIN_EMAIL } from '../lib/firebase';
 import {
   LayoutDashboard,
   Users,
@@ -69,11 +71,12 @@ export const AdminDashboard: React.FC = () => {
     resetAllData,
     isAdminLoggedIn,
     adminLogin,
-    adminLogout
+    adminLogout,
+    firebaseUser,
+    authLoading,
+    logoutGoogle,
+    showToast
   } = useCommunity();
-
-  // Admin login input state
-  const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
   // Active admin section
   const [activeAdminTab, setActiveAdminTab] = useState<
@@ -86,6 +89,7 @@ export const AdminDashboard: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(null);
   const [modalTarget, setModalTarget] = useState<'news' | 'event' | 'project' | 'gallery' | 'member' | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
 
   // Form states
   const [formData, setFormData] = useState<any>({});
@@ -93,23 +97,31 @@ export const AdminDashboard: React.FC = () => {
   const pendingRequests = joinRequests.filter(r => r.status === 'Pending');
   const unreadMessages = messages.filter(m => m.status === 'Unread');
 
-  // Handle local image file upload into Base64 Data URL
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle local image file upload with compression for Firestore size safety
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setFormData((prev: any) => ({ ...prev, image: event.target?.result as string, avatar: event.target?.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 1280, 350_000);
+      setFormData((prev: any) => ({ ...prev, image: compressed, avatar: compressed }));
+    } catch {
+      showToast(t('Could not process this image file.', 'ছবিটি প্রসেস করা যায়নি।'), 'warning');
+    }
   };
 
-  // Handle local PDF upload into Base64 Data URL
+  // Handle local PDF upload into Base64 Data URL (500 KB max for Firestore 1 MB doc limit)
   const handlePdfFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (file.size > 500 * 1024) {
+      showToast(
+        t('PDF must be 500 KB or smaller for cloud storage.', 'ক্লাউড স্টোরেজের জন্য PDF ফাইল ৫০০ KB বা তার কম হতে হবে।'),
+        'warning'
+      );
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -194,7 +206,6 @@ export const AdminDashboard: React.FC = () => {
         name: '',
         email: '',
         phone: '',
-        password: 'password123',
         role: 'Member',
         village: 'Gaira',
         bloodGroup: 'O+',
@@ -249,7 +260,6 @@ export const AdminDashboard: React.FC = () => {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          password: formData.password || 'password123',
           role: formData.role || 'Member',
           village: formData.village || 'Gaira',
           bloodGroup: formData.bloodGroup || 'O+',
@@ -262,7 +272,6 @@ export const AdminDashboard: React.FC = () => {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          password: formData.password,
           role: formData.role,
           village: formData.village,
           bloodGroup: formData.bloodGroup,
@@ -277,7 +286,7 @@ export const AdminDashboard: React.FC = () => {
     setEditingItem(null);
   };
 
-  // 1. ADMIN LOGIN GATE (If not logged in as Admin)
+  // 1. ADMIN LOGIN GATE (If not logged in as Admin via Google)
   if (!isAdminLoggedIn) {
     return (
       <div className="max-w-md mx-auto py-10 sm:py-20 px-4">
@@ -290,52 +299,58 @@ export const AdminDashboard: React.FC = () => {
               {t('Executive Admin Login', 'অ্যাডমিন প্যানেল লগইন')}
             </h2>
             <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm">
-              {t('Enter council administrator password to access the management workspace.', 'কমিউনিটি পরিচালনা করতে অ্যাডমিন পাসওয়ার্ড দিন।')}
+              {t(
+                'Sign in with an authorized Council Administrator Google account to manage the live cloud database.',
+                'লাইভ ক্লাউড ডেটাবেস পরিচালনা করতে অনুমোদিত অ্যাডমিন Google অ্যাকাউন্ট দিয়ে লগইন করুন।'
+              )}
             </p>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              adminLogin(adminPasswordInput);
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                {t('Admin Password *', 'অ্যাডমিন পাসওয়ার্ড *')}
-              </label>
-              <input
-                type="password"
-                required
-                value={adminPasswordInput}
-                onChange={(e) => setAdminPasswordInput(e.target.value)}
-                placeholder="Enter admin password..."
-                className="w-full px-4 py-3 text-sm rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
-              />
+          {authLoading ? (
+            <div className="py-6 text-center text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
             </div>
+          ) : firebaseUser ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs space-y-1.5">
+                <div className="font-bold text-amber-950 dark:text-amber-200">
+                  {t('Signed-in account does not have Admin access', 'এই অ্যাকাউন্টে অ্যাডমিন অনুমতি নেই')}
+                </div>
+                <div className="text-slate-700 dark:text-slate-300">
+                  {t('Currently signed in as:', 'বর্তমান অ্যাকাউন্ট:')}{' '}
+                  <span className="font-mono font-bold">{firebaseUser.email}</span>
+                </div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                  {t('Authorized admin:', 'অনুমোদিত অ্যাডমিন:')}{' '}
+                  <span className="font-mono font-semibold">{BOOTSTRAP_ADMIN_EMAIL}</span>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20"
-            >
-              {t('Authorize & Enter Dashboard →', 'যাচাই করে প্রবেশ করুন →')}
-            </button>
-          </form>
-
-          {/* Quick Demo Access Helper */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center space-y-1">
-            <div className="text-[11px] text-slate-400">
-              {t('Default Password: ', 'ডিফল্ট পাসওয়ার্ড: ')} <code className="font-mono font-bold text-emerald-700 dark:text-emerald-400">salmikkhang2026</code>
+              <button
+                type="button"
+                onClick={() => void logoutGoogle()}
+                className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors"
+              >
+                {t('Sign out & Switch Google Account', 'লগআউট করে অন্য Google অ্যাকাউন্ট দিন')}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => adminLogin('salmikkhang2026')}
-              className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
-            >
-              {t('Click here for instant 1-click Admin access →', '১-ক্লিকে সরাসরি অ্যাডমিন প্রবেশ করুন →')}
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => void adminLogin()}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2.5"
+              >
+                <Shield className="w-4 h-4" />
+                <span>{t('Sign in with Google (Admin) →', 'Google দিয়ে অ্যাডমিন লগইন →')}</span>
+              </button>
+
+              <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-[11px] text-slate-700 dark:text-slate-300 text-center">
+                {t('Primary Admin:', 'মূল অ্যাডমিন:')}{' '}
+                <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300">{BOOTSTRAP_ADMIN_EMAIL}</span>
+              </div>
+            </div>
+          )}
 
           <div className="text-center pt-2">
             <button
@@ -749,8 +764,8 @@ export const AdminDashboard: React.FC = () => {
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-slate-200/70 dark:border-slate-700">
-                        <div className="text-[11px] text-slate-800 dark:text-slate-300">
-                          {m.village} · <span className="font-mono">{m.password || 'password123'}</span>
+                        <div className="text-[11px] text-slate-800 dark:text-slate-300 truncate max-w-[180px]">
+                          {m.village} · <span className="font-mono">{m.email || m.ownerEmail || '-'}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <button
@@ -761,11 +776,7 @@ export const AdminDashboard: React.FC = () => {
                             <span>{t('Edit', 'এডিট')}</span>
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm(`Remove ${m.name} from directory?`)) {
-                                deleteMember(m.id);
-                              }
-                            }}
+                            onClick={() => setDeletingMember(m)}
                             className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
                             title="Delete Member"
                           >
@@ -785,7 +796,7 @@ export const AdminDashboard: React.FC = () => {
                       <th className="py-3 px-4">Role</th>
                       <th className="py-3 px-4">Village</th>
                       <th className="py-3 px-4">Blood</th>
-                      <th className="py-3 px-4">Login Password</th>
+                      <th className="py-3 px-4">Google Email</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -836,8 +847,8 @@ export const AdminDashboard: React.FC = () => {
                           </td>
                           <td className="py-3 px-4 text-slate-800 dark:text-slate-300">{m.village}</td>
                           <td className="py-3 px-4 font-bold text-rose-700 dark:text-rose-400">{m.bloodGroup}</td>
-                          <td className="py-3 px-4 text-slate-800 dark:text-slate-400 font-mono text-[11px]">
-                            {m.password || 'password123'}
+                          <td className="py-3 px-4 text-slate-800 dark:text-slate-400 font-mono text-[11px] max-w-[180px] truncate">
+                            {m.email || m.ownerEmail || '-'}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
@@ -849,11 +860,7 @@ export const AdminDashboard: React.FC = () => {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Remove ${m.name} from directory?`)) {
-                                    deleteMember(m.id);
-                                  }
-                                }}
+                                onClick={() => setDeletingMember(m)}
                                 className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded"
                                 title="Delete Member"
                               >
@@ -1438,7 +1445,10 @@ export const AdminDashboard: React.FC = () => {
                       {t('Admin-Only Member Registration', 'অ্যাডমিন নিয়ন্ত্রিত সদস্য নিবন্ধন')}
                     </p>
                     <p className="text-[11px] opacity-90 mt-0.5">
-                      {t('Register youth member into the database. They will use this Email/Phone and Password to log in.', 'সকল তথ্য দিয়ে সদস্য যুক্ত করুন। এই ইমেইল/ফোন ও পাসওয়ার্ড দিয়ে সদস্য লগইন করতে পারবেন।')}
+                      {t(
+                        'Register youth member into the cloud database. Enter their Gmail address so they can sign in securely with Google.',
+                        'সদস্যের তথ্য ক্লাউড ডেটাবেসে যুক্ত করুন। সদস্যের Gmail ঠিকানা দিলে তারা Google দিয়ে নিরাপদে লগইন করতে পারবেন।'
+                      )}
                     </p>
                   </div>
 
@@ -1515,20 +1525,7 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        {t('Login Password *', 'লগইন পাসওয়ার্ড *')}
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.password || ''}
-                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        placeholder="password123"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono"
-                      />
-                    </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                         {t('Village *', 'গ্রাম *')}
@@ -1932,6 +1929,50 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deletingMember && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-rose-700 dark:text-rose-400">
+                {t('Remove Member from Directory', 'সদস্যকে তালিকা থেকে মুছুন')}
+              </h3>
+              <button
+                onClick={() => setDeletingMember(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              {t(
+                `Are you sure you want to remove "${deletingMember.name}" (${deletingMember.role}) from the community directory?`,
+                `আপনি কি "${deletingMember.name}" (${deletingMember.role})-কে কমিউনিটি তালিকা থেকে মুছে ফেলতে চান?`
+              )}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingMember(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {t('Cancel', 'বাতিল')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteMember(deletingMember.id);
+                  setDeletingMember(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t('Remove Member', 'সদস্য মুছুন')}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -39,6 +39,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
     submitContactMessage,
     toggleEventRsvp,
     currentMember,
+    firebaseUser,
     showToast
   } = useCommunity();
 
@@ -70,7 +71,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
   };
 
   const handleRsvpClick = (eventId: string) => {
-    const userIdentifier = currentMember ? currentMember.name : 'Guest Volunteer';
+    const userIdentifier = currentMember?.name || firebaseUser?.displayName || 'Guest Volunteer';
     toggleEventRsvp(eventId, userIdentifier);
   };
 
@@ -302,7 +303,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
 
             <div className="space-y-4">
               {events.filter(e => e.visibility !== 'members_only').map((event) => {
-                const userIdentifier = currentMember ? currentMember.name : 'Guest Volunteer';
+                const userIdentifier = currentMember?.name || firebaseUser?.displayName || 'Guest Volunteer';
                 const isRsvpd = event.rsvps.includes(userIdentifier);
                 return (
                   <div

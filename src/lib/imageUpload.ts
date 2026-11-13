@@ -1,8 +1,8 @@
 /**
- * Resize and compress an uploaded image in the browser so it fits in localStorage.
- * Returns a JPEG data URL (roughly 150-500 KB for a normal photo).
+ * Resize and compress an uploaded image in the browser so it fits safely within Firestore limits.
+ * Returns a JPEG data URL (roughly 120-320 KB for a normal photo).
  */
-export function compressImage(file: File, maxWidth = 1600, maxChars = 650_000): Promise<string> {
+export function compressImage(file: File, maxWidth = 1280, maxChars = 350_000): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
       reject(new Error('Please choose an image file.'));
