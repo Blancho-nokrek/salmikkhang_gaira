@@ -6,13 +6,13 @@
   --forest: #064E3B; --emerald: #047857; --fresh: #22C55E; --lime: #A3E635;
   --sky: #38BDF8; --ocean: #075985; --frost: #F8FAFC; --neutral: #E2E8F0;
 
-  --g-card: rgba(248, 250, 252, 0.66);
-  --g-well: rgba(255, 255, 255, 0.42);
-  --g-field: rgba(255, 255, 255, 0.58);
-  --g-line: rgba(255, 255, 255, 0.62);
-  --g-line-soft: rgba(6, 78, 59, 0.12);
-  --g-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 -1px 0 rgba(6,78,59,.05) inset, 0 18px 40px -18px rgba(6,60,45,.28), 0 2px 6px rgba(6,60,45,.06);
-  --g-shine: linear-gradient(135deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 38%);
+  --g-card: rgba(255, 255, 255, 0.84);
+  --g-well: rgba(248, 250, 252, 0.72);
+  --g-field: rgba(255, 255, 255, 0.88);
+  --g-line: rgba(255, 255, 255, 0.75);
+  --g-line-soft: rgba(6, 78, 59, 0.14);
+  --g-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -1px 0 rgba(6,78,59,.06) inset, 0 18px 40px -18px rgba(6,60,45,.22), 0 2px 6px rgba(6,60,45,.06);
+  --g-shine: linear-gradient(135deg, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 38%);
   --g-ring: 0 0 0 3px rgba(56, 189, 248, .45);
   --glass-bg: var(--g-card); --glass-border: var(--g-line); --glass-shadow: var(--g-shadow);
   --glass-card-bg: var(--g-card); --glass-card-border: var(--g-line);
@@ -34,6 +34,30 @@ img { max-width: 100%; }
 body { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 ::selection { background: rgba(163, 230, 53, .45); color: var(--forest); }
 
+/* Light mode: make muted slate text crisp dark/black on light & glass surfaces (preserving dark-surface sections) */
+html:not(.dark) :is(header, main, .glass-card, .glass-surface) :not(footer):not(.bg-emerald-950):not(.bg-emerald-900):not(.bg-emerald-800):not([class*="bg-slate-900"]):not([class*="from-emerald-9"]):not([class*="from-emerald-8"]) {
+  --tw-text-opacity: 1;
+}
+html:not(.dark) .text-slate-400:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *):not(.bg-rose-950\/70 *) {
+  color: #334155;
+}
+html:not(.dark) .text-slate-500:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #0f172a;
+}
+html:not(.dark) .text-slate-600:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
+html:not(.dark) .text-slate-700:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
+html:not(.dark) .text-slate-800:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *),
+html:not(.dark) .text-slate-900:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
+
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 /* ───────── Core glass surfaces ───────── */
 .glass-surface, .glass-card {
   position: relative;
@@ -50,21 +74,21 @@ body { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
 
 /* ───────── Remap existing solid utilities → glass ───────── */
 [class~="bg-white"], [class~="bg-white/60"], [class~="bg-white/80"], [class~="bg-white/70"],
-[class~="dark:bg-slate-800"], [class~="dark:bg-slate-900"], [class~="dark:bg-slate-900/60"] {
+.dark [class~="dark:bg-slate-800"], .dark [class~="dark:bg-slate-900"], .dark [class~="dark:bg-slate-900/60"] {
   background-color: var(--g-card);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   box-shadow: var(--g-shadow);
 }
 [class~="bg-slate-50"], [class~="bg-slate-100"], [class~="bg-white/40"], [class~="bg-slate-50/70"],
-[class~="dark:bg-slate-800/40"], [class~="dark:bg-slate-800/60"], [class~="dark:bg-slate-800/80"], [class~="dark:bg-slate-900/40"] {
+.dark [class~="dark:bg-slate-800/40"], .dark [class~="dark:bg-slate-800/60"], .dark [class~="dark:bg-slate-800/80"], .dark [class~="dark:bg-slate-900/40"] {
   background-color: var(--g-well);
   box-shadow: none;
 }
-[class~="border-slate-200"], [class~="border-slate-100"], [class~="dark:border-slate-700"], [class~="dark:border-slate-800"],
-[class~="border-white/40"], [class~="border-white/30"], [class~="dark:border-white/10"] { border-color: var(--g-line) !important; }
+[class~="border-slate-200"], [class~="border-slate-100"], .dark [class~="dark:border-slate-700"], .dark [class~="dark:border-slate-800"],
+[class~="border-white/40"], [class~="border-white/30"], .dark [class~="dark:border-white/10"] { border-color: var(--g-line) !important; }
 [class~="hover:bg-slate-100"]:hover, [class~="hover:bg-slate-50"]:hover, [class~="hover:bg-white/40"]:hover,
-[class~="dark:hover:bg-slate-800"]:hover { background-color: rgba(163,230,53,.16); }
+.dark [class~="dark:hover:bg-slate-800"]:hover { background-color: rgba(163,230,53,.16); }
 
 /* Primary buttons: emerald → forest with a glass sheen */
 [class~="bg-emerald-600"], [class~="bg-emerald-700"] {
@@ -82,18 +106,18 @@ header.sticky { background: var(--g-card) !important; backdrop-filter: blur(22px
 [class~="fixed"][class~="inset-0"][class~="z-50"] { background: radial-gradient(ellipse at 50% 0%, rgba(7,89,133,.35), rgba(2,18,16,.72)) !important; backdrop-filter: blur(10px); }
 input, select, textarea { background-color: var(--g-field) !important; border: 1px solid var(--g-line) !important; border-radius: 0.85rem;
   backdrop-filter: blur(8px); transition: box-shadow .2s, border-color .2s; }
-input::placeholder, textarea::placeholder { color: rgba(71,85,105,.7); }
+input::placeholder, textarea::placeholder { color: rgba(30,41,59,.68); }
 .dark input::placeholder, .dark textarea::placeholder { color: rgba(203,213,225,.5); }
 :is(input, select, textarea):focus { outline: none; border-color: var(--sky) !important; box-shadow: var(--g-ring); }
 :focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 0.5rem; }
 
-/* Dark bands (stats strip, footer) become deep-forest glass over the landscape */
-section[class~="bg-emerald-800"], footer[class~="bg-slate-900"], section#projects {
+/* Dark bands (stats strip, footer) become deep-forest glass in dark mode; keep light-mode glass bright */
+.dark section[class~="bg-emerald-800"], .dark footer[class~="bg-slate-900"], section#projects {
   background: linear-gradient(180deg, rgba(6,78,59,.62), rgba(7,89,133,.5)) !important;
   backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-color: var(--g-line) !important;
 }
-footer[class~="bg-slate-900"] { background: linear-gradient(180deg, rgba(6,40,32,.72), rgba(3,22,20,.88)) !important; }
+.dark footer[class~="bg-slate-900"] { background: linear-gradient(180deg, rgba(6,40,32,.72), rgba(3,22,20,.88)) !important; }
 section#projects { background: var(--g-well) !important; }
 
 /* One orchestrated moment: the view fades up as you switch portals */

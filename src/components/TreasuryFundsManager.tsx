@@ -220,62 +220,62 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
       {/* Main Calculation & Balance Cards (Nature Glassmorphic) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Net Treasury Balance */}
-        <div className="p-5 glass-card rounded-3xl border border-emerald-500/30 shadow-xl flex flex-col justify-between backdrop-blur-2xl">
+        <div className="p-4 sm:p-5 glass-card rounded-3xl border border-emerald-500/30 shadow-xl flex flex-col justify-between backdrop-blur-2xl">
           <div>
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-wider">
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider">
               <span>{t('Audited Net Fund Balance', 'বর্তমান উদ্বৃত্ত ক্যাশ ব্যালেন্স')}</span>
-              <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <Coins className="w-4 h-4 text-emerald-800 dark:text-emerald-400 shrink-0" />
             </div>
-            <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 mt-2">
+            <div className="text-3xl sm:text-4xl font-black text-slate-950 dark:text-slate-100 mt-2">
               ৳ {netBalance.toLocaleString()}
             </div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+            <div className="text-xs text-emerald-900 dark:text-emerald-400 mt-1 font-semibold">
               {netBalance >= 0 ? t('Healthy Treasury Reserve', 'তহবিল সক্রিয় ও উদ্বৃত্ত') : t('Deficit — Inflows Needed', 'ঘাটতি রয়েছে')}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-300">
+          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between gap-2 text-[11px] text-emerald-900 dark:text-emerald-300">
             <span>{t('Formula:', 'গণনা:')} Inflow - Outflow</span>
             <span className="font-bold">৳{totalInflow.toLocaleString()} - ৳{totalOutflow.toLocaleString()}</span>
           </div>
         </div>
 
         {/* Total Collections */}
-        <div className="p-5 glass-card rounded-3xl border border-white/40 dark:border-white/10 shadow-lg flex flex-col justify-between backdrop-blur-2xl">
+        <div className="p-4 sm:p-5 glass-card rounded-3xl border border-white/40 dark:border-white/10 shadow-lg flex flex-col justify-between backdrop-blur-2xl">
           <div>
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-900 dark:text-emerald-400 uppercase tracking-wider">
               <span>{t('Total Inflows / Collections', 'সর্বমোট জমা ও চাঁদা')}</span>
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <TrendingUp className="w-4 h-4 text-emerald-800 dark:text-emerald-400 shrink-0" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 mt-2">
               ৳ {totalInflow.toLocaleString()}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-xs text-slate-800 dark:text-slate-400 mt-1">
               {funds.filter(f => f.type === 'Inflow').length} {t('inflow transactions recorded', 'টি রসিদ ও চাঁদা এন্ট্রি')}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between text-[11px] text-slate-800 dark:text-slate-400">
             <span>{t('Member dues & Donations', 'সদস্যদের নিয়মিত চাঁদা ও অনুদান')}</span>
           </div>
         </div>
 
         {/* Total Expenses */}
-        <div className="p-5 glass-card rounded-3xl border border-rose-500/20 dark:border-rose-500/20 shadow-lg flex flex-col justify-between backdrop-blur-2xl">
+        <div className="p-4 sm:p-5 glass-card rounded-3xl border border-rose-500/20 dark:border-rose-500/20 shadow-lg flex flex-col justify-between backdrop-blur-2xl">
           <div>
-            <div className="flex items-center justify-between text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            <div className="flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">
               <span>{t('Total Outflows / Expenses', 'সর্বমোট ব্যয় ও খরচ ভাউচার')}</span>
-              <TrendingDown className="w-4 h-4 text-rose-600" />
+              <TrendingDown className="w-4 h-4 text-rose-700 dark:text-rose-400 shrink-0" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 mt-2">
               ৳ {totalOutflow.toLocaleString()}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-xs text-slate-800 dark:text-slate-400 mt-1">
               {funds.filter(f => f.type === 'Outflow').length} {t('expense vouchers verified', 'টি ভাউচার পরিশোধিত')}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-4 border-t border-white/20 dark:border-white/10 mt-4 flex items-center justify-between text-[11px] text-slate-800 dark:text-slate-400">
             <span>{t('Saplings, kits, education, events', 'চারা, টুর্নামেন্ট, ত্রাণ ও পাঠাগার')}</span>
           </div>
         </div>
@@ -283,59 +283,59 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
       {/* Authorized Officers Badge */}
       <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <UserCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
-          <span className="font-bold text-slate-800 dark:text-slate-200">
+        <div className="flex flex-wrap items-center gap-2">
+          <UserCheck className="w-4 h-4 text-emerald-800 dark:text-emerald-400 shrink-0" />
+          <span className="font-bold text-slate-950 dark:text-slate-200">
             {t('Authorized Treasury Officers:', 'তহবিল পরিচালনায় দায়িত্বপ্রাপ্ত:')}
           </span>
-          <div className="flex flex-wrap items-center gap-1.5 ml-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {cashierMembers.map(m => (
-              <span key={m.id} className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold rounded-lg text-[11px]">
+              <span key={m.id} className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-300 font-bold rounded-lg text-[11px]">
                 {m.name} ({m.role})
               </span>
             ))}
-            <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold rounded-lg text-[11px]">
+            <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-950 text-purple-950 dark:text-purple-300 font-bold rounded-lg text-[11px]">
               Admin Council
             </span>
           </div>
         </div>
 
         {canManage ? (
-          <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-            <Check className="w-4 h-4 text-emerald-600" />
+          <span className="text-emerald-900 dark:text-emerald-400 font-bold flex items-center gap-1">
+            <Check className="w-4 h-4 text-emerald-800 dark:text-emerald-400 shrink-0" />
             <span>{t('You are authorized to Add / Remove / Calculate transactions.', 'আপনি টাকা সংযোজন, বিয়োজন ও হিসাব পরিচালনায় ক্ষমতাপ্রাপ্ত।')}</span>
           </span>
         ) : (
-          <span className="text-slate-500 dark:text-slate-400">
+          <span className="text-slate-800 dark:text-slate-400">
             {t('You have view-only access as a verified community member.', 'সদস্য হিসেবে আপনি সার্বিক হিসাব দেখতে পাচ্ছেন।')}
           </span>
         )}
       </div>
 
       {/* Search and Filters */}
-      <div className="p-4 glass-surface rounded-2xl border border-white/30 dark:border-white/10 space-y-3 backdrop-blur-xl shadow-md">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+      <div className="p-3.5 sm:p-4 glass-surface rounded-2xl border border-white/30 dark:border-white/10 space-y-3 backdrop-blur-xl shadow-md">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-600 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder={t('Search by Voucher No, title, donor, payee...', 'ভাউচার নং, শিরোনাম, দাতা বা গ্রাহকের নাম দিয়ে খুঁজুন...')}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-            <div className="flex items-center p-1 bg-white/40 dark:bg-slate-900/40 rounded-xl border border-white/20 dark:border-white/10">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <div className="flex items-center p-1 bg-white/40 dark:bg-slate-900/40 rounded-xl border border-white/20 dark:border-white/10 shrink-0">
               {(['All', 'Inflow', 'Outflow'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setTypeFilter(tab)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                     typeFilter === tab
                       ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      : 'text-slate-900 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
                   }`}
                 >
                   {tab === 'All' ? t('All', 'সকল') : tab === 'Inflow' ? t('Inflow (+)', 'জমা (+)') : t('Outflow (-)', 'খরচ (-)')}
@@ -346,7 +346,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 shrink-0 backdrop-blur-md"
+              className="flex-1 sm:flex-initial min-w-0 px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-200 backdrop-blur-md"
             >
               <option value="All">{t('All Categories', 'সকল খাত')}</option>
               {categoriesList.map(cat => (
@@ -356,20 +356,89 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-white/20 dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-800 dark:text-slate-400 pt-1 border-t border-white/20 dark:border-white/10">
           <span>{filtered.length} {t('transaction entries in view', 'টি লেনদেন প্রদর্শিত')}</span>
           <span>
             {t('Filtered Total:', 'ফিল্টারকৃত ব্যালেন্স:')}{' '}
-            <strong className="text-slate-800 dark:text-slate-200 font-mono">
+            <strong className="text-slate-950 dark:text-slate-200 font-mono">
               ৳ {filtered.reduce((acc, f) => f.type === 'Inflow' ? acc + f.amount : acc - f.amount, 0).toLocaleString()}
             </strong>
           </span>
         </div>
       </div>
 
-      {/* Transaction Ledger Table */}
+      {/* Transaction Ledger (Mobile Cards + Desktop Table) */}
       <div className="glass-card rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl backdrop-blur-2xl">
-        <div className="overflow-x-auto">
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-slate-200/70 dark:divide-slate-800">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-700 dark:text-slate-400 text-xs">
+              <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div>{t('No transactions matching criteria.', 'কোনো লেনদেন মেলেনি।')}</div>
+            </div>
+          ) : (
+            filtered.map(txn => (
+              <div key={txn.id} className="p-4 space-y-2.5 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono font-bold text-[11px] text-slate-700 dark:text-slate-400">
+                      {txn.voucherNo || txn.id} · {txn.date}
+                    </div>
+                    <div className="font-bold text-sm text-slate-950 dark:text-slate-100 mt-0.5">
+                      {t(txn.title, txn.titleBn)}
+                    </div>
+                  </div>
+                  <span className={`font-black font-mono text-sm shrink-0 ${
+                    txn.type === 'Inflow'
+                      ? 'text-emerald-800 dark:text-emerald-400'
+                      : 'text-rose-800 dark:text-rose-400'
+                  }`}>
+                    {txn.type === 'Inflow' ? '+' : '-'} ৳ {txn.amount.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-md font-semibold bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-300">
+                    {txn.category}
+                  </span>
+                  <span className="text-slate-800 dark:text-slate-300 font-medium">
+                    {txn.donorOrBeneficiary}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                  <span className="text-[11px] text-slate-700 dark:text-slate-400">
+                    {txn.recordedBy || 'Treasury Desk'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setSelectedVoucher(txn)}
+                      className="px-2.5 py-1.5 bg-white/80 dark:bg-slate-800 text-slate-950 dark:text-slate-200 rounded-lg font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      <span>{t('Slip', 'রসিদ')}</span>
+                    </button>
+                    {canManage && (
+                      <button
+                        onClick={() => {
+                          if (confirm(t(`Delete transaction voucher ${txn.voucherNo || txn.title} of ৳${txn.amount}?`, `৳${txn.amount} টাকার ভাউচারটি ডিলিট করতে চান?`))) {
+                            deleteFundTransaction(txn.id);
+                          }
+                        }}
+                        className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                        title={t('Cancel / Delete Voucher', 'ভাউচার বাতিল করুন')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-white/40 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 border-b border-white/20 dark:border-white/10 font-bold uppercase tracking-wider text-[10px]">
               <tr>
@@ -470,8 +539,8 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
       {/* ADD TRANSACTION / VOUCHER MODAL */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider block ${
@@ -662,8 +731,8 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
       {/* VIEW VOUCHER RECEIPT SLIP MODAL */}
       {selectedVoucher && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold">
@@ -780,26 +849,26 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
       {/* ADMIN ASSIGN CASHIER MODAL */}
       {assignCashierModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wider block">
                   {t('Treasury Governance', 'কোষাধ্যক্ষ ও অর্থ দপ্তর নিয়োগ')}
                 </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
+                <h3 className="text-lg font-black text-slate-950 dark:text-slate-100">
                   {t('Assign Cashier & Assistant Cashier Roles', 'ক্যাশিয়ার ও সহকারী ক্যাশিয়ার পদবি')}
                 </h3>
               </div>
               <button
                 onClick={() => setAssignCashierModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">
               {t(
                 'Only Admin and members appointed as "Cashier" (কোষাধ্যক্ষ) or "Assistant Cashier" (সহকারী ক্যাশিয়ার) can add/remove money and calculate balances. You can delegate these financial positions below.',
                 'ইউজারের চাহিদানুসারে শুধুমাত্র অ্যাডমিন এবং ক্যাশিয়ার / সহকারী ক্যাশিয়াররা তহবিলের টাকা সংযোজন, বিয়োজন ও হিসাব গণনা করতে পারেন।'
@@ -813,14 +882,14 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                 return (
                   <div
                     key={m.id}
-                    className={`p-3 rounded-2xl border flex items-center justify-between text-xs transition-colors ${
+                    className={`p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-colors ${
                       isCashier || isAssis
                         ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     <div>
-                      <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <div className="font-bold text-slate-950 dark:text-slate-100 flex flex-wrap items-center gap-1.5">
                         <span>{m.name}</span>
                         {isCashier && (
                           <span className="px-2 py-0.2 bg-amber-600 text-white font-bold text-[10px] rounded-full">
@@ -833,17 +902,17 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-slate-700 dark:text-slate-400">
                         {m.memberNo} · {m.role} · {m.village}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => assignMemberRole(m.id, isCashier ? 'Member' : 'Cashier')}
-                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                        className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-colors ${
                           isCashier
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                            ? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-300'
                             : 'bg-amber-600 hover:bg-amber-500 text-white'
                         }`}
                       >
@@ -852,9 +921,9 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
                       <button
                         onClick={() => assignMemberRole(m.id, isAssis ? 'Member' : 'Assistant Cashier')}
-                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                        className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-colors ${
                           isAssis
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                            ? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-300'
                             : 'bg-teal-700 hover:bg-teal-600 text-white'
                         }`}
                       >

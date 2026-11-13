@@ -339,74 +339,74 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
 
       {/* Overview Metric Cards (Nature Glassmorphism) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 glass-card rounded-2xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="p-3.5 sm:p-4 glass-card rounded-2xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-800 dark:text-slate-400">
             {t('Total Households Registered', 'মোট নিবন্ধিত পরিবার')}
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">
+          <div className="text-2xl font-black text-slate-950 dark:text-slate-100 mt-1">
             {villageResidents.length}
           </div>
-          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+          <div className="text-[11px] text-emerald-900 dark:text-emerald-400 mt-0.5 font-medium">
             {villageResidents.reduce((acc, r) => acc + (r.familyMembersCount || 1), 0)} {t('total villagers represented', 'জন গ্রামবাসীর তথ্য')}
           </div>
         </div>
 
-        <div className="p-4 glass-card rounded-2xl border border-rose-500/20 dark:border-rose-500/20 shadow-lg backdrop-blur-xl">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+        <div className="p-3.5 sm:p-4 glass-card rounded-2xl border border-rose-500/20 dark:border-rose-500/20 shadow-lg backdrop-blur-xl">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400">
             {t('Eligible for Relief & Aid', 'ত্রাণ ও সহায়তাযোগ্য পরিবার')}
           </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-300 mt-1">
+          <div className="text-2xl font-black text-rose-800 dark:text-rose-300 mt-1">
             {eligibleCount}
           </div>
-          <div className="text-[11px] text-rose-500 dark:text-rose-400 mt-0.5">
+          <div className="text-[11px] text-rose-800 dark:text-rose-400 mt-0.5 font-medium">
             {t('Priority for winter blankets & aid', 'শীতবস্ত্র ও খাদ্য সহায়তা অগ্রাধিকার')}
           </div>
         </div>
 
-        <div className="p-4 glass-card rounded-2xl border border-amber-500/20 dark:border-amber-500/20 shadow-lg backdrop-blur-xl">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+        <div className="p-3.5 sm:p-4 glass-card rounded-2xl border border-amber-500/20 dark:border-amber-500/20 shadow-lg backdrop-blur-xl">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-400">
             {t('Medical Assistance Needed', 'জরুরি চিকিৎসা সহায়তা')}
           </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-300 mt-1">
+          <div className="text-2xl font-black text-amber-950 dark:text-amber-300 mt-1">
             {medicalCount}
           </div>
-          <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+          <div className="text-[11px] text-amber-900 dark:text-amber-400 mt-0.5 font-medium">
             {t('Hospital surgery & blood calls', 'হাসপাতাল অপারেশন ও রক্তদান')}
           </div>
         </div>
 
-        <div className="p-4 glass-card rounded-2xl border border-sky-500/20 dark:border-sky-500/20 shadow-lg backdrop-blur-xl">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+        <div className="p-3.5 sm:p-4 glass-card rounded-2xl border border-sky-500/20 dark:border-sky-500/20 shadow-lg backdrop-blur-xl">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-sky-900 dark:text-sky-400">
             {t('Seniors & Students', 'প্রবীণ ও শিক্ষার্থী')}
           </div>
-          <div className="text-2xl font-black text-sky-600 dark:text-sky-300 mt-1">
+          <div className="text-2xl font-black text-sky-950 dark:text-sky-300 mt-1">
             {seniorCount + studentCount}
           </div>
-          <div className="text-[11px] text-sky-600 dark:text-sky-400 mt-0.5">
+          <div className="text-[11px] text-sky-900 dark:text-sky-400 mt-0.5 font-medium">
             {seniorCount} {t('seniors', 'প্রবীণ')} · {studentCount} {t('students', 'শিক্ষার্থী')}
           </div>
         </div>
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="p-4 glass-surface rounded-2xl border border-white/30 dark:border-white/10 space-y-3 backdrop-blur-xl shadow-md">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+      <div className="p-3.5 sm:p-4 glass-surface rounded-2xl border border-white/30 dark:border-white/10 space-y-3 backdrop-blur-xl shadow-md">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-600 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder={t('Search by Resident Name, Guardian, Phone, NID, Para, Occupation...', 'নাম, অভিভাবক, ফোন, ভোটার আইডি, পাড়া বা পেশা দিয়ে খুঁজুন...')}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <select
               value={villageFilter}
               onChange={e => setVillageFilter(e.target.value)}
-              className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 shrink-0 backdrop-blur-md"
+              className="flex-1 sm:flex-initial min-w-0 px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-200 backdrop-blur-md"
             >
               <option value="All">{t('All Villages', 'সকল গ্রাম')}</option>
               <option value="Gaira">Gaira (গাইরা)</option>
@@ -418,7 +418,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
             <select
               value={aidFilter}
               onChange={e => setAidFilter(e.target.value)}
-              className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 shrink-0 backdrop-blur-md"
+              className="flex-1 sm:flex-initial min-w-0 px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-200 backdrop-blur-md"
             >
               <option value="All">{t('All Aid Categories', 'সকল সাহায্য ক্যাটাগরি')}</option>
               <option value="Eligible for Aid">{t('Eligible for Aid', 'ত্রাণ ও সহায়তাযোগ্য')}</option>
@@ -432,7 +432,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
             <select
               value={bloodFilter}
               onChange={e => setBloodFilter(e.target.value)}
-              className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 shrink-0 backdrop-blur-md"
+              className="w-full sm:w-auto px-2.5 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-200 backdrop-blur-md"
             >
               <option value="All">{t('Blood Group', 'রক্তের গ্রুপ')}</option>
               <option value="A+">A+</option>
@@ -447,20 +447,101 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-white/20 dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-800 dark:text-slate-400 pt-1 border-t border-white/20 dark:border-white/10">
           <span>{filtered.length} {t('citizen records found', 'জন নাগরিকের তথ্য পাওয়া গেছে')}</span>
           {canCollect && (
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <Check className="w-3.5 h-3.5" />
+            <span className="text-emerald-900 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <Check className="w-3.5 h-3.5 shrink-0" />
               <span>{t('Authorized Data Collector Mode Active', 'তথ্য সংগ্রাহক পারমিশন সক্রিয়')}</span>
             </span>
           )}
         </div>
       </div>
 
-      {/* Directory Table / Cards View */}
+      {/* Directory Table (Desktop) & Cards View (Mobile) */}
       <div className="glass-card rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl backdrop-blur-2xl">
-        <div className="overflow-x-auto">
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-slate-200/70 dark:divide-slate-800">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-700 dark:text-slate-400 text-xs">
+              <Home className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div>{t('No resident records matching criteria.', 'কোনো নাগরিকের তথ্য মেলেনি।')}</div>
+            </div>
+          ) : (
+            filtered.map(res => (
+              <div key={res.id} className="p-4 space-y-2.5 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-slate-950 dark:text-slate-100">
+                      {res.name} {res.nameBn && <span className="text-xs font-normal text-slate-700 dark:text-slate-400">({res.nameBn})</span>}
+                    </div>
+                    <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono">
+                      {res.residentNo} · {res.familyMembersCount} {t('members', 'জন সদস্য')}
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 rounded-full shrink-0">
+                    {res.bloodGroup}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {getAidBadge(res.aidStatus)}
+                  <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-300">
+                    {res.village}, {res.para}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-slate-800 dark:text-slate-300 space-y-0.5">
+                  <div><span className="font-bold">{t('Guardian:', 'অভিভাবক:')}</span> {res.guardianName}</div>
+                  <div><span className="font-bold">{t('Occupation:', 'পেশা:')}</span> {res.occupation}</div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                  <a
+                    href={`tel:${res.phone}`}
+                    className="font-mono text-emerald-900 dark:text-emerald-400 hover:underline flex items-center gap-1 font-bold"
+                  >
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <span>{res.phone}</span>
+                  </a>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setViewingResident(res)}
+                      className="px-2.5 py-1.5 bg-white/80 dark:bg-slate-800 text-slate-950 dark:text-slate-200 rounded-lg font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{t('View', 'দেখুন')}</span>
+                    </button>
+                    {canCollect && (
+                      <>
+                        <button
+                          onClick={() => openEdit(res)}
+                          className="p-1.5 text-slate-800 dark:text-slate-300 hover:text-blue-700 rounded-lg"
+                          title={t('Edit Resident Record', 'নাগরিক তথ্য এডিট করুন')}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(t(`Delete record of ${res.name}?`, `${res.name}-এর রেকর্ডটি ডিলিট করতে চান?`))) {
+                              deleteVillageResident(res.id);
+                            }
+                          }}
+                          className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                          title={t('Delete Record', 'রেকর্ড মুছুন')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-white/40 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 border-b border-white/20 dark:border-white/10 font-bold uppercase tracking-wider text-[10px]">
               <tr>
@@ -584,8 +665,8 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
 
       {/* CREATE / EDIT RESIDENT MODAL (Authorized only to Data Collector & Admin) */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5 my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
@@ -828,27 +909,27 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
 
       {/* VIEW RESIDENT DETAIL MODAL */}
       {viewingResident && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold">
+                <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-400 font-bold">
                   {viewingResident.residentNo}
                 </span>
-                <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                <h3 className="text-lg sm:text-xl font-black text-slate-950 dark:text-slate-100">
                   {viewingResident.name} {viewingResident.nameBn && `(${viewingResident.nameBn})`}
                 </h3>
               </div>
               <button
                 onClick={() => setViewingResident(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl">
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">{t('Father / Guardian:', 'অভিভাবক:')}</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingResident.guardianName}</span>
@@ -929,26 +1010,26 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
 
       {/* ADMIN ASSIGN DATA COLLECTOR MODAL */}
       {assignCollectorModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wider block">
                   {t('Admin Delegation', 'অ্যাডমিন ক্ষমতা বণ্টন')}
                 </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
+                <h3 className="text-lg font-black text-slate-950 dark:text-slate-100">
                   {t('Assign Data Collector Role', 'তথ্য সংগ্রাহক পদবি নিয়োগ')}
                 </h3>
               </div>
               <button
                 onClick={() => setAssignCollectorModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">
               {t(
                 'As requested, only Admin and members with the "Data Collector" role have authorization to add or modify village citizen information. Select any registered youth member below to appoint them as an official Data Collector.',
                 'অ্যাডমিনের পর শুধুমাত্র "তথ্য সংগ্রাহক" (Data Collector) পদবিধারী সদস্যরা গ্রামবাসীদের তথ্য যোগ ও এডিট করতে পারবেন। নিচের তালিকা থেকে যে কোনো সদস্যকে এই দায়িত্ব দিন।'
@@ -961,14 +1042,14 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                 return (
                   <div
                     key={m.id}
-                    className={`p-3 rounded-2xl border flex items-center justify-between text-xs transition-colors ${
+                    className={`p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-colors ${
                       isCollector
                         ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     <div>
-                      <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <div className="font-bold text-slate-950 dark:text-slate-100 flex flex-wrap items-center gap-2">
                         <span>{m.name}</span>
                         {isCollector && (
                           <span className="px-2 py-0.2 bg-blue-600 text-white font-bold text-[10px] rounded-full">
@@ -976,7 +1057,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-slate-700 dark:text-slate-400">
                         {m.memberNo} · {m.role} · {m.village}
                       </div>
                     </div>
@@ -985,9 +1066,9 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                       onClick={() => {
                         assignMemberRole(m.id, isCollector ? 'Member' : 'Data Collector');
                       }}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors shrink-0 self-start sm:self-auto ${
                         isCollector
-                          ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                          ? 'bg-rose-100 hover:bg-rose-200 text-rose-900 dark:bg-rose-950 dark:text-rose-300'
                           : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs'
                       }`}
                     >

@@ -280,16 +280,16 @@ export const AdminDashboard: React.FC = () => {
   // 1. ADMIN LOGIN GATE (If not logged in as Admin)
   if (!isAdminLoggedIn) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4">
-        <div className="glass-card p-8 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-6 backdrop-blur-2xl">
+      <div className="max-w-md mx-auto py-10 sm:py-20 px-4">
+        <div className="glass-card p-6 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-6 backdrop-blur-2xl">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-emerald-600/90 dark:bg-emerald-500/80 text-white flex items-center justify-center mx-auto shadow-lg backdrop-blur-md border border-white/20">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
               {t('Executive Admin Login', 'অ্যাডমিন প্যানেল লগইন')}
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm">
               {t('Enter council administrator password to access the management workspace.', 'কমিউনিটি পরিচালনা করতে অ্যাডমিন পাসওয়ার্ড দিন।')}
             </p>
           </div>
@@ -352,43 +352,43 @@ export const AdminDashboard: React.FC = () => {
 
   // 2. ADMIN DASHBOARD (When logged in)
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-colors">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 transition-colors">
       
       {/* Top Banner & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 sm:pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-400">
               SALMIKKHANG EXECUTIVE WORKSPACE
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 mt-1">
             {t('Community Administration & CMS', 'কমিউনিটি পরিচালনা ও নিয়ন্ত্রণ প্যানেল')}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
             {t('Full dynamic control over members, applications, events, circulars with PDF upload, and settings.', 'সদস্য নিবন্ধন, অনুষ্ঠান ও PDF নোটিশ প্রকাশ এবং কমিউনিটি নিয়ন্ত্রণের কেন্দ্রীয় ড্যাশবোর্ড।')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setCurrentView('website')}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-950 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>{t('View Live Site', 'ওয়েবসাইট দেখুন')}</span>
           </button>
           <button
             onClick={exportDataJSON}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{t('Backup JSON', 'ব্যাকআপ ডাউনলোড')}</span>
           </button>
           <button
             onClick={adminLogout}
-            className="flex items-center gap-1 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-400 font-bold text-xs rounded-xl transition-colors"
+            className="flex items-center gap-1 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-400 font-bold text-xs rounded-xl transition-colors"
             title="Log out of Admin Workspace"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -397,133 +397,135 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-12 gap-8 pt-6">
+      <div className="grid md:grid-cols-12 gap-5 lg:gap-8 pt-5 sm:pt-6 items-start">
         
-        {/* Sidebar Nav (Nature Glassmorphism) */}
-        <aside className="lg:col-span-3 glass-surface p-3 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl space-y-1 h-fit">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1.5">
+        {/* Sidebar Nav (Left vertical list) */}
+        <aside className="md:col-span-4 lg:col-span-3 min-w-0 glass-surface p-3 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl h-fit">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 px-3 py-1.5">
             {t('WORKSPACE SECTIONS', 'কমিউনিটি ব্যবস্থাপনা')}
           </div>
 
-          {[
-            { id: 'overview', labelEn: 'Overview Dashboard', labelBn: 'এক নজরে তথ্য', icon: LayoutDashboard },
-            { id: 'roles', labelEn: 'Organization Structure & Roles', labelBn: 'পদবি ও দায়িত্ব বণ্টন', icon: Award },
-            { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
-            { id: 'funds', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
-            { id: 'members', labelEn: 'Member Registration & Registry', labelBn: 'সদস্য নিবন্ধন ও তালিকা', icon: Users, count: members.length },
-            { id: 'news', labelEn: 'News & PDF Notices', labelBn: 'নোটিশ ও PDF পরিপত্র', icon: Newspaper, count: news.length },
-            { id: 'events', labelEn: 'Events & Audience Manager', labelBn: 'অনুষ্ঠান ও ক্যালেন্ডার', icon: Calendar, count: events.length },
-            { id: 'requests', labelEn: 'Join Applications', labelBn: 'নতুন সদস্য আবেদন', icon: UserPlus, badge: pendingRequests.length },
-            { id: 'projects', labelEn: 'Village Projects Tracker', labelBn: 'উদ্যোগ ও অগ্রগতি', icon: Layers, count: projects.length },
-            { id: 'gallery', labelEn: 'Photo Gallery Albums', labelBn: 'ফটো গ্যালারি', icon: ImageIcon, count: gallery.length },
-            { id: 'messages', labelEn: 'Contact Inquiries', labelBn: 'ইনবক্স বার্তা', icon: Mail, badge: unreadMessages.length },
-            { id: 'settings', labelEn: 'Community Settings', labelBn: 'কমিউনিটি সেটিংস', icon: Settings },
-          ].map(item => {
-            const Icon = item.icon;
-            const active = activeAdminTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveAdminTab(item.id as any);
-                  setSearchTerm('');
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
-                  active
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md font-bold border border-emerald-400/30'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5 hover:text-emerald-600 dark:hover:text-emerald-400'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4" />
-                  <span>{t(item.labelEn, item.labelBn)}</span>
-                </div>
-                {item.badge !== undefined && item.badge > 0 ? (
-                  <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950">
-                    {item.badge}
-                  </span>
-                ) : item.count !== undefined ? (
-                  <span className={`text-[10px] ${active ? 'text-emerald-100 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {item.count}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+          <div className="flex flex-col space-y-1">
+            {[
+              { id: 'overview', labelEn: 'Overview Dashboard', labelBn: 'এক নজরে তথ্য', icon: LayoutDashboard },
+              { id: 'roles', labelEn: 'Organization Structure & Roles', labelBn: 'পদবি ও দায়িত্ব বণ্টন', icon: Award },
+              { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
+              { id: 'funds', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
+              { id: 'members', labelEn: 'Member Registration & Registry', labelBn: 'সদস্য নিবন্ধন ও তালিকা', icon: Users, count: members.length },
+              { id: 'news', labelEn: 'News & PDF Notices', labelBn: 'নোটিশ ও PDF পরিপত্র', icon: Newspaper, count: news.length },
+              { id: 'events', labelEn: 'Events & Audience Manager', labelBn: 'অনুষ্ঠান ও ক্যালেন্ডার', icon: Calendar, count: events.length },
+              { id: 'requests', labelEn: 'Join Applications', labelBn: 'নতুন সদস্য আবেদন', icon: UserPlus, badge: pendingRequests.length },
+              { id: 'projects', labelEn: 'Village Projects Tracker', labelBn: 'উদ্যোগ ও অগ্রগতি', icon: Layers, count: projects.length },
+              { id: 'gallery', labelEn: 'Photo Gallery Albums', labelBn: 'ফটো গ্যালারি', icon: ImageIcon, count: gallery.length },
+              { id: 'messages', labelEn: 'Contact Inquiries', labelBn: 'ইনবক্স বার্তা', icon: Mail, badge: unreadMessages.length },
+              { id: 'settings', labelEn: 'Community Settings', labelBn: 'কমিউনিটি সেটিংস', icon: Settings },
+            ].map(item => {
+              const Icon = item.icon;
+              const active = activeAdminTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveAdminTab(item.id as any);
+                    setSearchTerm('');
+                  }}
+                  className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
+                    active
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md font-bold border border-emerald-400/30'
+                      : 'text-slate-950 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5 hover:text-emerald-900 dark:hover:text-emerald-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{t(item.labelEn, item.labelBn)}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 ? (
+                    <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shrink-0">
+                      {item.badge}
+                    </span>
+                  ) : item.count !== undefined ? (
+                    <span className={`text-[10px] shrink-0 ${active ? 'text-emerald-100 font-bold' : 'text-slate-700 dark:text-slate-400'}`}>
+                      {item.count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </aside>
 
         {/* Content Area */}
-        <main className="lg:col-span-9 space-y-6">
+        <div className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6">
           
           {/* 1. OVERVIEW DASHBOARD */}
           {activeAdminTab === 'overview' && (
             <div className="space-y-6">
               {/* Stat Counters */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="glass-card p-4 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-400">
                     <span>{t('Total Members', 'মোট সদস্য')}</span>
-                    <Users className="w-4 h-4 text-emerald-600" />
+                    <Users className="w-4 h-4 text-emerald-700 shrink-0" />
                   </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{members.length}</div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                  <div className="text-2xl font-black text-slate-950 dark:text-slate-100 mt-1">{members.length}</div>
+                  <div className="text-[10px] text-emerald-900 dark:text-emerald-400 font-semibold mt-0.5">
                     {t('Verified youth', 'যাচাইকৃত তরুণ')}
                   </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-sky-500/20 dark:border-sky-500/20 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-sky-600 dark:text-sky-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-sky-500/20 dark:border-sky-500/20 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-sky-900 dark:text-sky-400">
                     <span>{t('Village Census', 'নাগরিক তথ্য')}</span>
-                    <Home className="w-4 h-4 text-sky-600" />
+                    <Home className="w-4 h-4 text-sky-800 dark:text-sky-400 shrink-0" />
                   </div>
-                  <div className="text-2xl font-black text-sky-600 dark:text-sky-300 mt-1">{villageResidents.length}</div>
-                  <div className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold mt-0.5">
+                  <div className="text-2xl font-black text-sky-950 dark:text-sky-300 mt-1">{villageResidents.length}</div>
+                  <div className="text-[10px] text-sky-900 dark:text-sky-400 font-semibold mt-0.5">
                     {t('Households listed', 'পরিবারের তথ্য')}
                   </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-amber-500/20 dark:border-amber-500/20 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-amber-500/20 dark:border-amber-500/20 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-900 dark:text-amber-400">
                     <span>{t('Treasury Balance', 'তহবিল ব্যালেন্স')}</span>
-                    <DollarSign className="w-4 h-4 text-amber-600" />
+                    <DollarSign className="w-4 h-4 text-amber-800 dark:text-amber-400 shrink-0" />
                   </div>
-                  <div className="text-xl font-black text-amber-600 dark:text-amber-200 mt-1">
+                  <div className="text-xl font-black text-amber-950 dark:text-amber-200 mt-1">
                     ৳ {funds.reduce((acc, f) => f.type === 'Inflow' ? acc + f.amount : acc - f.amount, 0).toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                  <div className="text-[10px] text-amber-900 dark:text-amber-400 font-semibold mt-0.5">
                     {t('Audited cash book', 'ক্যাশ বুক অডিট')}
                   </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-400">
                     <span>{t('Applications', 'নতুন আবেদন')}</span>
-                    <UserPlus className="w-4 h-4 text-amber-500" />
+                    <UserPlus className="w-4 h-4 text-amber-600 shrink-0" />
                   </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{pendingRequests.length}</div>
-                  <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                  <div className="text-2xl font-black text-slate-950 dark:text-slate-100 mt-1">{pendingRequests.length}</div>
+                  <div className="text-[10px] text-amber-900 dark:text-amber-400 font-semibold mt-0.5">
                     {pendingRequests.length > 0 ? t('Awaiting review', 'পর্যালোচনা বাকি') : t('All reviewed', 'সব যাচাইকৃত')}
                   </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-400">
                     <span>{t('Notices & PDF', 'নোটিশ ও PDF')}</span>
-                    <FileText className="w-4 h-4 text-rose-500" />
+                    <FileText className="w-4 h-4 text-rose-600 shrink-0" />
                   </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{news.length}</div>
-                  <div className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  <div className="text-2xl font-black text-slate-950 dark:text-slate-100 mt-1">{news.length}</div>
+                  <div className="text-[10px] text-rose-800 dark:text-rose-400 font-semibold mt-0.5">
                     {news.filter(n => n.pdfAttachment).length} {t('with PDF file', 'টিতে PDF')}
                   </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-400">
                     <span>{t('Messages', 'বার্তা')}</span>
-                    <Mail className="w-4 h-4 text-blue-500" />
+                    <Mail className="w-4 h-4 text-blue-700 shrink-0" />
                   </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{messages.length}</div>
-                  <div className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold mt-0.5">
+                  <div className="text-2xl font-black text-slate-950 dark:text-slate-100 mt-1">{messages.length}</div>
+                  <div className="text-[10px] text-blue-900 dark:text-blue-400 font-semibold mt-0.5">
                     {unreadMessages.length} {t('unread', 'অপঠিত')}
                   </div>
                 </div>
@@ -664,30 +666,30 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 2. MEMBERS DIRECTORY & ADMIN REGISTRATION */}
           {activeAdminTab === 'members' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Community Members Directory', 'সদস্য তালিকা ও নিবন্ধন')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Only admins have authority to register youth members with full details.', 'শুধুমাত্র অ্যাডমিনরাই সকল তথ্যাদি যাচাই করে নতুন সদস্য নিবন্ধন করতে পারেন।')}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-initial">
+                    <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
                       placeholder={t('Search member name...', 'নাম খুঁজুন...')}
-                      className="pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className="w-full sm:w-auto pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
                   <button
                     onClick={() => openCreateModal('member')}
-                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs whitespace-nowrap transition-colors"
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap transition-colors"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>{t('Register New Member', 'নতুন সদস্য নিবন্ধন')}</span>
@@ -695,9 +697,89 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile Member Cards */}
+              <div className="md:hidden space-y-3">
+                {members
+                  .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map(m => (
+                    <div key={m.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 space-y-3 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {m.avatar ? (
+                            <img src={m.avatar} alt={m.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
+                              {m.name[0]}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-950 dark:text-slate-100 truncate">{m.name}</div>
+                            <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono">{m.memberNo} · {m.phone}</div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 font-black text-[11px] shrink-0">
+                          {m.bloodGroup}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <select
+                          value={m.role}
+                          onChange={e => updateMember(m.id, { role: e.target.value as Role })}
+                          className="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100"
+                        >
+                          <option value="President">President (সভাপতি)</option>
+                          <option value="Vice President">Vice President (সহ-সভাপতি)</option>
+                          <option value="General Secretary">General Secretary (সাধারণ সম্পাদক)</option>
+                          <option value="Joint Secretary">Joint Secretary (যুগ্ম সাধারণ সম্পাদক)</option>
+                          <option value="Cashier">Cashier (কোষাধ্যক্ষ - Funds)</option>
+                          <option value="Assistant Cashier">Assistant Cashier (সহকারী ক্যাশিয়ার - Funds)</option>
+                          <option value="Data Collector">Data Collector (তথ্য সংগ্রাহক - Census)</option>
+                          <option value="Organizing Secretary">Organizing Secretary (সাংগঠনিক সম্পাদক)</option>
+                          <option value="Publicity Secretary">Publicity Secretary (প্রচার সম্পাদক)</option>
+                          <option value="Sports & Cultural Secretary">Sports Secretary (ক্রীড়া সম্পাদক)</option>
+                          <option value="Social Welfare Secretary">Social Welfare (সমাজকল্যাণ সম্পাদক)</option>
+                          <option value="Education & Library Secretary">Education Secretary (শিক্ষা সম্পাদক)</option>
+                          <option value="Youth Coordinator">Youth Coordinator (যুব সমন্বয়ক)</option>
+                          <option value="Executive Member">Executive Member (কার্যনির্বাহী সদস্য)</option>
+                          <option value="Advisor">Advisor (উপদেষ্টা)</option>
+                          <option value="Volunteer">Volunteer (স্বেচ্ছাসেবক)</option>
+                          <option value="Member">Member (সাধারণ সদস্য)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/70 dark:border-slate-700">
+                        <div className="text-[11px] text-slate-800 dark:text-slate-300">
+                          {m.village} · <span className="font-mono">{m.password || 'password123'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEditModal('member', m)}
+                            className="px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 rounded-lg font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>{t('Edit', 'এডিট')}</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Remove ${m.name} from directory?`)) {
+                                deleteMember(m.id);
+                              }
+                            }}
+                            className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                            title="Delete Member"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold border-y border-slate-200 dark:border-slate-700">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-400 uppercase tracking-wider font-bold border-y border-slate-200 dark:border-slate-700">
                     <tr>
                       <th className="py-3 px-4">Member</th>
                       <th className="py-3 px-4">Role</th>
@@ -712,18 +794,18 @@ export const AdminDashboard: React.FC = () => {
                       .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.email.toLowerCase().includes(searchTerm.toLowerCase()))
                       .map(m => (
                         <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
-                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                          <td className="py-3 px-4 font-bold text-slate-950 dark:text-slate-100">
                             <div className="flex items-center gap-2.5">
                               {m.avatar ? (
                                 <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
                                   {m.name[0]}
                                 </div>
                               )}
                               <div>
                                 <div>{m.name}</div>
-                                <div className="text-[10px] text-slate-400 font-normal font-mono">{m.memberNo} · {m.phone}</div>
+                                <div className="text-[10px] text-slate-700 dark:text-slate-400 font-normal font-mono">{m.memberNo} · {m.phone}</div>
                               </div>
                             </div>
                           </td>
@@ -731,7 +813,7 @@ export const AdminDashboard: React.FC = () => {
                             <select
                               value={m.role}
                               onChange={e => updateMember(m.id, { role: e.target.value as Role })}
-                              className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium"
+                              className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 font-medium"
                             >
                               <option value="President">President (সভাপতি)</option>
                               <option value="Vice President">Vice President (সহ-সভাপতি)</option>
@@ -752,16 +834,16 @@ export const AdminDashboard: React.FC = () => {
                               <option value="Member">Member (সাধারণ সদস্য)</option>
                             </select>
                           </td>
-                          <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{m.village}</td>
-                          <td className="py-3 px-4 font-bold text-rose-600 dark:text-rose-400">{m.bloodGroup}</td>
-                          <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                          <td className="py-3 px-4 text-slate-800 dark:text-slate-300">{m.village}</td>
+                          <td className="py-3 px-4 font-bold text-rose-700 dark:text-rose-400">{m.bloodGroup}</td>
+                          <td className="py-3 px-4 text-slate-800 dark:text-slate-400 font-mono text-[11px]">
                             {m.password || 'password123'}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => openEditModal('member', m)}
-                                className="p-1.5 text-slate-400 hover:text-emerald-600 rounded"
+                                className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-emerald-700 rounded"
                                 title="Edit Member Details"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -772,7 +854,7 @@ export const AdminDashboard: React.FC = () => {
                                     deleteMember(m.id);
                                   }
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded"
+                                className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded"
                                 title="Delete Member"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -789,19 +871,19 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 3. NEWS & NOTICES WITH PDF UPLOAD */}
           {activeAdminTab === 'news' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Community News & PDF Notice Board', 'নোটিশ ও অফিসিয়াল PDF পরিপত্র')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Upload official PDF circulars or news. Registered members receive instant notification.', 'অফিসিয়াল PDF নোটিশ আপলোড করুন। সদস্যদের কাছে সরাসরি নোটিফিকেশন যাবে।')}
                   </p>
                 </div>
                 <button
                   onClick={() => openCreateModal('news')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('Post Notice / PDF', 'নতুন নোটিশ / PDF')}</span>
@@ -959,23 +1041,23 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 5. JOIN APPLICATIONS */}
           {activeAdminTab === 'requests' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Membership Applications', 'সদস্যপদ আবেদনসমূহ')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Review inquiries and approve applicants into active registered members.', 'আবেদন পর্যালোচনা করে অ্যাক্টিভ সদস্য হিসেবে অনুমোদন দিন।')}
                   </p>
                 </div>
-                <span className="px-3 py-1 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 text-xs font-bold rounded-lg">
+                <span className="self-start sm:self-auto px-3 py-1 bg-amber-100 dark:bg-amber-950 text-amber-950 dark:text-amber-300 text-xs font-bold rounded-lg shrink-0">
                   {pendingRequests.length} {t('Pending Review', 'টি অপেক্ষমান')}
                 </span>
               </div>
 
               {joinRequests.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-xs">
+                <div className="py-12 text-center text-slate-700 dark:text-slate-400 text-xs">
                   {t('No join applications yet.', 'এখনো কোনো আবেদন জমা হয়নি।')}
                 </div>
               ) : (
@@ -983,7 +1065,7 @@ export const AdminDashboard: React.FC = () => {
                   {joinRequests.map(req => (
                     <div
                       key={req.id}
-                      className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                      className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-3 ${
                         req.status === 'Pending'
                           ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900'
                           : req.status === 'Approved'
@@ -992,29 +1074,29 @@ export const AdminDashboard: React.FC = () => {
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-slate-900 dark:text-slate-100">{req.name}</span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-base text-slate-950 dark:text-slate-100">{req.name}</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                               req.status === 'Pending'
-                                ? 'bg-amber-100 text-amber-900'
+                                ? 'bg-amber-100 text-amber-950'
                                 : req.status === 'Approved'
-                                ? 'bg-emerald-100 text-emerald-900'
-                                : 'bg-slate-200 text-slate-700'
+                                ? 'bg-emerald-100 text-emerald-950'
+                                : 'bg-slate-200 text-slate-800'
                             }`}>
                               {req.status}
                             </span>
-                            <span className="text-xs text-rose-600 font-bold">
+                            <span className="text-xs text-rose-700 font-bold">
                               🩸 {req.bloodGroup}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <div className="text-xs text-slate-800 dark:text-slate-400 mt-0.5 break-words">
                             {req.village} · {req.phone} · {req.email} · Applied on {req.date}
                           </div>
                         </div>
 
                         {req.status === 'Pending' && (
-                          <div className="flex items-center gap-2 pt-2 sm:pt-0">
+                          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
                             <button
                               onClick={() => approveJoinRequest(req.id, 'Volunteer')}
                               className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs transition-colors"
@@ -1024,7 +1106,7 @@ export const AdminDashboard: React.FC = () => {
                             </button>
                             <button
                               onClick={() => rejectJoinRequest(req.id)}
-                              className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-semibold text-xs rounded-xl transition-colors"
+                              className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 text-rose-800 dark:text-rose-300 font-semibold text-xs rounded-xl transition-colors"
                             >
                               <X className="w-3.5 h-3.5" />
                               <span>{t('Reject', 'বাতিল')}</span>
@@ -1035,16 +1117,16 @@ export const AdminDashboard: React.FC = () => {
 
                       <div className="grid sm:grid-cols-2 gap-2 text-xs bg-white/80 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700">
                         <div>
-                          <strong className="text-slate-700 dark:text-slate-300">{t('Skills:', 'দক্ষতা:')}</strong>{' '}
-                          <span className="text-slate-600 dark:text-slate-400">{req.skills || 'Not specified'}</span>
+                          <strong className="text-slate-900 dark:text-slate-300">{t('Skills:', 'দক্ষতা:')}</strong>{' '}
+                          <span className="text-slate-800 dark:text-slate-400">{req.skills || 'Not specified'}</span>
                         </div>
                         <div>
-                          <strong className="text-slate-700 dark:text-slate-300">{t('Interests:', 'আগ্রহ:')}</strong>{' '}
-                          <span className="text-slate-600 dark:text-slate-400">{req.interests || 'Not specified'}</span>
+                          <strong className="text-slate-900 dark:text-slate-300">{t('Interests:', 'আগ্রহ:')}</strong>{' '}
+                          <span className="text-slate-800 dark:text-slate-400">{req.interests || 'Not specified'}</span>
                         </div>
                         <div className="sm:col-span-2 pt-1 border-t border-slate-100 dark:border-slate-700">
-                          <strong className="text-slate-700 dark:text-slate-300">{t('Reason for Joining:', 'যোগদানের উদ্দেশ্য:')}</strong>{' '}
-                          <span className="text-slate-600 dark:text-slate-400">{req.reason}</span>
+                          <strong className="text-slate-900 dark:text-slate-300">{t('Reason for Joining:', 'যোগদানের উদ্দেশ্য:')}</strong>{' '}
+                          <span className="text-slate-800 dark:text-slate-400">{req.reason}</span>
                         </div>
                       </div>
                     </div>
@@ -1056,19 +1138,19 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 6. PROJECTS TRACKER */}
           {activeAdminTab === 'projects' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Village Projects Tracker', 'গ্রাম উন্নয়ন উদ্যোগসমূহ')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Track Greener Gaira tree planting, tutoring circles, and youth cleanups.', 'উদ্যোগের অগ্রগতি ও স্বেচ্ছাসেবক তালিকা আপডেট করুন।')}
                   </p>
                 </div>
                 <button
                   onClick={() => openCreateModal('project')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('New Project', 'নতুন উদ্যোগ')}</span>
@@ -1077,25 +1159,25 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="space-y-4">
                 {projects.map(proj => (
-                  <div key={proj.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 rounded">{proj.category}</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">{proj.progress}% completed</span>
+                  <div key={proj.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-300 rounded">{proj.category}</span>
+                        <span className="text-xs text-slate-800 dark:text-slate-400">{proj.progress}% completed</span>
                       </div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{proj.title}</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{proj.description}</p>
+                      <h4 className="font-bold text-sm text-slate-950 dark:text-slate-100">{proj.title}</h4>
+                      <p className="text-xs text-slate-800 dark:text-slate-400">{proj.description}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => openEditModal('project', proj)}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold"
+                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-950 dark:text-slate-200 rounded-lg text-xs font-bold"
                       >
                         {t('Edit', 'এডিট')}
                       </button>
                       <button
                         onClick={() => deleteProject(proj.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                        className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1108,30 +1190,30 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 7. GALLERY ALBUMS */}
           {activeAdminTab === 'gallery' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Photo Gallery Management', 'ফটো গ্যালারি ফটো আপলোড')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Add authentic village photos directly from your phone or PC.', 'গ্রামের সুন্দর মুহূর্ত ও যুব কার্যক্রমের ছবি সরাসরি আপলোড করুন।')}
                   </p>
                 </div>
                 <button
                   onClick={() => openCreateModal('gallery')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('Upload Photo', 'ফটো আপলোড')}</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {gallery.map(img => (
                   <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 aspect-4/3">
                     <img src={img.image} alt={img.title} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
                       <div className="font-bold text-xs leading-tight">{img.title}</div>
                       <div className="text-[10px] text-emerald-300">{img.category} · {img.date}</div>
                       <button
@@ -1149,17 +1231,17 @@ export const AdminDashboard: React.FC = () => {
 
           {/* 8. CONTACT INQUIRIES */}
           {activeAdminTab === 'messages' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
                     {t('Visitor & Member Inquiries', 'বার্তা ও যোগাযোগ ইনবক্স')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
                     {t('Messages sent from website contact form or well-wishers.', 'ওয়েবসাইট ভিজিটরদের বার্তা ও সহযোগিতার প্রস্তাব।')}
                   </p>
                 </div>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-400">
                   {messages.length} {t('Messages', 'টি বার্তা')}
                 </span>
               </div>
@@ -1167,22 +1249,22 @@ export const AdminDashboard: React.FC = () => {
               <div className="space-y-4">
                 {messages.map(msg => (
                   <div key={msg.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{msg.name}</span>
-                        <span className="text-xs text-slate-400">({msg.contact})</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{msg.name}</span>
+                        <span className="text-xs text-slate-700 dark:text-slate-400 break-all">({msg.contact})</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400">{msg.date}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-slate-700 dark:text-slate-400">{msg.date}</span>
                         <button
                           onClick={() => deleteMessage(msg.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1"
+                          className="text-slate-700 dark:text-slate-400 hover:text-rose-600 p-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">{msg.message}</p>
+                    <p className="text-xs text-slate-900 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">{msg.message}</p>
                   </div>
                 ))}
               </div>
@@ -1250,11 +1332,11 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={resetAllData}
-                    className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-xs font-bold rounded-xl"
+                    className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-xs font-bold rounded-xl"
                   >
                     {t('Reset Demo Database', 'ডেমো ডাটা রিসেট')}
                   </button>
@@ -1271,21 +1353,21 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-        </main>
+        </div>
       </div>
 
       {/* Admin Item Creation / Edit Modal */}
       {modalMode && modalTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
+              <h3 className="font-extrabold text-base text-slate-950 dark:text-slate-100">
                 {modalMode === 'create' ? t('Add New ', 'নতুন যোগ করুন: ') : t('Edit ', 'সম্পাদনা: ')}
                 {modalTarget === 'event' ? t('Event', 'অনুষ্ঠান') : modalTarget === 'member' ? t('Member', 'সদস্য') : modalTarget.toUpperCase()}
               </h3>
               <button
                 onClick={() => setModalMode(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1296,10 +1378,10 @@ export const AdminDashboard: React.FC = () => {
               {/* Event Visibility Selector (Public vs Members Only) */}
               {modalTarget === 'event' && (
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 text-xs">
+                  <label className="block font-bold text-slate-900 dark:text-slate-200 text-xs">
                     {t('Event Visibility & Audience *', 'অনুষ্ঠানের দর্শক / অ্যাক্সেস *')}
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
                       formData.visibility !== 'members_only'
                         ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-950 dark:text-emerald-300 font-bold ring-1 ring-emerald-500'
@@ -1540,7 +1622,7 @@ export const AdminDashboard: React.FC = () => {
                     <label className="block font-bold text-slate-800 dark:text-slate-200 text-xs">
                       {t('Notice Audience & Visibility *', 'নোটিশের দর্শক ও দৃশ্যমানতা *')}
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
                         formData.visibility !== 'members_only'
                           ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-950 dark:text-emerald-300 font-bold ring-1 ring-emerald-500'

@@ -50,10 +50,10 @@ export const BackgroundSettings: React.FC = () => {
   return (
     <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
       <div>
-        <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
+        <h3 className="font-extrabold text-base text-slate-950 dark:text-slate-100">
           {t('Website Backgrounds', 'ওয়েবসাইটের ব্যাকগ্রাউন্ড')}
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
           {t('Upload a photo to replace a background. Changes apply immediately.', 'ছবি আপলোড করে ব্যাকগ্রাউন্ড পরিবর্তন করুন। পরিবর্তন সাথে সাথে কার্যকর হয়।')}
         </p>
       </div>
@@ -69,8 +69,8 @@ export const BackgroundSettings: React.FC = () => {
                 className="w-full aspect-video object-cover rounded-xl border border-slate-200 dark:border-slate-700"
               />
               <div>
-                <div className="font-bold text-xs text-slate-800 dark:text-slate-100">{f.title}</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{f.desc}</div>
+                <div className="font-bold text-xs text-slate-950 dark:text-slate-100">{f.title}</div>
+                <div className="text-[11px] text-slate-800 dark:text-slate-400 mt-0.5">{f.desc}</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl cursor-pointer">

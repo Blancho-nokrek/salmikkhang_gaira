@@ -91,16 +91,16 @@ export const MemberPortal: React.FC = () => {
   // 1. MEMBER LOGIN GATEWAY (If not logged in as Member)
   if (!currentMember) {
     return (
-      <div className="max-w-xl mx-auto py-16 px-4 transition-colors">
-        <div className="glass-card p-8 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-6">
+      <div className="max-w-xl mx-auto py-8 sm:py-16 px-4 transition-colors">
+        <div className="glass-card p-5 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-5 sm:space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-600/90 dark:bg-emerald-500/80 text-white flex items-center justify-center mx-auto shadow-lg backdrop-blur-md border border-white/20">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-600/90 dark:bg-emerald-500/80 text-white flex items-center justify-center mx-auto shadow-lg backdrop-blur-md border border-white/20">
               <span className="text-2xl">🌿</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            <h2 className="text-xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
               {t('Member Portal Login', 'সদস্য পোর্টালে লগইন')}
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto">
+            <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto">
               {t(
                 'Enter your registered member email/phone and password to enter the youth portal.',
                 'সদস্য পোর্টালে প্রবেশের জন্য আপনার নিবন্ধিত ইমেইল বা ফোন এবং পাসওয়ার্ড দিন।'
@@ -254,25 +254,25 @@ export const MemberPortal: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 transition-colors">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 transition-colors">
       
       {/* 1. Top Bar with Welcome & Member Notification Center */}
-      <div className="grid lg:grid-cols-12 gap-8 items-start">
+      <div className="grid lg:grid-cols-12 gap-5 sm:gap-8 items-start">
         
         {/* Welcome message & member info */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+        <div className="lg:col-span-7 space-y-3 sm:space-y-4 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider">
               {t('SALMIKKHANG MEMBER PORTAL', 'সালমিকখাং সদস্য প্যানেল')}
             </span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Notification Bell Button */}
               <button
                 onClick={() => setNotificationOpen(!notificationOpen)}
-                className="relative p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-700 transition-colors"
+                className="relative p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-700 transition-colors"
                 title="Member Notifications & PDF Circulars"
               >
-                <Bell className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                <Bell className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
                 {unreadNotifsCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">
                     {unreadNotifsCount}
@@ -282,13 +282,13 @@ export const MemberPortal: React.FC = () => {
 
               <button
                 onClick={() => setCurrentView('website')}
-                className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
+                className="text-xs font-semibold text-slate-900 dark:text-slate-400 hover:text-emerald-900 dark:hover:text-emerald-300 underline whitespace-nowrap"
               >
                 ← {t('Public Website', 'মূল ওয়েবসাইট')}
               </button>
               <button
                 onClick={logoutMember}
-                className="flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-800 ml-2"
+                className="flex items-center gap-1 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:text-rose-900 whitespace-nowrap"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>{t('Logout', 'লগআউট')}</span>
@@ -296,11 +296,11 @@ export const MemberPortal: React.FC = () => {
             </div>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-            {t('Welcome back,', 'স্বাগতম,')} <span className="text-emerald-700 dark:text-emerald-400">{currentMember.name}</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
+            {t('Welcome back,', 'স্বাগতম,')} <span className="text-emerald-900 dark:text-emerald-400">{currentMember.name}</span>
           </h1>
 
-          <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+          <p className="text-slate-800 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
             {t(
               'Stay connected with Gaira & Jolchotro youth activities, read official PDF circulars, RSVP for drives, and engage in discussions.',
               'গাইরা ও জলছত্রের তরুণদের সাথে যুক্ত থাকুন, অফিসিয়াল PDF পরিপত্র পড়ুন, অনুষ্ঠানে অংশ নিন এবং মতবিনিময়ে যুক্ত থাকুন।'
@@ -383,8 +383,8 @@ export const MemberPortal: React.FC = () => {
 
       {/* NOTIFICATION POPUP MODAL */}
       {notificationOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-auto max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
@@ -533,53 +533,61 @@ export const MemberPortal: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Navigation Tabs (Nature Glassmorphic Floating Pill Bar) */}
-      <div className="glass-surface p-1.5 rounded-2xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
-          {[
-            { id: 'wall', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare },
-            { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
-            { id: 'fund', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
-            { id: 'roles', labelEn: 'Organization Structure & Roles', labelBn: 'পদবি ও দায়িত্ব বণ্টন', icon: Award },
-            { id: 'directory', labelEn: 'Member Directory & Blood Donors', labelBn: 'সদস্য তালিকা ও রক্তদাতা', icon: Users, count: members.length },
-            { id: 'notices', labelEn: 'Notice Board & PDF Circulars', labelBn: 'অফিসিয়াল নোটিশ ও PDF', icon: FileText, count: news.length },
-            { id: 'events', labelEn: 'Events & RSVP', labelBn: 'ইভেন্ট ও ক্যালেন্ডার', icon: Calendar, count: events.length },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
-                  active
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md border border-emerald-400/30'
-                    : 'text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white/40 dark:hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{t(tab.labelEn, tab.labelBn)}</span>
-                {tab.count !== undefined && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
-                    active ? 'bg-white/25 text-white' : 'bg-slate-200/60 dark:bg-white/10 text-slate-700 dark:text-slate-300'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* 2. Left Sidebar + Right Content Workspace (matching Admin Panel) */}
+      <div className="grid md:grid-cols-12 gap-5 lg:gap-8 pt-1 sm:pt-2 items-start">
+        
+        {/* Sidebar Nav (Left vertical list) */}
+        <aside className="md:col-span-4 lg:col-span-3 min-w-0 glass-surface p-3 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl h-fit">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 px-3 py-1.5">
+            {t('MEMBER PORTAL MENU', 'সদস্য পোর্টাল মেনু')}
+          </div>
 
-      {/* 3. Tab Contents */}
+          <div className="flex flex-col space-y-1">
+            {[
+              { id: 'wall', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare },
+              { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
+              { id: 'fund', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
+              { id: 'roles', labelEn: 'Organization Structure & Roles', labelBn: 'পদবি ও দায়িত্ব বণ্টন', icon: Award },
+              { id: 'directory', labelEn: 'Member Directory & Blood Donors', labelBn: 'সদস্য তালিকা ও রক্তদাতা', icon: Users, count: members.length },
+              { id: 'notices', labelEn: 'Notice Board & PDF Circulars', labelBn: 'অফিসিয়াল নোটিশ ও PDF', icon: FileText, count: news.length },
+              { id: 'events', labelEn: 'Events & RSVP', labelBn: 'ইভেন্ট ও ক্যালেন্ডার', icon: Calendar, count: events.length },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
+                    active
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md font-bold border border-emerald-400/30'
+                      : 'text-slate-950 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5 hover:text-emerald-900 dark:hover:text-emerald-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{t(tab.labelEn, tab.labelBn)}</span>
+                  </div>
+                  {tab.count !== undefined && (
+                    <span className={`text-[10px] shrink-0 ${active ? 'text-emerald-100 font-bold' : 'text-slate-700 dark:text-slate-400'}`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* 3. Tab Contents */}
+        <div className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6">
 
       {/* TAB A: Youth Discussion Wall */}
       {activeTab === 'wall' && (
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
+        <div className="grid xl:grid-cols-12 gap-6 items-start">
           
           {/* Main Discussion Feed */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="xl:col-span-8 space-y-6 min-w-0">
             
             {/* Create Post Box */}
             <div className="glass-card p-5 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 backdrop-blur-2xl">
@@ -636,24 +644,24 @@ export const MemberPortal: React.FC = () => {
               {discussions.map(post => (
                 <div
                   key={post.id}
-                  className="glass-card p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 backdrop-blur-2xl"
+                  className="glass-card p-4 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 backdrop-blur-2xl"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center text-sm border border-emerald-100 dark:border-slate-700">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-950 dark:text-emerald-300 font-bold flex items-center justify-center text-sm border border-emerald-100 dark:border-slate-700 shrink-0">
                         {post.authorName[0]}
                       </div>
-                      <div>
-                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{post.authorName}</div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">{post.authorRole} · {post.date}</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-slate-950 dark:text-slate-100 truncate">{post.authorName}</div>
+                        <div className="text-[11px] text-slate-800 dark:text-slate-400 truncate">{post.authorRole} · {post.date}</div>
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-lg">
+                    <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-300 rounded-lg shrink-0">
                       {post.category}
                     </span>
                   </div>
 
-                  <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                  <p className="text-sm text-slate-950 dark:text-slate-200 leading-relaxed">
                     {post.text}
                   </p>
 
@@ -661,14 +669,14 @@ export const MemberPortal: React.FC = () => {
                     <button
                       onClick={() => likeDiscussionPost(post.id)}
                       className={`flex items-center gap-1.5 font-bold transition-colors ${
-                        post.likedByMe ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 hover:text-emerald-700'
+                        post.likedByMe ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-400 hover:text-emerald-900'
                       }`}
                     >
                       <ThumbsUp className={`w-4 h-4 ${post.likedByMe ? 'fill-emerald-700' : ''}`} />
                       <span>{post.likes} {t('Appreciate', 'পছন্দ')}</span>
                     </button>
-                    <span className="text-slate-300 dark:text-slate-600">·</span>
-                    <span className="text-slate-500 dark:text-slate-400">
+                    <span className="text-slate-400 dark:text-slate-600">·</span>
+                    <span className="text-slate-800 dark:text-slate-400">
                       {post.replies.length} {t('Replies', 'মন্তব্য')}
                     </span>
                   </div>
@@ -678,11 +686,11 @@ export const MemberPortal: React.FC = () => {
                     <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                       {post.replies.map(reply => (
                         <div key={reply.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl space-y-1 text-xs">
-                          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                            <span className="font-bold text-slate-900 dark:text-slate-100">{reply.author} <small className="text-slate-500 dark:text-slate-400 font-normal">({reply.role})</small></span>
-                            <span className="text-[10px] text-slate-400">{reply.date}</span>
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-slate-800 dark:text-slate-400">
+                            <span className="font-bold text-slate-950 dark:text-slate-100">{reply.author} <small className="text-slate-700 dark:text-slate-400 font-normal">({reply.role})</small></span>
+                            <span className="text-[10px] text-slate-700 dark:text-slate-400">{reply.date}</span>
                           </div>
-                          <p className="text-slate-700 dark:text-slate-300">{reply.text}</p>
+                          <p className="text-slate-900 dark:text-slate-300">{reply.text}</p>
                         </div>
                       ))}
                     </div>
@@ -701,11 +709,11 @@ export const MemberPortal: React.FC = () => {
                         }
                       }}
                       placeholder={t('Write a supportive reply...', 'একটি মন্তব্য লিখুন...')}
-                      className="flex-1 px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className="flex-1 min-w-0 px-3 sm:px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                     <button
                       onClick={() => handleReplySubmit(post.id)}
-                      className="px-3 py-2 bg-emerald-100 dark:bg-slate-800 hover:bg-emerald-200 text-emerald-900 dark:text-emerald-300 font-bold text-xs rounded-xl transition-colors"
+                      className="px-3 py-2 bg-emerald-100 dark:bg-slate-800 hover:bg-emerald-200 dark:hover:bg-slate-700 text-emerald-950 dark:text-emerald-300 font-bold text-xs rounded-xl transition-colors shrink-0"
                     >
                       {t('Reply', 'উত্তর')}
                     </button>
@@ -717,7 +725,7 @@ export const MemberPortal: React.FC = () => {
           </div>
 
           {/* Right Column: Values & Emergency Blood Donors Quick Box */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="xl:col-span-4 space-y-6 min-w-0">
             
             {/* Urgent Blood Network Box */}
             <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-3xl p-5 space-y-3 text-rose-950 dark:text-rose-200">
@@ -783,23 +791,23 @@ export const MemberPortal: React.FC = () => {
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Audience Filter Pills */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">
+              <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold w-full sm:w-auto">
                 <button
                   onClick={() => setNoticeAudienceFilter('All')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl transition-all ${
                     noticeAudienceFilter === 'All'
                       ? 'bg-emerald-600 text-white font-bold shadow-sm'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
+                      : 'text-slate-800 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
                   }`}
                 >
                   {t('All', 'সকল')}
                 </button>
                 <button
                   onClick={() => setNoticeAudienceFilter('members_only')}
-                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                     noticeAudienceFilter === 'members_only'
                       ? 'bg-amber-500/80 text-white font-bold shadow-sm'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
+                      : 'text-slate-800 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
                   }`}
                 >
                   <span>🔒</span>
@@ -807,10 +815,10 @@ export const MemberPortal: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setNoticeAudienceFilter('public')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl transition-all ${
                     noticeAudienceFilter === 'public'
                       ? 'bg-blue-600 text-white font-bold shadow-sm'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
+                      : 'text-slate-800 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5'
                   }`}
                 >
                   {t('Public', 'সার্বজনীন')}
@@ -818,14 +826,14 @@ export const MemberPortal: React.FC = () => {
               </div>
 
               {/* Search input */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+              <div className="relative w-full sm:w-auto">
+                <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={noticeSearch}
                   onChange={e => setNoticeSearch(e.target.value)}
                   placeholder={t('Search notices...', 'নোটিশ খুঁজুন...')}
-                  className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
+                  className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
                 />
               </div>
             </div>
@@ -835,65 +843,65 @@ export const MemberPortal: React.FC = () => {
             {filteredNotices.map(item => (
               <div
                 key={item.id}
-                className="glass-card p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 hover:border-emerald-500/40 backdrop-blur-2xl transition-all"
+                className="glass-card p-4 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 hover:border-emerald-500/40 backdrop-blur-2xl transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-md">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 rounded-md">
                       {t(item.category, item.categoryBn)}
                     </span>
                     {item.visibility === 'members_only' ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-md flex items-center gap-1">
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-md flex items-center gap-1">
                         <span>🔒</span>
                         <span>{t('Members Only (Private)', 'শুধুমাত্র সদস্য (অভ্যন্তরীণ)')}</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md">
+                      <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md">
                         {t('Public Notice', 'সার্বজনীন')}
                       </span>
                     )}
-                    <span className="text-xs text-slate-400">{item.date}</span>
+                    <span className="text-xs text-slate-700 dark:text-slate-400">{item.date}</span>
                   </div>
 
                   {item.pdfAttachment && (
-                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                      <FileText className="w-4 h-4" />
+                    <span className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                      <FileText className="w-4 h-4 shrink-0" />
                       <span>{t('Official PDF Attached', 'অফিসিয়াল PDF সংযুক্ত')}</span>
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-lg font-bold text-slate-950 dark:text-slate-100">
                   {t(item.title, item.titleBn)}
                 </h3>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">
                   {t(item.summary || item.content, item.summaryBn || item.contentBn)}
                 </p>
 
                 {/* PDF ATTACHMENT CARD */}
                 {item.pdfAttachment && (
-                  <div className="p-4 bg-rose-50/70 dark:bg-rose-950/40 rounded-2xl border border-rose-200 dark:border-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="p-3.5 sm:p-4 bg-rose-50/70 dark:bg-rose-950/40 rounded-2xl border border-rose-200 dark:border-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
                         PDF
                       </div>
-                      <div>
-                        <div className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-slate-950 dark:text-slate-100 truncate">
                           {item.pdfAttachment.fileName}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="text-[11px] text-slate-700 dark:text-slate-400">
                           {item.pdfAttachment.fileSize} · {t('Official signed circular', 'কাউন্সিল স্বাক্ষরিত নোটিশ')}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <a
                         href={item.pdfAttachment.dataUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
+                        className="flex-1 sm:flex-initial justify-center px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span>{t('Open / View PDF', 'PDF দেখুন')}</span>
@@ -901,7 +909,7 @@ export const MemberPortal: React.FC = () => {
                       <a
                         href={item.pdfAttachment.dataUrl}
                         download={item.pdfAttachment.fileName}
-                        className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors"
+                        className="flex-1 sm:flex-initial justify-center px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-950 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>{t('Download', 'ডাউনলোড')}</span>
@@ -929,15 +937,15 @@ export const MemberPortal: React.FC = () => {
             </div>
 
             {/* Filter controls */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
                   value={directorySearch}
                   onChange={e => setDirectorySearch(e.target.value)}
                   placeholder={t('Search name, village...', 'নাম বা এলাকা খুঁজুন...')}
-                  className="pl-8 pr-3 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
+                  className="w-full sm:w-auto pl-8 pr-3 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
                 />
               </div>
 
@@ -945,7 +953,7 @@ export const MemberPortal: React.FC = () => {
               <select
                 value={bloodFilter}
                 onChange={e => setBloodFilter(e.target.value)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 backdrop-blur-md"
+                className="flex-1 sm:flex-initial min-w-0 px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-300 backdrop-blur-md"
               >
                 <option value="All">{t('All Blood Groups', 'সকল রক্তের গ্রুপ')}</option>
                 {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => (
@@ -957,7 +965,7 @@ export const MemberPortal: React.FC = () => {
               <select
                 value={villageFilter}
                 onChange={e => setVillageFilter(e.target.value)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 backdrop-blur-md"
+                className="flex-1 sm:flex-initial min-w-0 px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-300 backdrop-blur-md"
               >
                 <option value="All">{t('All Villages', 'সকল গ্রাম')}</option>
                 <option value="Gaira">Gaira (গাইরা)</option>
@@ -968,14 +976,14 @@ export const MemberPortal: React.FC = () => {
           </div>
 
           {/* Members Card Grid (Reflected from reference image_c1acad42.png) */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {filteredMembers.map(member => (
               <div
                 key={member.id}
                 className="glass-card p-5 rounded-3xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] hover:border-emerald-500/40 space-y-4 backdrop-blur-2xl transition-all"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-950/80 dark:bg-emerald-950/80 border border-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg overflow-hidden shrink-0 shadow-inner">
                       {member.avatar ? (
                         <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
@@ -983,14 +991,14 @@ export const MemberPortal: React.FC = () => {
                         member.name[0]
                       )}
                     </div>
-                    <div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-slate-950 dark:text-slate-100 tracking-tight leading-tight truncate">
                         {member.name}
                       </div>
-                      <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                      <div className="text-xs text-emerald-900 dark:text-emerald-400 font-semibold mt-0.5 truncate">
                         {member.role}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono mt-0.5">
                         {member.memberNo}
                       </div>
                     </div>
@@ -1003,17 +1011,17 @@ export const MemberPortal: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 pt-1">
+                <div className="space-y-1.5 text-xs text-slate-800 dark:text-slate-300 pt-1">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600/70 dark:text-emerald-400/80" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
                     <span>{member.village}, Madhupur</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600/70 dark:text-emerald-400/80" />
+                    <Phone className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
                     <span className="font-mono">{member.phone}</span>
                   </div>
                   <div className="flex items-center gap-2 truncate">
-                    <Mail className="w-3.5 h-3.5 text-emerald-600/70 dark:text-emerald-400/80 shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
                     <span className="truncate">{member.email}</span>
                   </div>
                 </div>
@@ -1023,7 +1031,7 @@ export const MemberPortal: React.FC = () => {
                     {member.skills.map((skill, i) => (
                       <span
                         key={i}
-                        className="text-xs font-medium px-3 py-1 bg-slate-100/80 dark:bg-[#131f33]/85 border border-slate-200/60 dark:border-white/5 text-slate-700 dark:text-slate-300 rounded-xl"
+                        className="text-xs font-medium px-3 py-1 bg-slate-100/80 dark:bg-[#131f33]/85 border border-slate-200/60 dark:border-white/5 text-slate-900 dark:text-slate-300 rounded-xl"
                       >
                         {skill}
                       </span>
@@ -1040,68 +1048,68 @@ export const MemberPortal: React.FC = () => {
       {activeTab === 'events' && (
         <div className="space-y-6">
           <div className="glass-surface p-5 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl">
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+            <h2 className="text-xl font-extrabold text-slate-950 dark:text-slate-100">
               {t('Community Events & Your Participation', 'কমিউনিটি ইভেন্ট ও অংশগ্রহণ')}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
               {t('RSVP for upcoming drives or meetings. Members-only events are marked with a lock.', 'আসন্ন অনুষ্ঠানসমূহে অংশগ্রহণের নিশ্চয়তা দিন। সদস্যদের বিশেষ ইভেন্টগুলোতে অংশগ্রহণ করুন।')}
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
             {events.map(ev => {
               const isRsvpd = ev.rsvps.includes(currentMember.name);
               return (
                 <div
                   key={ev.id}
-                  className="glass-card rounded-3xl border border-white/40 dark:border-white/10 p-6 shadow-lg flex flex-col justify-between space-y-4 backdrop-blur-2xl hover:border-emerald-500/40 transition-all"
+                  className="glass-card rounded-3xl border border-white/40 dark:border-white/10 p-4 sm:p-6 shadow-lg flex flex-col justify-between space-y-4 backdrop-blur-2xl hover:border-emerald-500/40 transition-all"
                 >
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-md">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 rounded-md">
                           {t(ev.category, ev.categoryBn)}
                         </span>
                         {ev.visibility === 'members_only' ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-md flex items-center gap-1">
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-md flex items-center gap-1">
                             <span>🔒</span>
                             <span>{t('Members Only', 'শুধুমাত্র সদস্য')}</span>
                           </span>
                         ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md">
+                          <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-400 rounded-md">
                             {t('Public Event', 'সার্বজনীন')}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
                         {ev.date}
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                    <h3 className="font-bold text-base sm:text-lg text-slate-950 dark:text-slate-100">
                       {t(ev.title, ev.titleBn)}
                     </h3>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">
                       {t(ev.description, ev.descriptionBn)}
                     </p>
 
-                    <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                    <div className="space-y-1 text-xs text-slate-800 dark:text-slate-400 pt-1">
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                        <MapPin className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
                         <span>{t(ev.location, ev.locationBn)}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                        <Users className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
                         <span>{ev.rsvps.length} {t('members attending', 'সদস্য অংশ নিচ্ছেন')}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-400">
                       {isRsvpd ? (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <span className="text-emerald-900 dark:text-emerald-400 font-bold flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" />
                           <span>{t('You are attending', 'আপনি অংশ নিচ্ছেন')}</span>
                         </span>
@@ -1111,9 +1119,9 @@ export const MemberPortal: React.FC = () => {
                     </span>
                     <button
                       onClick={() => toggleEventRsvp(ev.id, currentMember.name)}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
+                      className={`w-full sm:w-auto px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
                         isRsvpd
-                          ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 hover:bg-rose-100'
+                          ? 'bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-400 hover:bg-rose-100'
                           : 'bg-emerald-700 hover:bg-emerald-800 text-white'
                       }`}
                     >
@@ -1141,6 +1149,9 @@ export const MemberPortal: React.FC = () => {
       {activeTab === 'roles' && (
         <OrganizationStructure isAdmin={false} />
       )}
+
+        </div>
+      </div>
 
     </div>
   );

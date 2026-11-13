@@ -100,8 +100,8 @@ export const Modals: React.FC<ModalsProps> = ({
     <>
       {/* 1. JOIN APPLICATION MODAL (Sent to Admin for enrollment) */}
       {activeModal === 'join' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="glass-surface rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-8 space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="glass-surface rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-emerald-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
@@ -251,8 +251,8 @@ export const Modals: React.FC<ModalsProps> = ({
 
       {/* 2. MEMBER LOGIN MODAL */}
       {activeModal === 'login' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-surface rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="glass-surface rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
@@ -340,8 +340,8 @@ export const Modals: React.FC<ModalsProps> = ({
 
       {/* 3. NEWS READER MODAL WITH PDF DOWNLOAD */}
       {selectedNews && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="glass-surface rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-8 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto backdrop-blur-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="glass-surface rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92dvh] overflow-y-auto backdrop-blur-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-lg">
@@ -485,11 +485,11 @@ export const Modals: React.FC<ModalsProps> = ({
       {/* 5. INSTANT SEARCH MODAL */}
       {searchOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start justify-center p-4 pt-20"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start justify-center p-3 sm:p-4 pt-12 sm:pt-20 overflow-y-auto"
           onClick={onCloseSearch}
         >
           <div 
-            className="glass-surface rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-white/40 dark:border-white/10 space-y-4 animate-in fade-in slide-in-from-top-4 duration-150 backdrop-blur-2xl"
+            className="glass-surface rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-white/40 dark:border-white/10 space-y-4 animate-in fade-in slide-in-from-top-4 duration-150 backdrop-blur-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="relative">
