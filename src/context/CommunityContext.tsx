@@ -205,7 +205,7 @@ interface CommunityContextType {
   likeDiscussionPost: (id: string) => void;
   addDiscussionReply: (postId: string, text: string) => void;
 
-  updateSettings: (newSettings: Partial<CommunitySettings>) => void;
+  updateSettings: (newSettings: Partial<CommunitySettings>) => Promise<void>;
   resetAllData: () => void;
   exportDataJSON: () => void;
 }
@@ -2119,7 +2119,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(t('Reply added to discussion', 'মন্তব্য সফলভাবে যুক্ত হয়েছে'), 'success');
   };
 
-  const updateSettings = (newSettings: Partial<CommunitySettings>) => {
+  const updateSettings = async (newSettings: Partial<CommunitySettings>) => {
     if (!isAdminLoggedIn) {
       showToast(t('Only Admin can update site settings.', 'শুধুমাত্র অ্যাডমিন সাইটের সেটিংস পরিবর্তন করতে পারবেন।'), 'warning');
       return;
@@ -2130,32 +2130,39 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (hasHeroUpdate) {
       const val = newSettings.heroBackground;
-      setHeroBgAsset(val);
+      // Remove previous background image before replacing with the new photo
+      setHeroBgAsset(undefined);
+      await fsDelete('settings/heroBackground');
       if (val) {
-        void fsSet('settings/heroBackground', { dataUrl: clampStr(val, 600000), updatedAt: new Date().toISOString() }, OperationType.WRITE);
-      } else {
-        void fsDelete('settings/heroBackground');
+        const clamped = clampStr(val, 580000);
+        setHeroBgAsset(clamped);
+        await fsSet('settings/heroBackground', { dataUrl: clamped, updatedAt: new Date().toISOString() }, OperationType.WRITE);
       }
     }
 
     if (hasSiteUpdate) {
       const val = newSettings.siteBackground;
-      setSiteBgAsset(val);
+      // Remove previous background image before replacing with the new photo
+      setSiteBgAsset(undefined);
+      await fsDelete('settings/siteBackground');
       if (val) {
-        void fsSet('settings/siteBackground', { dataUrl: clampStr(val, 600000), updatedAt: new Date().toISOString() }, OperationType.WRITE);
-      } else {
-        void fsDelete('settings/siteBackground');
+        const clamped = clampStr(val, 580000);
+        setSiteBgAsset(clamped);
+        await fsSet('settings/siteBackground', { dataUrl: clamped, updatedAt: new Date().toISOString() }, OperationType.WRITE);
       }
     }
 
     const { heroBackground: _hb, siteBackground: _sb, ...mainUpdates } = newSettings;
     if (Object.keys(mainUpdates).length > 0) {
-      const mergedMain = { ...settingsMain, ...mainUpdates };
+      const { heroBackground: _oldHb, siteBackground: _oldSb, ...cleanExisting } = settingsMain;
+      const mergedMain = { ...cleanExisting, ...mainUpdates };
       setSettingsMain(mergedMain);
-      void fsSet('settings/main', toSettingsMainPayload(mergedMain), OperationType.WRITE);
+      await fsSet('settings/main', toSettingsMainPayload(mergedMain), OperationType.WRITE);
     }
 
-    showToast(t('Community settings saved to cloud database', 'কমিউনিটির সেটিংস ক্লাউড ডেটাবেসে সংরক্ষিত হয়েছে'), 'success');
+    if (!hasHeroUpdate && !hasSiteUpdate) {
+      showToast(t('Community settings saved to cloud database', 'কমিউনিটির সেটিংস ক্লাউড ডেটাবেসে সংরক্ষিত হয়েছে'), 'success');
+    }
   };
 
   const resetAllData = () => {

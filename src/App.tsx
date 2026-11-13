@@ -20,7 +20,7 @@ const MainApp: React.FC = () => {
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
 
   return (
-    <div className="min-h-screen relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
+    <div className="min-h-screen overflow-x-clip relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
       
       {/* Background Nature Glassmorphism Layer */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -61,7 +61,10 @@ const MainApp: React.FC = () => {
         )}
 
         {/* Main Top Header */}
-        <Header onOpenSearch={() => setSearchOpen(true)} />
+        <Header
+          onOpenSearch={() => setSearchOpen(true)}
+          onSelectNews={(id) => setSelectedNewsId(id)}
+        />
 
         {/* Main View Router */}
         <main key={currentView} className="flex-1 min-w-0 view-enter">

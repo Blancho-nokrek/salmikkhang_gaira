@@ -33,18 +33,26 @@ export const BackgroundSettings: React.FC = () => {
     setBusy(key);
     try {
       const dataUrl = await compressImage(file, 1280, 350_000);
-      updateSettings({ [key]: dataUrl } as any);
-      showToast(t('Background updated.', 'ব্যাকগ্রাউন্ড আপডেট হয়েছে।'), 'success');
-    } catch (err: any) {
+      await updateSettings({ [key]: dataUrl } as any);
+      showToast(
+        t('Previous photo removed and new background updated.', 'আগের ছবি মুছে নতুন ব্যাকগ্রাউন্ড আপডেট হয়েছে।'),
+        'success'
+      );
+    } catch {
       showToast(t('Could not use this image.', 'ছবিটি ব্যবহার করা যায়নি।'), 'warning');
     } finally {
       setBusy(null);
     }
   };
 
-  const reset = (key: Key) => {
-    updateSettings({ [key]: undefined } as any);
-    showToast(t('Background reset to default.', 'ডিফল্ট ব্যাকগ্রাউন্ডে ফেরানো হয়েছে।'), 'info');
+  const reset = async (key: Key) => {
+    setBusy(key);
+    try {
+      await updateSettings({ [key]: undefined } as any);
+      showToast(t('Uploaded photo removed and default restored.', 'আগের ছবি মুছে ডিফল্ট ব্যাকগ্রাউন্ড ফেরানো হয়েছে।'), 'info');
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -54,7 +62,10 @@ export const BackgroundSettings: React.FC = () => {
           {t('Website Backgrounds', 'ওয়েবসাইটের ব্যাকগ্রাউন্ড')}
         </h3>
         <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
-          {t('Upload a photo to replace a background. Changes apply immediately.', 'ছবি আপলোড করে ব্যাকগ্রাউন্ড পরিবর্তন করুন। পরিবর্তন সাথে সাথে কার্যকর হয়।')}
+          {t(
+            'Upload a photo to replace a background. The previous photo is automatically removed and replaced immediately.',
+            'নতুন ছবি আপলোড করলে আগের ছবিটি স্বয়ংক্রিয়ভাবে মুছে গিয়ে নতুন ব্যাকগ্রাউন্ড সাথে সাথে কার্যকর হবে।'
+          )}
         </p>
       </div>
 
@@ -62,8 +73,9 @@ export const BackgroundSettings: React.FC = () => {
         {fields.map(f => {
           const current = settings[f.key];
           return (
-            <div key={f.key} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 p-3 space-y-3">
+            <div key={f.key} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 p-3 space-y-3 min-w-0">
               <img
+                key={current ? `${f.key}-custom-${current.slice(-24)}` : `${f.key}-default`}
                 src={current || f.fallback}
                 alt={f.title}
                 className="w-full aspect-video object-cover rounded-xl border border-slate-200 dark:border-slate-700"
@@ -76,16 +88,17 @@ export const BackgroundSettings: React.FC = () => {
                 <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl cursor-pointer">
                   <Upload className="w-3.5 h-3.5" />
                   {busy === f.key ? t('Working...', 'অপেক্ষা করুন...') : t('Upload new photo', 'নতুন ছবি আপলোড')}
-                  <input type="file" accept="image/*" className="hidden" onChange={e => handleFile(f.key, e)} disabled={busy !== null} />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => void handleFile(f.key, e)} disabled={busy !== null} />
                 </label>
                 {current && (
                   <button
                     type="button"
-                    onClick={() => reset(f.key)}
+                    disabled={busy !== null}
+                    onClick={() => void reset(f.key)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    {t('Use default', 'ডিফল্ট ব্যবহার করুন')}
+                    {t('Remove & use default', 'আগের ছবি মুছে ডিফল্ট দিন')}
                   </button>
                 )}
               </div>

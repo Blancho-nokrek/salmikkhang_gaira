@@ -4,6 +4,7 @@ import { Member, DiscussionPost } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
+import logoImg from '../assets/images/logo.png';
 import {
   Shield,
   MapPin,
@@ -103,9 +104,11 @@ export const MemberPortal: React.FC = () => {
       <div className="max-w-xl mx-auto py-8 sm:py-16 px-4 transition-colors">
         <div className="glass-card p-5 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-5 sm:space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-600/90 dark:bg-emerald-500/80 text-white flex items-center justify-center mx-auto shadow-lg backdrop-blur-md border border-white/20">
-              <span className="text-2xl">🌿</span>
-            </div>
+            <img
+              src={logoImg}
+              alt="Salmikkhang Logo"
+              className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-contain mx-auto shadow-lg ring-2 ring-white/40"
+            />
             <h2 className="text-xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
               {t('Member Portal Login', 'সদস্য পোর্টালে লগইন')}
             </h2>
@@ -252,8 +255,9 @@ export const MemberPortal: React.FC = () => {
         {/* Welcome message & member info */}
         <div className="lg:col-span-7 space-y-3 sm:space-y-4 min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider">
-              {t('SALMIKKHANG MEMBER PORTAL', 'সালমিকখাং সদস্য প্যানেল')}
+            <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider">
+              <img src={logoImg} alt="Salmikkhang Logo" className="w-6 h-6 rounded-full object-contain shrink-0" />
+              <span>{t('SALMIKKHANG MEMBER PORTAL', 'সালমিকখাং সদস্য প্যানেল')}</span>
             </span>
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Notification Bell Button */}
@@ -327,9 +331,11 @@ export const MemberPortal: React.FC = () => {
 
             <div className="flex items-center justify-between pb-4 border-b border-emerald-700/60">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xs">
-                  🌿
-                </div>
+                <img
+                  src={logoImg}
+                  alt="Salmikkhang Logo"
+                  className="w-8 h-8 rounded-full object-contain ring-1 ring-white/30 shrink-0"
+                />
                 <div className="font-extrabold text-xs tracking-wider uppercase text-emerald-200">
                   Salmikkhang Youth Council
                 </div>

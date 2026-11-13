@@ -6,7 +6,7 @@ import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
 import { compressImage } from '../lib/imageUpload';
-import { BOOTSTRAP_ADMIN_EMAIL } from '../lib/firebase';
+import logoImg from '../assets/images/logo.png';
 import {
   LayoutDashboard,
   Users,
@@ -292,9 +292,11 @@ export const AdminDashboard: React.FC = () => {
       <div className="max-w-md mx-auto py-10 sm:py-20 px-4">
         <div className="glass-card p-6 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-6 backdrop-blur-2xl">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-600/90 dark:bg-emerald-500/80 text-white flex items-center justify-center mx-auto shadow-lg backdrop-blur-md border border-white/20">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
+            <img
+              src={logoImg}
+              alt="Salmikkhang Logo"
+              className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-contain mx-auto shadow-lg ring-2 ring-white/40"
+            />
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
               {t('Executive Admin Login', 'অ্যাডমিন প্যানেল লগইন')}
             </h2>
@@ -316,13 +318,9 @@ export const AdminDashboard: React.FC = () => {
                 <div className="font-bold text-amber-950 dark:text-amber-200">
                   {t('Signed-in account does not have Admin access', 'এই অ্যাকাউন্টে অ্যাডমিন অনুমতি নেই')}
                 </div>
-                <div className="text-slate-700 dark:text-slate-300">
+                <div className="text-slate-700 dark:text-slate-300 break-all">
                   {t('Currently signed in as:', 'বর্তমান অ্যাকাউন্ট:')}{' '}
                   <span className="font-mono font-bold">{firebaseUser.email}</span>
-                </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400">
-                  {t('Authorized admin:', 'অনুমোদিত অ্যাডমিন:')}{' '}
-                  <span className="font-mono font-semibold">{BOOTSTRAP_ADMIN_EMAIL}</span>
                 </div>
               </div>
 
@@ -344,11 +342,6 @@ export const AdminDashboard: React.FC = () => {
                 <Shield className="w-4 h-4" />
                 <span>{t('Sign in with Google (Admin) →', 'Google দিয়ে অ্যাডমিন লগইন →')}</span>
               </button>
-
-              <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-[11px] text-slate-700 dark:text-slate-300 text-center">
-                {t('Primary Admin:', 'মূল অ্যাডমিন:')}{' '}
-                <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300">{BOOTSTRAP_ADMIN_EMAIL}</span>
-              </div>
             </div>
           )}
 
@@ -372,8 +365,12 @@ export const AdminDashboard: React.FC = () => {
       {/* Top Banner & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 sm:pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+          <div className="flex items-center gap-2.5">
+            <img
+              src={logoImg}
+              alt="Salmikkhang Logo"
+              className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
+            />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-400">
               SALMIKKHANG EXECUTIVE WORKSPACE
             </span>
@@ -904,8 +901,8 @@ export const AdminDashboard: React.FC = () => {
                       {item.image ? (
                         <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover shrink-0 bg-slate-100 dark:bg-slate-800" />
                       ) : (
-                        <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
-                          🌿
+                        <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-slate-800 p-1 flex items-center justify-center shrink-0">
+                          <img src={logoImg} alt="Salmikkhang Logo" className="w-full h-full object-contain rounded-lg" />
                         </div>
                       )}
                       <div>

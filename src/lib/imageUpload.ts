@@ -14,21 +14,37 @@ export function compressImage(file: File, maxWidth = 1280, maxChars = 350_000): 
       const img = new Image();
       img.onerror = () => reject(new Error('Could not open the image.'));
       img.onload = () => {
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Image processing is not supported in this browser.'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        let quality = 0.8;
-        let out = canvas.toDataURL('image/jpeg', quality);
-        while (out.length > maxChars && quality > 0.4) {
-          quality -= 0.1;
+        let targetWidth = Math.min(img.width, maxWidth);
+        let out = '';
+
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const scale = targetWidth / img.width;
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Image processing is not supported in this browser.'));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          let quality = 0.82;
           out = canvas.toDataURL('image/jpeg', quality);
+          while (out.length > maxChars && quality > 0.35) {
+            quality -= 0.1;
+            out = canvas.toDataURL('image/jpeg', quality);
+          }
+
+          if (out.length <= maxChars || targetWidth <= 480) {
+            break;
+          }
+          targetWidth = Math.max(480, Math.round(targetWidth * 0.78));
+        }
+
+        if (out.length > maxChars) {
+          reject(new Error('Image is too large even after compression.'));
+          return;
         }
         resolve(out);
       };

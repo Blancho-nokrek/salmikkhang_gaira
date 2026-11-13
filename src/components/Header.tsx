@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import {
   Search,
@@ -19,9 +19,10 @@ import logoImg from '../assets/images/logo.png';
 
 interface HeaderProps {
   onOpenSearch: () => void;
+  onSelectNews?: (newsId: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) => {
   const {
     currentView,
     setCurrentView,
@@ -34,14 +35,54 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
     logoutMember,
     isAdminLoggedIn,
     joinRequests,
-    openModal
+    openModal,
+    news,
+    events,
+    projects,
+    members
   } = useCommunity();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const headerRef = useRef<HTMLElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
   const pendingRequestsCount = joinRequests.filter(r => r.status === 'Pending').length;
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+        setThemeDropdownOpen(false);
+        setCommunityDropdownOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSearchFocused(false);
+        setMobileSearchOpen(false);
+        setThemeDropdownOpen(false);
+        setCommunityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      setTimeout(() => mobileSearchInputRef.current?.focus(), 40);
+    }
+  }, [mobileSearchOpen]);
 
   const handleNavClick = (sectionId: string) => {
     if (currentView !== 'website') {
@@ -57,6 +98,166 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
     setMobileMenuOpen(false);
   };
 
+  const q = searchQuery.trim().toLowerCase();
+  const visibleNews = news.filter(n => currentMember || isAdminLoggedIn || n.visibility !== 'members_only');
+  const visibleEvents = events.filter(ev => currentMember || isAdminLoggedIn || ev.visibility !== 'members_only');
+
+  const searchResults = q
+    ? {
+        news: visibleNews.filter(
+          n =>
+            n.title.toLowerCase().includes(q) ||
+            n.titleBn.toLowerCase().includes(q) ||
+            n.summary.toLowerCase().includes(q) ||
+            n.category.toLowerCase().includes(q)
+        ),
+        events: visibleEvents.filter(
+          ev =>
+            ev.title.toLowerCase().includes(q) ||
+            ev.titleBn.toLowerCase().includes(q) ||
+            ev.location.toLowerCase().includes(q)
+        ),
+        projects: projects.filter(
+          p =>
+            p.title.toLowerCase().includes(q) ||
+            p.titleBn.toLowerCase().includes(q) ||
+            p.category.toLowerCase().includes(q)
+        ),
+        members: members.filter(
+          m =>
+            m.name.toLowerCase().includes(q) ||
+            m.village.toLowerCase().includes(q) ||
+            m.skills.some(s => s.toLowerCase().includes(q))
+        ),
+      }
+    : null;
+
+  const hasSearchMatches = Boolean(
+    searchResults &&
+      (searchResults.news.length > 0 ||
+        searchResults.events.length > 0 ||
+        searchResults.projects.length > 0 ||
+        searchResults.members.length > 0)
+  );
+
+  const closeAllSearch = () => {
+    setSearchFocused(false);
+    setMobileSearchOpen(false);
+  };
+
+  const handleSelectNewsResult = (newsId: string) => {
+    closeAllSearch();
+    setCurrentView('website');
+    if (onSelectNews) {
+      setTimeout(() => onSelectNews(newsId), 60);
+    }
+  };
+
+  const handleSelectSectionResult = (sectionId: string) => {
+    closeAllSearch();
+    handleNavClick(sectionId);
+  };
+
+  const renderSearchResults = () => {
+    if (!q || !searchResults) return null;
+    if (!hasSearchMatches) {
+      return (
+        <div className="p-4 text-center text-xs text-slate-600 dark:text-slate-400">
+          {t('No matching results found.', 'কোনো মিল খুঁজে পাওয়া যায়নি।')}
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-2 space-y-3 max-h-[60vh] overflow-y-auto text-xs">
+        {searchResults.news.length > 0 && (
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {t('News & Notices', 'সংবাদ ও নোটিশ')} ({searchResults.news.length})
+            </div>
+            {searchResults.news.slice(0, 4).map(n => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => handleSelectNewsResult(n.id)}
+                className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-950 dark:text-slate-100 truncate">{t(n.title, n.titleBn)}</div>
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{n.date} · {t(n.category, n.categoryBn)}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searchResults.events.length > 0 && (
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {t('Events', 'অনুষ্ঠান')} ({searchResults.events.length})
+            </div>
+            {searchResults.events.slice(0, 4).map(ev => (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={() => handleSelectSectionResult('events')}
+                className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-bold text-slate-950 dark:text-slate-100 truncate">{t(ev.title, ev.titleBn)}</div>
+                <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{ev.date} · {t(ev.location, ev.locationBn)}</div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searchResults.projects.length > 0 && (
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {t('Projects', 'উদ্যোগ')} ({searchResults.projects.length})
+            </div>
+            {searchResults.projects.slice(0, 4).map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => handleSelectSectionResult('projects')}
+                className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-bold text-slate-950 dark:text-slate-100 truncate">{t(p.title, p.titleBn)}</div>
+                <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{t(p.category, p.categoryBn)} · {p.progress}%</div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searchResults.members.length > 0 && (
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {t('Community Members', 'সদস্যবৃন্দ')} ({searchResults.members.length})
+            </div>
+            {searchResults.members.slice(0, 4).map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  closeAllSearch();
+                  if (currentMember) {
+                    setCurrentView('member');
+                  } else {
+                    onOpenSearch();
+                  }
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-bold text-slate-950 dark:text-slate-100 truncate">{m.name}</div>
+                <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{m.role} · {m.village} · {m.bloodGroup}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const themeOptions: { id: Theme; labelEn: string; labelBn: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'light', labelEn: 'Light', labelBn: 'লাইট', icon: Sun },
     { id: 'dark', labelEn: 'Dark', labelBn: 'ডার্ক', icon: Moon },
@@ -66,19 +267,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
   const CurrentThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/70 dark:bg-[#080f1d]/75 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-[0_4px_24px_0_rgba(0,0,0,0.25)] transition-colors">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-40 bg-white/70 dark:bg-[#080f1d]/75 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-[0_4px_24px_0_rgba(0,0,0,0.25)] transition-colors"
+    >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-3">
           
           {/* Brand Logo & Name */}
           <div 
             onClick={() => { setCurrentView('website'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 min-w-0"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 shrink"
           >
             <img
               src={logoImg}
               alt="Salmikkhang Youth Community logo"
-              className="w-9 h-9 sm:w-12 sm:h-12 rounded-full object-contain shadow-md ring-1 ring-white/40 group-hover:scale-105 transition-transform shrink-0"
+              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain shadow-md ring-1 ring-white/40 group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="flex flex-col min-w-0">
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-slate-950 dark:text-emerald-300 font-sans leading-tight group-hover:text-emerald-800 dark:group-hover:text-emerald-200 truncate">
@@ -90,11 +294,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
             </div>
           </div>
 
-          {/* Center Navigation Links (Public Website view) */}
-          <nav className="hidden lg:flex items-center gap-6">
+          {/* Center Navigation Links (xl+ to prevent collision on resize across tablet/small laptop) */}
+          <nav className="hidden xl:flex items-center gap-4 2xl:gap-5 shrink-0">
             <button
               onClick={() => handleNavClick('home')}
-              className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 ${
+              className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 whitespace-nowrap ${
                 currentView === 'website' 
                   ? 'text-emerald-800 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
@@ -104,37 +308,37 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
             </button>
             <button
               onClick={() => handleNavClick('about')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('About', 'পরিচিতি')}
             </button>
             <button
               onClick={() => handleNavClick('events')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('Events', 'অনুষ্ঠান')}
             </button>
             <button
               onClick={() => handleNavClick('news')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('News & Notices', 'সংবাদ ও নোটিশ')}
             </button>
             <button
               onClick={() => handleNavClick('projects')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('Projects', 'উদ্যোগ')}
             </button>
             <button
               onClick={() => handleNavClick('gallery')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('Gallery', 'গ্যালারি')}
             </button>
             <button
               onClick={() => handleNavClick('contact')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2"
+              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
             >
               {t('Contact', 'যোগাযোগ')}
             </button>
@@ -143,14 +347,59 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
           {/* Right Action Tools */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
-            {/* Search Trigger */}
+            {/* Inline Search Box on Tablet & Desktop (sm+) */}
+            <div className="hidden sm:block relative">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 pointer-events-none" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onFocus={() => setSearchFocused(true)}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setSearchFocused(true);
+                  }}
+                  placeholder={t('Search...', 'অনুসন্ধান করুন...')}
+                  aria-label={t('Search website', 'ওয়েবসাইট অনুসন্ধান')}
+                  className="w-40 md:w-52 lg:w-60 xl:w-44 2xl:w-56 pl-8 pr-7 py-1.5 text-xs font-medium rounded-xl border border-emerald-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    aria-label={t('Clear search', 'খোঁজ মুছুন')}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {searchFocused && q && (
+                <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/40 dark:border-white/10 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  {renderSearchResults()}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Phone Search Box Trigger (expands inline search bar when tapped) */}
             <button
-              onClick={onOpenSearch}
-              className="p-2 text-slate-900 dark:text-slate-300 hover:text-emerald-900 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              type="button"
+              onClick={() => {
+                setMobileSearchOpen(prev => !prev);
+                setMobileMenuOpen(false);
+              }}
+              className={`sm:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-colors text-xs font-medium ${
+                mobileSearchOpen
+                  ? 'bg-emerald-700 text-white border-emerald-600'
+                  : 'text-slate-900 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 border-emerald-200/80 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-800'
+              }`}
               title={t('Search website...', 'অনুসন্ধান করুন...')}
               aria-label="Search"
+              aria-expanded={mobileSearchOpen}
             >
-              <Search className="w-4 h-4" />
+              {mobileSearchOpen ? <X className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
+              <span className="hidden min-[420px]:inline">{t('Search', 'খুঁজুন')}</span>
             </button>
 
             {/* Language Switch */}
@@ -213,7 +462,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
             <div className="relative hidden sm:block">
               <button
                 onClick={() => setCommunityDropdownOpen(!communityDropdownOpen)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                   currentView !== 'website'
                     ? 'bg-emerald-700 text-white shadow-xs'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -343,10 +592,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
               )}
             </div>
 
-            {/* Mobile menu trigger */}
+            {/* Mobile / Tablet menu trigger (visible below xl so window resizing never clips nav) */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden relative p-2 text-slate-900 dark:text-slate-300 hover:text-emerald-900 dark:hover:text-emerald-400 rounded-lg"
+              onClick={() => {
+                setMobileMenuOpen(!mobileMenuOpen);
+                setMobileSearchOpen(false);
+              }}
+              className="xl:hidden relative p-2 text-slate-900 dark:text-slate-300 hover:text-emerald-900 dark:hover:text-emerald-400 rounded-lg"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -358,9 +610,42 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
 
         </div>
 
-        {/* Mobile Navigation Dropdown */}
+        {/* Mobile Expandable Search Box Bar (opens when tapping search on phone) */}
+        {mobileSearchOpen && (
+          <div className="sm:hidden pb-3 pt-1 border-t border-emerald-100/80 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-slate-600 dark:text-slate-400 absolute left-3.5 pointer-events-none" />
+              <input
+                ref={mobileSearchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('Search news, events, projects, members...', 'খবর, অনুষ্ঠান, উদ্যোগ বা সদস্য খুঁজুন...')}
+                className="w-full pl-10 pr-9 py-2.5 text-sm rounded-xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  aria-label={t('Clear search', 'খোঁজ মুছুন')}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {q && (
+              <div className="mt-2 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/40 dark:border-white/10">
+                {renderSearchResults()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile / Tablet Navigation Dropdown */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-emerald-100 dark:border-slate-800 space-y-2 animate-in fade-in duration-200 max-h-[calc(100dvh-4.5rem)] overflow-y-auto">
+          <div className="xl:hidden py-4 border-t border-emerald-100 dark:border-slate-800 space-y-2 animate-in fade-in duration-200 max-h-[calc(100dvh-4.5rem)] overflow-y-auto">
             {/* View switcher for mobile */}
             <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl mb-3">
               <button
@@ -411,7 +696,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
             </div>
 
             {/* Theme switcher on mobile */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+            <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('Theme:', 'থিম:')}</span>
               <div className="flex items-center gap-1">
                 {themeOptions.map((opt) => {

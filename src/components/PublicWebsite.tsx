@@ -18,8 +18,9 @@ import {
   FileText,
 } from 'lucide-react';
 
-// Hero background image
+// Hero background & logo images
 import heroBg from '../assets/images/hero_community_landscape_1794424784970.jpg';
+import logoImg from '../assets/images/logo.png';
 
 interface PublicWebsiteProps {
   onSelectNews: (newsId: string) => void;
@@ -100,13 +101,20 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
               <span>GAIRA · JOLCHOTRO · MADHUPUR · TANGAIL</span>
             </div>
 
-            {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-white">
-              {language === 'bn' ? 'সালমিকখাং' : 'SALMIKKHANG'}
-              <span className="block text-xl sm:text-3xl lg:text-4xl font-semibold text-emerald-200/95 mt-1.5 sm:mt-2">
-                {t('Village Youth Community', 'গ্রাম যুব কমিউনিটি')}
-              </span>
-            </h1>
+            {/* Main Headline with Official Emblem */}
+            <div className="flex items-center gap-3.5 sm:gap-5">
+              <img
+                src={logoImg}
+                alt="Salmikkhang Youth Community Logo"
+                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-contain shadow-xl ring-2 ring-white/40 shrink-0"
+              />
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-white min-w-0">
+                {language === 'bn' ? 'সালমিকখাং' : 'SALMIKKHANG'}
+                <span className="block text-xl sm:text-3xl lg:text-4xl font-semibold text-emerald-200/95 mt-1.5 sm:mt-2">
+                  {t('Village Youth Community', 'গ্রাম যুব কমিউনিটি')}
+                </span>
+              </h1>
+            </div>
 
             {/* Subtitle Prose */}
             <p className="text-sm sm:text-lg text-emerald-100/95 leading-relaxed max-w-xl font-normal">
@@ -415,8 +423,8 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                         className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-slate-100 dark:bg-slate-800 group-hover:opacity-90 transition-opacity"
                       />
                     ) : (
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold text-lg shrink-0">
-                        🌿
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 p-1.5 flex items-center justify-center shrink-0">
+                        <img src={logoImg} alt="Salmikkhang Logo" className="w-full h-full object-contain rounded-lg" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0 space-y-1">
@@ -679,33 +687,33 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </div>
 
             <div className="space-y-4 pt-2">
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Our Location', 'আমাদের অবস্থান')}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{settings.address}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-words">{settings.address}</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
                   <Phone className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Community Hotline', 'যোগাযোগের ফোন')}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{settings.phone}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-words">{settings.phone}</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
                   <Mail className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Official Email', 'অফিসিয়াল ইমেইল')}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{settings.email}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-all">{settings.email}</div>
                 </div>
               </div>
             </div>
@@ -783,13 +791,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-4 sm:col-span-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center p-1.5">
-                  <svg viewBox="0 0 48 48" fill="none" className="w-full h-full text-white">
-                    <path d="M4 38 17 19l7 10 7-14 13 23H4Z" stroke="currentColor" strokeWidth="2.8" strokeLinejoin="round"/>
-                    <path d="m10 38 8-11 7 11M27 38l5-8 7 8" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"/>
-                    <circle cx="35" cy="9" r="4" stroke="currentColor" strokeWidth="2.4"/>
-                  </svg>
-                </div>
+                <img
+                  src={logoImg}
+                  alt="Salmikkhang Youth Community Logo"
+                  className="w-11 h-11 rounded-full object-contain shadow-md ring-1 ring-emerald-500/30 shrink-0"
+                />
                 <div className="font-extrabold text-slate-950 dark:text-white text-base tracking-tight">
                   SALMIKKHANG
                 </div>

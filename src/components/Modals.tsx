@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { X, Search, Download, ExternalLink, Shield } from 'lucide-react';
+import logoImg from '../assets/images/logo.png';
 
 interface ModalsProps {
   searchOpen: boolean;
@@ -100,9 +101,11 @@ export const Modals: React.FC<ModalsProps> = ({
           <div className="glass-surface rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-emerald-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
-                  🌿
-                </div>
+                <img
+                  src={logoImg}
+                  alt="Salmikkhang Logo"
+                  className="w-10 h-10 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
+                />
                 <div>
                   <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100 leading-tight">
                     {t('Apply for Salmikkhang Membership', 'সালমিকখাং সদস্যপদের আবেদন')}
@@ -250,10 +253,12 @@ export const Modals: React.FC<ModalsProps> = ({
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="glass-surface rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
-                  🌿
-                </div>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={logoImg}
+                  alt="Salmikkhang Logo"
+                  className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
+                />
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
                   {t('Salmikkhang Member & Admin Portal', 'সদস্য ও অ্যাডমিন প্যানেলে প্রবেশ')}
                 </h3>
@@ -565,6 +570,33 @@ export const Modals: React.FC<ModalsProps> = ({
                           <div>
                             <div className="font-bold text-slate-900 dark:text-slate-100">{ev.title}</div>
                             <div className="text-[10px] text-slate-500 dark:text-slate-400">{ev.date} · {ev.location}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Project matches */}
+                {searchResults.projects.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
+                      {t('Projects', 'উদ্যোগ')} ({searchResults.projects.length})
+                    </span>
+                    <div className="space-y-1">
+                      {searchResults.projects.map(p => (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            onCloseSearch();
+                            setCurrentView('website');
+                            setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 80);
+                          }}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-900 dark:text-slate-100">{p.title}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{p.category} · {p.progress}%</div>
                           </div>
                         </div>
                       ))}
