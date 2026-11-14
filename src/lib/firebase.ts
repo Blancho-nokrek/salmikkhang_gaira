@@ -4,6 +4,15 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
 export const BOOTSTRAP_ADMIN_EMAIL = 'salmikkhang@gmail.com';
+export const BOOTSTRAP_ADMIN_EMAILS = [
+  'salmikkhang@gmail.com',
+  'blanchonokreksk@gmail.com',
+];
+
+export function isBootstrapAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return BOOTSTRAP_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
 
 const env = (import.meta as any).env || {};
 const firebaseConfig = {

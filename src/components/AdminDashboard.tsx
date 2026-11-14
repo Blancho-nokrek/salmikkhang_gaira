@@ -35,6 +35,7 @@ import {
   DollarSign,
   Eye,
   MessageSquare,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -83,6 +84,8 @@ export const AdminDashboard: React.FC = () => {
     authLoading,
     authError,
     clearAuthError,
+    adminAccessWarning,
+    clearAdminAccessWarning,
     showToast
   } = useCommunity();
 
@@ -344,7 +347,44 @@ export const AdminDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {authError && (
+              {adminAccessWarning && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-50 via-amber-50 to-rose-50 dark:from-rose-950/80 dark:via-amber-950/60 dark:to-rose-950/80 border-2 border-rose-500/80 dark:border-rose-500/70 shadow-lg space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                        <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-rose-700 dark:text-rose-300">
+                          {t('RESTRICTED ACCESS WARNING', 'সতর্কতা — সংরক্ষিত প্রবেশাধিকার')}
+                        </div>
+                        <div className="text-xs font-extrabold text-slate-950 dark:text-white">
+                          {t('Unauthorized Admin Entry Blocked', 'অনুমোদিত নয় এমন অ্যাডমিন প্রবেশ বন্ধ করা হয়েছে')}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearAdminAccessWarning();
+                        clearAuthError();
+                      }}
+                      className="p-1 text-rose-700 dark:text-rose-300 hover:text-rose-950 shrink-0"
+                      aria-label="Dismiss warning"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-900 dark:text-rose-100 leading-relaxed font-medium">
+                    {t(
+                      `Warning: "${adminAccessWarning.email}" does not have Admin or President privileges. The Admin Panel is strictly restricted—no access request is sent or accepted here.`,
+                      `সতর্কতা: "${adminAccessWarning.email}" অ্যাকাউন্টের অ্যাডমিন বা সভাপতি অনুমতি নেই। অ্যাডমিন প্যানেল অত্যন্ত সংরক্ষিত—এখানে কোনো অ্যাক্সেস রিকোয়েস্ট পাঠানো বা গ্রহণ করা হয় না।`
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {authError && !adminAccessWarning && (
                 <div className="p-3.5 rounded-2xl bg-rose-50/90 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-xs text-rose-950 dark:text-rose-200 flex items-start justify-between gap-2">
                   <span className="leading-relaxed break-words">{authError}</span>
                   <button
@@ -358,12 +398,15 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {firebaseUser && (
-                <div className="p-3.5 rounded-2xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-950 dark:text-sky-200 leading-relaxed">
-                  {t(
-                    'Admin Panel stays locked separately from Member Portal. Click Continue with Google below to verify Admin or President access.',
-                    'সদস্য পোর্টাল থেকে অ্যাডমিন প্যানেল আলাদা রাখা হয়েছে। অ্যাডমিন বা সভাপতি যাচাই করতে নিচে Google দিয়ে এগিয়ে যান।'
-                  )}
+              {firebaseUser && !adminAccessWarning && (
+                <div className="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-950 dark:text-amber-200 leading-relaxed flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    {t(
+                      'Strictly restricted area. Only verified Admin or President accounts can unlock this panel—no join requests are accepted here.',
+                      'অত্যন্ত সংরক্ষিত এলাকা। শুধুমাত্র যাচাইকৃত অ্যাডমিন বা সভাপতি এই প্যানেল আনলক করতে পারবেন—এখানে কোনো রিকোয়েস্ট গ্রহণ করা হয় না।'
+                    )}
+                  </span>
                 </div>
               )}
 

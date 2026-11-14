@@ -356,6 +356,7 @@ export async function seedInitialFirestoreIfEmpty(seed: {
           role: m.role,
           memberId: mId,
           memberName: clampStr(m.name, 120),
+          status: m.status === 'Inactive' ? 'Inactive' : 'Active',
           updatedAt: new Date().toISOString(),
         });
       }
@@ -411,6 +412,7 @@ export async function syncMemberRoleGrant(member: Member) {
       role: clampStr(member.role, 80, 'Member'),
       memberId: sanitizeId(member.id),
       memberName: clampStr(member.name, 120),
+      status: member.status === 'Inactive' ? 'Inactive' : 'Active',
       updatedAt: new Date().toISOString(),
     },
     OperationType.WRITE

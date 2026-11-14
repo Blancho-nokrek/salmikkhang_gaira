@@ -30,6 +30,8 @@ import {
   Plus,
   Edit2,
   Upload,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react';
 
 export const MemberPortal: React.FC = () => {
@@ -55,6 +57,8 @@ export const MemberPortal: React.FC = () => {
     authLoading,
     authError,
     clearAuthError,
+    memberAccessNotice,
+    clearMemberAccessNotice,
     loginAsMember,
     isMemberSessionUnlocked,
     isAdminLoggedIn,
@@ -144,6 +148,82 @@ export const MemberPortal: React.FC = () => {
             <div className="py-6 text-center text-xs font-bold text-emerald-800 dark:text-emerald-300">
               {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
             </div>
+          ) : memberAccessNotice ? (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-2xl border text-xs space-y-2.5 ${
+                memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive'
+                  ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
+                  : 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800'
+              }`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 font-extrabold text-sm text-slate-950 dark:text-slate-100">
+                    {memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive' ? (
+                      <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    )}
+                    <span>
+                      {memberAccessNotice.status === 'sent'
+                        ? t('Not Registered — Request Sent to Admin', 'নিবন্ধিত নয় — অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে')
+                        : memberAccessNotice.status === 'pending'
+                        ? t('Access Pending Admin Approval', 'অ্যাডমিনের অনুমোদনের অপেক্ষায়')
+                        : memberAccessNotice.status === 'rejected'
+                        ? t('Access Request Declined', 'প্রবেশের আবেদন প্রত্যাখ্যাত হয়েছে')
+                        : t('Membership Account Inactive', 'সদস্যপদ নিষ্ক্রিয় রয়েছে')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearMemberAccessNotice();
+                      clearAuthError();
+                    }}
+                    className="p-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 shrink-0"
+                    aria-label="Dismiss notice"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
+                  {memberAccessNotice.status === 'sent'
+                    ? t(
+                        `Your Google email (${memberAccessNotice.email}) is not in our member database. You cannot enter the Member Portal yet. An access request has been automatically sent to the Council Admin.`,
+                        `আপনার Google ইমেইল (${memberAccessNotice.email}) আমাদের সদস্য ডেটাবেসে নেই। আপনি এখনই সদস্য পোর্টালে ঢুকতে পারবেন না—অ্যাডমিনের কাছে আপনার অ্যাক্সেস রিকোয়েস্ট পাঠানো হয়েছে।`
+                      )
+                    : memberAccessNotice.status === 'pending'
+                    ? t(
+                        `Your Google email (${memberAccessNotice.email}) is not registered in the database yet. Your request is already waiting in the Admin inbox for approval.`,
+                        `আপনার Google ইমেইল (${memberAccessNotice.email}) এখনো ডেটাবেসে যুক্ত হয়নি। আপনার রিকোয়েস্ট অ্যাডমিনের ইনবক্সে অনুমোদনের অপেক্ষায় আছে।`
+                      )
+                    : memberAccessNotice.status === 'rejected'
+                    ? t(
+                        `The access request for ${memberAccessNotice.email} was declined by Admin. Please contact Council Admin or submit a complete membership application.`,
+                        `${memberAccessNotice.email}-এর আবেদনটি অ্যাডমিন কর্তৃক বাতিল করা হয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন অথবা পূর্ণাঙ্গ আবেদন পাঠান।`
+                      )
+                    : t(
+                        `Your email (${memberAccessNotice.email}) is currently marked Inactive in the database. Contact Council Admin to reactivate access.`,
+                        `আপনার ইমেইল (${memberAccessNotice.email}) ডেটাবেসে বর্তমানে নিষ্ক্রিয় (Inactive) রয়েছে। সক্রিয় করতে অ্যাডমিনের সাথে যোগাযোগ করুন।`
+                      )}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => openModal('join')}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md"
+                >
+                  {t('Submit Full Details Form →', 'বিস্তারিত তথ্যের আবেদন দিন →')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loginAsMember()}
+                  className="py-3 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
+                >
+                  {t('Try Another Google Account', 'অন্য Google অ্যাকাউন্ট দিন')}
+                </button>
+              </div>
+            </div>
           ) : isMemberSessionUnlocked && firebaseUser && !currentMember ? (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs space-y-2">
@@ -194,8 +274,8 @@ export const MemberPortal: React.FC = () => {
               {firebaseUser && (
                 <div className="p-3 rounded-2xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-950 dark:text-sky-200 leading-relaxed text-center">
                   {t(
-                    'Member Portal requires its own Continue with Google sign-in step so it stays separate from the Admin Panel.',
-                    'সদস্য পোর্টাল ও অ্যাডমিন প্যানেল আলাদা রাখতে এখানে আলাদাভাবে Google দিয়ে সাইন-ইন করতে হবে।'
+                    'Only Google emails registered in our database can enter the Member Portal. Unregistered emails will automatically send an access request to Admin.',
+                    'শুধুমাত্র ডেটাবেসে নিবন্ধিত Google ইমেইল দিয়েই সদস্য পোর্টালে প্রবেশ করা যাবে। নিবন্ধিত না থাকলে স্বয়ংক্রিয়ভাবে অ্যাডমিনের কাছে রিকোয়েস্ট যাবে।'
                   )}
                 </div>
               )}
@@ -211,8 +291,8 @@ export const MemberPortal: React.FC = () => {
 
               <p className="text-[11px] text-center text-slate-600 dark:text-slate-400">
                 {t(
-                  'Use the Gmail address approved by Salmikkhang Executive Admin.',
-                  'অ্যাডমিন কর্তৃক অনুমোদিত আপনার Gmail ঠিকানা দিয়ে সাইন-ইন করুন।'
+                  'Only emails registered in the database can unlock the Member Portal.',
+                  'শুধুমাত্র ডেটাবেসে থাকা অনুমোদিত Gmail দিয়েই সদস্য পোর্টাল আনলক হবে।'
                 )}
               </p>
             </div>
