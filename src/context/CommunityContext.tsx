@@ -224,6 +224,7 @@ interface CommunityContextType {
   deleteProject: (id: string) => void;
 
   addGalleryItem: (item: Omit<GalleryItem, 'id'>) => void;
+  updateGalleryItem: (id: string, item: Partial<GalleryItem>) => void;
   deleteGalleryItem: (id: string) => void;
 
   addDiscussionPost: (text: string, category: DiscussionPost['category']) => void;
@@ -2826,10 +2827,26 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newItem: GalleryItem = {
       ...item,
       id: `g-${Date.now()}`,
+      visibility: 'public',
     };
     setGallery(prev => [newItem, ...prev]);
     void fsSet(`gallery/${sanitizeId(newItem.id)}`, toGalleryPayload(newItem), OperationType.CREATE);
     showToast(t('Photo album item added', 'গ্যালারিতে নতুন ছবি যুক্ত হয়েছে'), 'success');
+  };
+
+  const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
+    if (!canManageGalleryPermission()) return;
+    const existingItem = gallery.find(g => g.id === id);
+    if (!existingItem) return;
+    const merged: GalleryItem = {
+      ...existingItem,
+      ...item,
+      id: existingItem.id,
+      visibility: 'public',
+    };
+    setGallery(prev => prev.map(g => (g.id === id ? merged : g)));
+    void fsSet(`gallery/${sanitizeId(id)}`, toGalleryPayload(merged), OperationType.UPDATE);
+    showToast(t('Gallery photo updated', 'গ্যালারির ছবি হালনাগাদ হয়েছে'), 'success');
   };
 
   const deleteGalleryItem = (id: string) => {
@@ -3138,6 +3155,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateProject,
         deleteProject,
         addGalleryItem,
+        updateGalleryItem,
         deleteGalleryItem,
         addDiscussionPost,
         likeDiscussionPost,

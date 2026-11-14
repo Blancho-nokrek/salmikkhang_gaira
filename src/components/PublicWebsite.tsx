@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
+import { GALLERY_CATEGORIES } from '../data/galleryCategories';
 import {
   Calendar,
   Clock,
@@ -76,9 +77,23 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
     toggleEventRsvp(eventId, userIdentifier);
   };
 
+  const galleryCategories = useMemo(() => {
+    const base = [
+      { value: 'All', labelEn: 'All', labelBn: 'সবগুলো' },
+      ...GALLERY_CATEGORIES.map(c => ({ value: c.value, labelEn: c.labelEn, labelBn: c.labelBn })),
+    ];
+    for (const item of gallery) {
+      const cat = (item.category || '').trim();
+      if (cat && !base.some(b => b.value.toLowerCase() === cat.toLowerCase())) {
+        base.push({ value: cat, labelEn: cat, labelBn: item.categoryBn || cat });
+      }
+    }
+    return base;
+  }, [gallery]);
+
   const filteredGallery = galleryFilter === 'All'
     ? gallery
-    : gallery.filter(g => g.category.toLowerCase() === galleryFilter.toLowerCase());
+    : gallery.filter(g => (g.category || '').trim().toLowerCase() === galleryFilter.toLowerCase());
 
   return (
     <div className="w-full transition-colors">
@@ -581,53 +596,59 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
 
           {/* Filter Tabs */}
           <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto">
-            {['All', 'Landscape', 'Education', 'Environment', 'Culture', 'Sports'].map((cat) => (
+            {galleryCategories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setGalleryFilter(cat)}
+                key={cat.value}
+                onClick={() => setGalleryFilter(cat.value)}
                 className={`px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                  galleryFilter.toLowerCase() === cat.toLowerCase()
+                  galleryFilter.toLowerCase() === cat.value.toLowerCase()
                     ? 'bg-white dark:bg-slate-700 text-slate-950 dark:text-emerald-300 shadow-xs font-bold'
                     : 'text-slate-800 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
                 }`}
               >
-                {cat}
+                {t(cat.labelEn, cat.labelBn)}
               </button>
             ))}
           </div>
         </div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {filteredGallery.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => onSelectGallery(item)}
-              className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3]"
-            >
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-end p-4 sm:p-5 text-white">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                  {t(item.category, item.categoryBn)}
-                </span>
-                <h3 className="font-bold text-base text-white mt-0.5">
-                  {t(item.title, item.titleBn)}
-                </h3>
-                <div className="flex items-center justify-between text-xs text-slate-200 mt-2">
-                  <span>{item.date}</span>
-                  <span className="flex items-center gap-1 text-emerald-300 font-semibold group-hover:translate-x-1 transition-transform">
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>{t('View Photo', 'ছবি দেখুন')}</span>
+        {filteredGallery.length === 0 ? (
+          <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
+            {t('No photos found in this category yet.', 'এই ক্যাটাগরিতে এখনো কোনো ছবি যুক্ত হয়নি।')}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredGallery.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => onSelectGallery(item)}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3]"
+              >
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-end p-4 sm:p-5 text-white">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                    {t(item.category, item.categoryBn)}
                   </span>
+                  <h3 className="font-bold text-base text-white mt-0.5">
+                    {t(item.title, item.titleBn)}
+                  </h3>
+                  <div className="flex items-center justify-between text-xs text-slate-200 mt-2">
+                    <span>{item.date}</span>
+                    <span className="flex items-center gap-1 text-emerald-300 font-semibold group-hover:translate-x-1 transition-transform">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{t('View Photo', 'ছবি দেখুন')}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 7. Join Banner */}

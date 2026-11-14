@@ -7,6 +7,7 @@ import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
 import { DiscussionForum } from './DiscussionForum';
 import { compressImage } from '../lib/imageUpload';
+import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
 import logoImg from '../assets/images/logo.png';
 import {
   LayoutDashboard,
@@ -68,6 +69,7 @@ export const AdminDashboard: React.FC = () => {
     updateProject,
     deleteProject,
     addGalleryItem,
+    updateGalleryItem,
     deleteGalleryItem,
     markMessageStatus,
     deleteMessage,
@@ -227,10 +229,11 @@ export const AdminDashboard: React.FC = () => {
       setFormData({
         title: '',
         titleBn: '',
-        category: 'Community',
-        categoryBn: 'কমিউনিটি',
+        category: 'Landscape',
+        categoryBn: 'প্রকৃতি',
         image: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        visibility: 'public'
       });
     } else if (target === 'member') {
       setFormData({
@@ -283,7 +286,15 @@ export const AdminDashboard: React.FC = () => {
         updateProject(editingItem.id, formData);
       }
     } else if (modalTarget === 'gallery') {
-      addGalleryItem(formData);
+      if (!formData.image) {
+        showToast(t('Please upload a photo first.', 'অনুগ্রহ করে একটি ছবি আপলোড করুন।'), 'warning');
+        return;
+      }
+      if (modalMode === 'create') {
+        addGalleryItem(formData);
+      } else {
+        updateGalleryItem(editingItem.id, formData);
+      }
     } else if (modalTarget === 'member') {
       const skillsArray = typeof formData.skills === 'string'
         ? formData.skills.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -1363,18 +1374,45 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {gallery.map(img => (
-                  <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 aspect-4/3">
-                    <img src={img.image} alt={img.title} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
-                      <div className="font-bold text-xs leading-tight">{img.title}</div>
-                      <div className="text-[10px] text-emerald-300">{img.category} · {img.date}</div>
+                  <div
+                    key={img.id}
+                    className="group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 flex flex-col shadow-2xs"
+                  >
+                    <div className="relative aspect-4/3 bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <img src={img.image} alt={img.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-slate-950/75 backdrop-blur-md text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+                        {t(img.category, img.categoryBn || getGalleryCategoryBn(img.category))}
+                      </span>
+                    </div>
+                    <div className="p-3.5 flex-1 flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-xs text-slate-950 dark:text-slate-100 leading-snug line-clamp-2">
+                          {t(img.title, img.titleBn || img.title)}
+                        </div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+                          {img.date}
+                        </div>
+                      </div>
                       {isAdminLoggedIn && (
-                        <button
-                          onClick={() => deleteGalleryItem(img.id)}
-                          className="mt-2 text-rose-300 text-xs font-bold hover:underline self-start"
-                        >
-                          {t('Delete photo', 'মুছুন')}
-                        </button>
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-700/80">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal('gallery', img)}
+                            className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                            <span>{t('Edit', 'এডিট')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteGalleryItem(img.id)}
+                            className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                            title={t('Delete photo', 'মুছুন')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>{t('Delete', 'মুছুন')}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1565,7 +1603,15 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-extrabold text-base text-slate-950 dark:text-slate-100">
                 {modalMode === 'create' ? t('Add New ', 'নতুন যোগ করুন: ') : t('Edit ', 'সম্পাদনা: ')}
-                {modalTarget === 'event' ? t('Event', 'অনুষ্ঠান') : modalTarget === 'member' ? t('Member', 'সদস্য') : modalTarget.toUpperCase()}
+                {modalTarget === 'event'
+                  ? t('Event', 'অনুষ্ঠান')
+                  : modalTarget === 'member'
+                  ? t('Member', 'সদস্য')
+                  : modalTarget === 'gallery'
+                  ? t('Gallery Photo', 'গ্যালারির ছবি')
+                  : modalTarget === 'news'
+                  ? t('News & Notice', 'খবর ও নোটিশ')
+                  : t('Project', 'উদ্যোগ')}
               </h3>
               <button
                 onClick={() => setModalMode(null)}
@@ -2045,6 +2091,56 @@ export const AdminDashboard: React.FC = () => {
                 </>
               )}
 
+              {modalTarget === 'gallery' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Homepage Category *', 'হোমপেজ ক্যাটাগরি *')}
+                    </label>
+                    <select
+                      required
+                      value={formData.category || 'Landscape'}
+                      onChange={e => {
+                        const selected = e.target.value;
+                        setFormData({
+                          ...formData,
+                          category: selected,
+                          categoryBn: getGalleryCategoryBn(selected)
+                        });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
+                    >
+                      {GALLERY_CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.labelEn} ({cat.labelBn})
+                        </option>
+                      ))}
+                      {formData.category &&
+                        !GALLERY_CATEGORIES.some(
+                          c => c.value.toLowerCase() === String(formData.category).toLowerCase()
+                        ) && (
+                          <option value={formData.category}>
+                            {formData.category}
+                            {formData.categoryBn ? ` (${formData.categoryBn})` : ''}
+                          </option>
+                        )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Date *', 'তারিখ *')}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.date || ''}
+                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* REAL PHOTO UPLOAD PICKER (Replaces URL restriction) */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between">
@@ -2071,7 +2167,7 @@ export const AdminDashboard: React.FC = () => {
                       alt="Uploaded preview"
                       className="w-full h-44 object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <div className="absolute inset-0 bg-black/35 sm:bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <label className="px-3 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold cursor-pointer hover:bg-slate-100 shadow-md flex items-center gap-1.5">
                         <Upload className="w-3.5 h-3.5" />
                         <span>{t('Change Photo', 'ছবি পরিবর্তন')}</span>
