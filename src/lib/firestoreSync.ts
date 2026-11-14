@@ -169,9 +169,7 @@ export function toEventPayload(ev: CommunityEvent) {
     timeBn: clampStr(ev.timeBn, 100),
     location: clampStr(ev.location, 200),
     locationBn: clampStr(ev.locationBn, 240),
-    category: ['Meeting', 'Environment', 'Culture', 'Sports', 'Education'].includes(ev.category)
-      ? ev.category
-      : 'Meeting',
+    category: clampStr(ev.category, 80, 'Meeting'),
     categoryBn: clampStr(ev.categoryBn, 80),
     description: clampStr(ev.description, 4000),
     descriptionBn: clampStr(ev.descriptionBn, 5000),

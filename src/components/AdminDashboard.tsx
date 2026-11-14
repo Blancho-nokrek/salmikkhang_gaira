@@ -8,6 +8,7 @@ import { BackgroundSettings } from './BackgroundSettings';
 import { DiscussionForum } from './DiscussionForum';
 import { compressImage } from '../lib/imageUpload';
 import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
+import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
 import logoImg from '../assets/images/logo.png';
 import {
   LayoutDashboard,
@@ -1150,7 +1151,7 @@ export const AdminDashboard: React.FC = () => {
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded">
-                            {ev.category}
+                            {t(ev.category, ev.categoryBn || getEventCategoryBn(ev.category))}
                           </span>
                           {ev.visibility === 'members_only' ? (
                             <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded flex items-center gap-1">
@@ -2014,6 +2015,80 @@ export const AdminDashboard: React.FC = () => {
 
               {modalTarget === 'event' && (
                 <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Preset', 'ক্যাটাগরি পছন্দ')}
+                      </label>
+                      <select
+                        value={isPresetEventCategory(formData.category) ? formData.category : '__custom__'}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '__custom__') return;
+                          setFormData({
+                            ...formData,
+                            category: val,
+                            categoryBn: getEventCategoryBn(val)
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
+                      >
+                        {EVENT_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.labelEn} ({cat.labelBn})
+                          </option>
+                        ))}
+                        {!isPresetEventCategory(formData.category) && (
+                          <option value="__custom__">
+                            {t('Custom Category', 'কাস্টম ক্যাটাগরি')} ({formData.category || '...'})
+                          </option>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Tag (Editable) *', 'ক্যাটাগরি নাম (এডিটযোগ্য) *')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={80}
+                        value={formData.category || ''}
+                        onChange={e => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="e.g. Meeting, Sports, Workshop"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Label (বাংলা)', 'ক্যাটাগরি (বাংলা)')}
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={80}
+                        value={formData.categoryBn || ''}
+                        onChange={e => setFormData({ ...formData, categoryBn: e.target.value })}
+                        placeholder="যেমন: সভা, খেলাধুলা, কর্মশালা"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Event Status', 'ইভেন্টের অবস্থা')}
+                      </label>
+                      <select
+                        value={formData.status || 'Upcoming'}
+                        onChange={e => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
+                      >
+                        <option value="Upcoming">{t('Upcoming', 'আসন্ন')}</option>
+                        <option value="Planning">{t('Planning', 'পরিকল্পনাধীন')}</option>
+                        <option value="Past">{t('Past', 'সম্পন্ন')}</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>

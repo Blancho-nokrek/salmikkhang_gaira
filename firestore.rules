@@ -173,7 +173,7 @@ service cloud.firestore {
         isValidId(data.id) &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 240 &&
         data.date is string && data.date.size() <= 40 &&
-        data.category in ['Meeting', 'Environment', 'Culture', 'Sports', 'Education'] &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
         data.status in ['Upcoming', 'Past', 'Planning'] &&
         data.visibility in ['public', 'members_only'] &&
         data.rsvps is list && data.rsvps.size() <= 500 &&

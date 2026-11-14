@@ -114,7 +114,7 @@ export interface CommunityEvent {
   timeBn: string;
   location: string;
   locationBn: string;
-  category: 'Meeting' | 'Environment' | 'Culture' | 'Sports' | 'Education';
+  category: string;
   categoryBn: string;
   description: string;
   descriptionBn: string;
