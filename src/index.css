@@ -29,6 +29,7 @@
 }
 
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+section[id], div[id] { scroll-margin-top: 5.5rem; }
 body { overflow-x: clip; }
 img { max-width: 100%; }
 body { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }

@@ -55,9 +55,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact'>('home');
 
   const headerRef = useRef<HTMLElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const manualScrollLockUntilRef = useRef<number>(0);
 
   const pendingRequestsCount = joinRequests.filter(r => r.status === 'Pending').length;
 
@@ -91,19 +93,97 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
     }
   }, [mobileSearchOpen]);
 
-  const handleNavClick = (sectionId: string) => {
+  const scrollToSection = (sectionId: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact') => {
+    if (sectionId === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+    const headerHeight = headerRef.current?.getBoundingClientRect().height || 80;
+    const targetTop = el.getBoundingClientRect().top + window.scrollY - headerHeight - 8;
+    window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (currentView !== 'website') return;
+
+    const handleScroll = () => {
+      if (Date.now() < manualScrollLockUntilRef.current) return;
+      if (window.scrollY < 100) {
+        setActiveSection('home');
+        return;
+      }
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
+        setActiveSection('contact');
+        return;
+      }
+
+      const headerHeight = headerRef.current?.getBoundingClientRect().height || 80;
+      const threshold = headerHeight + 80;
+      const orderedIds: ('about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact')[] = [
+        'about',
+        'events',
+        'news',
+        'projects',
+        'gallery',
+        'contact',
+      ];
+
+      let current: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact' = 'home';
+      for (const id of orderedIds) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= threshold) {
+          current = id;
+        }
+      }
+
+      setActiveSection(prev => {
+        if (prev === 'news' && current === 'news') return 'news';
+        if (prev === 'events' && current === 'news') {
+          const evEl = document.getElementById('events');
+          const newsEl = document.getElementById('news');
+          if (evEl && newsEl && Math.abs(evEl.getBoundingClientRect().top - newsEl.getBoundingClientRect().top) < 40) {
+            return 'events';
+          }
+        }
+        return current;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentView]);
+
+  const handleNavClick = (sectionId: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact') => {
+    setActiveSection(sectionId);
+    manualScrollLockUntilRef.current = Date.now() + 900;
+    setMobileMenuOpen(false);
     if (currentView !== 'website') {
       setCurrentView('website');
       setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        el?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+        scrollToSection(sectionId);
+      }, 120);
     } else {
-      const el = document.getElementById(sectionId);
-      el?.scrollIntoView({ behavior: 'smooth' });
+      scrollToSection(sectionId);
     }
-    setMobileMenuOpen(false);
   };
+
+  const navItems: {
+    id: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact';
+    labelEn: string;
+    labelBn: string;
+    mobileLabelEn: string;
+    mobileLabelBn: string;
+  }[] = [
+    { id: 'home', labelEn: 'Home', labelBn: 'হোম', mobileLabelEn: 'Home', mobileLabelBn: 'হোম' },
+    { id: 'about', labelEn: 'About', labelBn: 'পরিচিতি', mobileLabelEn: 'About Salmikkhang', mobileLabelBn: 'আমাদের পরিচিতি' },
+    { id: 'events', labelEn: 'Events', labelBn: 'অনুষ্ঠান', mobileLabelEn: 'Upcoming Events', mobileLabelBn: 'আসন্ন অনুষ্ঠান' },
+    { id: 'news', labelEn: 'News & Notices', labelBn: 'সংবাদ ও নোটিশ', mobileLabelEn: 'News & Community Updates', mobileLabelBn: 'খবর ও আপডেট' },
+    { id: 'projects', labelEn: 'Projects', labelBn: 'উদ্যোগ', mobileLabelEn: 'Village Projects', mobileLabelBn: 'গ্রামের উদ্যোগ' },
+    { id: 'gallery', labelEn: 'Gallery', labelBn: 'গ্যালারি', mobileLabelEn: 'Photo Gallery', mobileLabelBn: 'ফটো গ্যালারি' },
+    { id: 'contact', labelEn: 'Contact', labelBn: 'যোগাযোগ', mobileLabelEn: 'Contact Us', mobileLabelBn: 'যোগাযোগ' },
+  ];
 
   const q = searchQuery.trim().toLowerCase();
   const visibleNews = news.filter(n => isMemberUnlocked || isAdminUnlocked || n.visibility !== 'members_only');
@@ -160,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
     }
   };
 
-  const handleSelectSectionResult = (sectionId: string) => {
+  const handleSelectSectionResult = (sectionId: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact') => {
     closeAllSearch();
     handleNavClick(sectionId);
   };
@@ -283,7 +363,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
           
           {/* Brand Logo & Name */}
           <div 
-            onClick={() => { setCurrentView('website'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            onClick={() => handleNavClick('home')}
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 shrink"
           >
             <img
@@ -303,52 +383,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
 
           {/* Center Navigation Links (xl+ to prevent collision on resize across tablet/small laptop) */}
           <nav className="hidden xl:flex items-center gap-4 2xl:gap-5 shrink-0">
-            <button
-              onClick={() => handleNavClick('home')}
-              className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 whitespace-nowrap ${
-                currentView === 'website' 
-                  ? 'text-emerald-800 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
-              }`}
-            >
-              {t('Home', 'হোম')}
-            </button>
-            <button
-              onClick={() => handleNavClick('about')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('About', 'পরিচিতি')}
-            </button>
-            <button
-              onClick={() => handleNavClick('events')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('Events', 'অনুষ্ঠান')}
-            </button>
-            <button
-              onClick={() => handleNavClick('news')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('News & Notices', 'সংবাদ ও নোটিশ')}
-            </button>
-            <button
-              onClick={() => handleNavClick('projects')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('Projects', 'উদ্যোগ')}
-            </button>
-            <button
-              onClick={() => handleNavClick('gallery')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('Gallery', 'গ্যালারি')}
-            </button>
-            <button
-              onClick={() => handleNavClick('contact')}
-              className="text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors py-2 whitespace-nowrap"
-            >
-              {t('Contact', 'যোগাযোগ')}
-            </button>
+            {navItems.map(item => {
+              const isActive = currentView === 'website' && activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleNavClick(item.id)}
+                  className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'text-emerald-800 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 border-b-2 border-transparent'
+                  }`}
+                >
+                  {t(item.labelEn, item.labelBn)}
+                </button>
+              );
+            })}
           </nav>
 
           {/* Right Action Tools */}
@@ -732,48 +783,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
               </div>
             </div>
 
-            <button
-              onClick={() => handleNavClick('home')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('Home', 'হোম')}
-            </button>
-            <button
-              onClick={() => handleNavClick('about')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('About Salmikkhang', 'আমাদের পরিচিতি')}
-            </button>
-            <button
-              onClick={() => handleNavClick('events')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('Upcoming Events', 'আসন্ন অনুষ্ঠান')}
-            </button>
-            <button
-              onClick={() => handleNavClick('news')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('News & Community Updates', 'খবর ও আপডেট')}
-            </button>
-            <button
-              onClick={() => handleNavClick('projects')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('Village Projects', 'গ্রামের উদ্যোগ')}
-            </button>
-            <button
-              onClick={() => handleNavClick('gallery')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('Photo Gallery', 'ফটো গ্যালারি')}
-            </button>
-            <button
-              onClick={() => handleNavClick('contact')}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {t('Contact Us', 'যোগাযোগ')}
-            </button>
+            {navItems.map(item => {
+              const isActive = currentView === 'website' && activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleNavClick(item.id)}
+                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold'
+                      : 'font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {t(item.mobileLabelEn, item.mobileLabelBn)}
+                </button>
+              );
+            })}
 
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex gap-2">
               <button
