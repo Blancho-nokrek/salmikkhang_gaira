@@ -134,7 +134,7 @@ export interface NewsItem {
   id: string;
   title: string;
   titleBn: string;
-  category: 'Announcement' | 'Notice' | 'Education' | 'Environment' | 'Sports' | 'Community';
+  category: string;
   categoryBn: string;
   date: string;
   summary: string;
@@ -248,6 +248,8 @@ export interface CommunitySettings {
   address: string;
   phone: string;
   email: string;
+  facebookUrl?: string;
+  whatsapp?: string;
   motto: string;
   mottoBn: string;
   about: string;

@@ -259,6 +259,8 @@ const initialSettings: CommunitySettings = {
   address: 'Gaira, Jolchotro, Madhupur, Tangail, Bangladesh',
   phone: '+880 1712-345678',
   email: 'salmikkhang.community@gmail.com',
+  facebookUrl: '',
+  whatsapp: '',
   motto: 'Together for a greener, kinder and stronger village',
   mottoBn: 'একত্রে আমরা আমাদের গ্রামের আরও উজ্জ্বল ও সুন্দর ভবিষ্যৎ গড়তে পারি',
   about: 'Salmikkhang is a non-political, grassroots youth organization rooted in Gaira and Jolchotro, Madhupur. We bring young minds together for education, environmental preservation, sports, and community solidarity.',

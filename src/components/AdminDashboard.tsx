@@ -9,6 +9,7 @@ import { DiscussionForum } from './DiscussionForum';
 import { compressImage } from '../lib/imageUpload';
 import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
+import { NEWS_CATEGORIES, getNewsCategoryBn, isPresetNewsCategory } from '../data/newsCategories';
 import logoImg from '../assets/images/logo.png';
 import {
   LayoutDashboard,
@@ -114,6 +115,8 @@ export const AdminDashboard: React.FC = () => {
     address: settings.address || '',
     phone: settings.phone || '',
     email: settings.email || '',
+    facebookUrl: settings.facebookUrl || '',
+    whatsapp: settings.whatsapp || '',
   });
 
   useEffect(() => {
@@ -124,8 +127,19 @@ export const AdminDashboard: React.FC = () => {
       address: settings.address || '',
       phone: settings.phone || '',
       email: settings.email || '',
+      facebookUrl: settings.facebookUrl || '',
+      whatsapp: settings.whatsapp || '',
     });
-  }, [settings.name, settings.nameBn, settings.village, settings.address, settings.phone, settings.email]);
+  }, [
+    settings.name,
+    settings.nameBn,
+    settings.village,
+    settings.address,
+    settings.phone,
+    settings.email,
+    settings.facebookUrl,
+    settings.whatsapp,
+  ]);
 
   const pendingRequests = joinRequests.filter(r => r.status === 'Pending');
   const unreadMessages = messages.filter(m => m.status === 'Unread');
@@ -1053,7 +1067,9 @@ export const AdminDashboard: React.FC = () => {
                       )}
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded">{item.category}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded">
+                            {t(item.category, item.categoryBn || getNewsCategoryBn(item.category))}
+                          </span>
                           {item.visibility === 'members_only' ? (
                             <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded flex items-center gap-1">
                               <span>🔒</span>
@@ -1489,6 +1505,8 @@ export const AdminDashboard: React.FC = () => {
                     address: settingsForm.address.trim(),
                     phone: settingsForm.phone.trim(),
                     email: settingsForm.email.trim(),
+                    facebookUrl: settingsForm.facebookUrl.trim(),
+                    whatsapp: settingsForm.whatsapp.trim(),
                   });
                 }}
                 className="space-y-4 text-xs"
@@ -1566,6 +1584,37 @@ export const AdminDashboard: React.FC = () => {
                       disabled={!isAdminLoggedIn}
                       value={settingsForm.village}
                       onChange={e => setSettingsForm(prev => ({ ...prev, village: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Facebook Page / Group URL', 'ফেসবুক পেজ / গ্রুপ লিঙ্ক')}
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={300}
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.facebookUrl}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, facebookUrl: e.target.value }))}
+                      placeholder="https://facebook.com/salmikkhang"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('WhatsApp Number or Group/Chat Link', 'হোয়াটসঅ্যাপ নম্বর বা লিঙ্ক')}
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={160}
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.whatsapp}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                      placeholder="+880 1712-345678 or https://wa.me/..."
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
@@ -1909,23 +1958,69 @@ export const AdminDashboard: React.FC = () => {
                       </label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Preset', 'ক্যাটাগরি পছন্দ')}
+                      </label>
                       <select
-                        value={formData.category || 'Notice'}
-                        onChange={e => setFormData({ ...formData, category: e.target.value, categoryBn: e.target.value === 'Notice' ? 'নোটিশ' : 'ঘোষণা' })}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        value={isPresetNewsCategory(formData.category) ? formData.category : '__custom__'}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '__custom__') return;
+                          setFormData({
+                            ...formData,
+                            category: val,
+                            categoryBn: getNewsCategoryBn(val)
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
                       >
-                        <option value="Notice">Notice (নোটিশ)</option>
-                        <option value="Announcement">Announcement (ঘোষণা)</option>
-                        <option value="Education">Education (শিক্ষা)</option>
-                        <option value="Environment">Environment (পরিবেশ)</option>
-                        <option value="Sports">Sports (খেলাধুলা)</option>
+                        {NEWS_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.labelEn} ({cat.labelBn})
+                          </option>
+                        ))}
+                        {!isPresetNewsCategory(formData.category) && (
+                          <option value="__custom__">
+                            {t('Custom Category', 'কাস্টম ক্যাটাগরি')} ({formData.category || '...'})
+                          </option>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Tag (Custom / Editable) *', 'ক্যাটাগরি নাম (কাস্টম / এডিটযোগ্য) *')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={80}
+                        value={formData.category || ''}
+                        onChange={e => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="e.g. Notice, News, Scholarship"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Label (বাংলা)', 'ক্যাটাগরি (বাংলা)')}
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={80}
+                        value={formData.categoryBn || ''}
+                        onChange={e => setFormData({ ...formData, categoryBn: e.target.value })}
+                        placeholder="যেমন: নোটিশ, সংবাদ, বৃত্তি"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Date', 'তারিখ')}
+                      </label>
                       <input
                         type="date"
                         value={formData.date || ''}

@@ -6,6 +6,7 @@ import { OrganizationStructure } from './OrganizationStructure';
 import { DiscussionForum } from './DiscussionForum';
 import { compressImage } from '../lib/imageUpload';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
+import { NEWS_CATEGORIES, getNewsCategoryBn, isPresetNewsCategory } from '../data/newsCategories';
 import logoImg from '../assets/images/logo.png';
 import {
   Shield,
@@ -1351,23 +1352,69 @@ export const MemberPortal: React.FC = () => {
 
               {portalModalTarget === 'news' ? (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Preset', 'ক্যাটাগরি পছন্দ')}
+                      </label>
                       <select
-                        value={portalForm.category || 'Notice'}
-                        onChange={e => setPortalForm({ ...portalForm, category: e.target.value, categoryBn: e.target.value === 'Notice' ? 'নোটিশ' : 'ঘোষণা' })}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        value={isPresetNewsCategory(portalForm.category) ? portalForm.category : '__custom__'}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '__custom__') return;
+                          setPortalForm({
+                            ...portalForm,
+                            category: val,
+                            categoryBn: getNewsCategoryBn(val)
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
                       >
-                        <option value="Notice">Notice (নোটিশ)</option>
-                        <option value="Announcement">Announcement (ঘোষণা)</option>
-                        <option value="Education">Education (শিক্ষা)</option>
-                        <option value="Environment">Environment (পরিবেশ)</option>
-                        <option value="Sports">Sports (খেলাধুলা)</option>
+                        {NEWS_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.labelEn} ({cat.labelBn})
+                          </option>
+                        ))}
+                        {!isPresetNewsCategory(portalForm.category) && (
+                          <option value="__custom__">
+                            {t('Custom Category', 'কাস্টম ক্যাটাগরি')} ({portalForm.category || '...'})
+                          </option>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Tag (Custom / Editable) *', 'ক্যাটাগরি নাম (কাস্টম / এডিটযোগ্য) *')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={80}
+                        value={portalForm.category || ''}
+                        onChange={e => setPortalForm({ ...portalForm, category: e.target.value })}
+                        placeholder="e.g. Notice, News, Scholarship"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Category Label (বাংলা)', 'ক্যাটাগরি (বাংলা)')}
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={80}
+                        value={portalForm.categoryBn || ''}
+                        onChange={e => setPortalForm({ ...portalForm, categoryBn: e.target.value })}
+                        placeholder="যেমন: নোটিশ, সংবাদ, বৃত্তি"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Date', 'তারিখ')}
+                      </label>
                       <input
                         type="date"
                         value={portalForm.date || ''}

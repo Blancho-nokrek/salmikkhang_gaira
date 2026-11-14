@@ -17,6 +17,8 @@ import {
   Eye,
   Check,
   FileText,
+  MessageCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 // Hero background & logo images
@@ -94,6 +96,26 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
   const filteredGallery = galleryFilter === 'All'
     ? gallery
     : gallery.filter(g => (g.category || '').trim().toLowerCase() === galleryFilter.toLowerCase());
+
+  const formatFacebookHref = (raw?: string): string | null => {
+    const val = (raw || '').trim();
+    if (!val || /^(javascript|data|vbscript):/i.test(val)) return null;
+    if (/^https?:\/\//i.test(val)) return val;
+    return `https://${val.replace(/^\/+/, '')}`;
+  };
+
+  const formatWhatsAppHref = (raw?: string): string | null => {
+    const val = (raw || '').trim();
+    if (!val || /^(javascript|data|vbscript):/i.test(val)) return null;
+    if (/^https?:\/\//i.test(val)) return val;
+    const digits = val.replace(/[^0-9]/g, '');
+    if (digits.length < 6) return null;
+    const normalized = digits.startsWith('0') && digits.length === 11 ? `88${digits}` : digits;
+    return `https://wa.me/${normalized}`;
+  };
+
+  const facebookHref = formatFacebookHref(settings.facebookUrl);
+  const whatsappHref = formatWhatsAppHref(settings.whatsapp);
 
   return (
     <div className="w-full transition-colors">
@@ -737,6 +759,78 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                   <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-all">{settings.email}</div>
                 </div>
               </div>
+
+              {facebookHref ? (
+                <a
+                  href={facebookHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-colors min-w-0 group"
+                >
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+                        <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Facebook Page', 'ফেসবুক পেজ')}</div>
+                      <div className="text-xs text-blue-700 dark:text-blue-300 mt-0.5 break-all group-hover:underline">
+                        {settings.facebookUrl}
+                      </div>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-1" />
+                </a>
+              ) : (
+                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+                      <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Facebook Page', 'ফেসবুক পেজ')}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('Link not set yet (configure in Admin Settings)', 'লিঙ্ক এখনো যুক্ত করা হয়নি (অ্যাডমিন সেটিংস থেকে যুক্ত করুন)')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {whatsappHref ? (
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-colors min-w-0 group"
+                >
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('WhatsApp Chat', 'হোয়াটসঅ্যাপ')}</div>
+                      <div className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 break-all group-hover:underline">
+                        {settings.whatsapp}
+                      </div>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 shrink-0 mt-1" />
+                </a>
+              ) : (
+                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('WhatsApp Chat', 'হোয়াটসঅ্যাপ')}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('Number or link not set yet (configure in Admin Settings)', 'নম্বর বা লিঙ্ক এখনো যুক্ত করা হয়নি (অ্যাডমিন সেটিংস থেকে যুক্ত করুন)')}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -830,6 +924,34 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
               <div className="text-xs text-emerald-900 dark:text-emerald-400 font-serif italic font-semibold">
                 {t('“Small steps, big changes.”', '“ছোট পদক্ষেপ, বড় পরিবর্তন।”')}
               </div>
+              {(facebookHref || whatsappHref) && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {facebookHref && (
+                    <a
+                      href={facebookHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current" aria-hidden="true">
+                        <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
+                      </svg>
+                      <span>{t('Facebook', 'ফেসবুক')}</span>
+                    </a>
+                  )}
+                  {whatsappHref && (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>{t('WhatsApp', 'হোয়াটসঅ্যাপ')}</span>
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>

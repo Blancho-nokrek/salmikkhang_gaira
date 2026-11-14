@@ -72,13 +72,15 @@ service cloud.firestore {
       return (
         settingId == 'main' &&
         data.keys().hasAll(['name', 'village']) &&
-        data.keys().hasOnly(['name', 'nameBn', 'village', 'address', 'phone', 'email', 'motto', 'mottoBn', 'about', 'aboutBn', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'nameBn', 'village', 'address', 'phone', 'email', 'facebookUrl', 'whatsapp', 'motto', 'mottoBn', 'about', 'aboutBn', 'updatedAt']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
         data.village is string && data.village.size() >= 1 && data.village.size() <= 120 &&
         (!('nameBn' in data) || (data.nameBn is string && data.nameBn.size() <= 200)) &&
         (!('address' in data) || (data.address is string && data.address.size() <= 240)) &&
         (!('phone' in data) || (data.phone is string && data.phone.size() <= 40)) &&
         (!('email' in data) || (data.email is string && data.email.size() <= 160)) &&
+        (!('facebookUrl' in data) || (data.facebookUrl is string && data.facebookUrl.size() <= 300)) &&
+        (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 160)) &&
         (!('motto' in data) || (data.motto is string && data.motto.size() <= 200)) &&
         (!('mottoBn' in data) || (data.mottoBn is string && data.mottoBn.size() <= 240)) &&
         (!('about' in data) || (data.about is string && data.about.size() <= 2000)) &&
@@ -145,7 +147,7 @@ service cloud.firestore {
         data.keys().hasOnly(['id', 'title', 'titleBn', 'category', 'categoryBn', 'date', 'summary', 'summaryBn', 'content', 'contentBn', 'image', 'tagColor', 'status', 'visibility', 'pdfAttachment']) &&
         isValidId(data.id) &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 240 &&
-        data.category in ['Announcement', 'Notice', 'Education', 'Environment', 'Sports', 'Community'] &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
         data.date is string && data.date.size() <= 40 &&
         data.status in ['Published', 'Draft'] &&
         data.visibility in ['public', 'members_only'] &&
