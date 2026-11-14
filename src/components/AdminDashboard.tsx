@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
-import { Member, Project, Role } from '../types';
+import { Member, Project, Role, WebsiteFontStyle } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
@@ -10,6 +10,7 @@ import { compressImage } from '../lib/imageUpload';
 import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
 import { NEWS_CATEGORIES, getNewsCategoryBn, isPresetNewsCategory } from '../data/newsCategories';
+import { WEBSITE_FONT_PRESETS, normalizeWebsiteFontStyle } from '../data/websiteFonts';
 import logoImg from '../assets/images/logo.png';
 import {
   LayoutDashboard,
@@ -108,7 +109,17 @@ export const AdminDashboard: React.FC = () => {
 
   // Form states
   const [formData, setFormData] = useState<any>({});
-  const [settingsForm, setSettingsForm] = useState({
+  const [settingsForm, setSettingsForm] = useState<{
+    name: string;
+    nameBn: string;
+    village: string;
+    address: string;
+    phone: string;
+    email: string;
+    facebookUrl: string;
+    whatsapp: string;
+    fontStyle: WebsiteFontStyle;
+  }>({
     name: settings.name || '',
     nameBn: settings.nameBn || '',
     village: settings.village || '',
@@ -117,6 +128,7 @@ export const AdminDashboard: React.FC = () => {
     email: settings.email || '',
     facebookUrl: settings.facebookUrl || '',
     whatsapp: settings.whatsapp || '',
+    fontStyle: normalizeWebsiteFontStyle(settings.fontStyle),
   });
 
   useEffect(() => {
@@ -129,6 +141,7 @@ export const AdminDashboard: React.FC = () => {
       email: settings.email || '',
       facebookUrl: settings.facebookUrl || '',
       whatsapp: settings.whatsapp || '',
+      fontStyle: normalizeWebsiteFontStyle(settings.fontStyle),
     });
   }, [
     settings.name,
@@ -139,6 +152,7 @@ export const AdminDashboard: React.FC = () => {
     settings.email,
     settings.facebookUrl,
     settings.whatsapp,
+    settings.fontStyle,
   ]);
 
   const pendingRequests = joinRequests.filter(r => r.status === 'Pending');
@@ -1507,6 +1521,7 @@ export const AdminDashboard: React.FC = () => {
                     email: settingsForm.email.trim(),
                     facebookUrl: settingsForm.facebookUrl.trim(),
                     whatsapp: settingsForm.whatsapp.trim(),
+                    fontStyle: settingsForm.fontStyle,
                   });
                 }}
                 className="space-y-4 text-xs"
@@ -1638,6 +1653,66 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 )}
               </form>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-950 dark:text-slate-100">
+                    {t('Website Typography & Font Style', 'ওয়েবসাইটের লেখার ফন্ট স্টাইল')}
+                  </h3>
+                  <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
+                    {t(
+                      'Choose a bilingual English & Bengali font pairing for the entire website. Changes apply immediately for all visitors.',
+                      'পুরো ওয়েবসাইটের ইংরেজি ও বাংলা লেখার জন্য সুন্দর ফন্ট স্টাইল বেছে নিন। পরিবর্তন সাথে সাথে সবার জন্য কার্যকর হবে।'
+                    )}
+                  </p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {WEBSITE_FONT_PRESETS.map((preset) => {
+                    const isSelected = settingsForm.fontStyle === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        disabled={!isAdminLoggedIn}
+                        onClick={() => {
+                          if (!isAdminLoggedIn) return;
+                          setSettingsForm(prev => ({ ...prev, fontStyle: preset.id }));
+                          void updateSettings({ fontStyle: preset.id });
+                        }}
+                        className={`text-left p-4 rounded-2xl border transition-all disabled:opacity-75 disabled:cursor-not-allowed ${
+                          isSelected
+                            ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-600 dark:border-emerald-400 ring-2 ring-emerald-500/20'
+                            : 'bg-white/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-emerald-400/70'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className={`text-lg font-bold text-slate-950 dark:text-white ${preset.previewClass}`}>
+                              Salmikkhang · সালমিকখাং
+                            </div>
+                            <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">
+                              {t(preset.nameEn, preset.nameBn)}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-700 text-white text-[10px] font-bold shrink-0">
+                              <Check className="w-3 h-3" />
+                              {t('Active', 'চালু')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-medium text-slate-700 dark:text-slate-300 mt-1.5">
+                          {t(preset.descEn, preset.descBn)}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-2">
+                          {preset.pairLabel}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <BackgroundSettings readOnly={isPresidentViewOnly} />
             </div>

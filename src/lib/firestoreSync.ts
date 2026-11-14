@@ -57,6 +57,9 @@ export function toSettingsMainPayload(s: CommunitySettings) {
     email: clampStr(s.email, 160),
     facebookUrl: clampStr(s.facebookUrl, 300),
     whatsapp: clampStr(s.whatsapp, 160),
+    fontStyle: ['editorial', 'youthful', 'heritage', 'civic', 'classic', 'botanical'].includes(s.fontStyle || '')
+      ? s.fontStyle
+      : 'editorial',
     motto: clampStr(s.motto, 200),
     mottoBn: clampStr(s.mottoBn, 240),
     about: clampStr(s.about, 2000),

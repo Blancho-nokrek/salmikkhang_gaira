@@ -145,7 +145,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                 alt="Salmikkhang Youth Community Logo"
                 className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-contain shadow-xl ring-2 ring-white/40 shrink-0"
               />
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-white min-w-0">
+              <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.16] text-white min-w-0">
                 {language === 'bn' ? 'সালমিকখাং' : 'SALMIKKHANG'}
                 <span className="block text-xl sm:text-3xl lg:text-4xl font-semibold text-emerald-200/95 mt-1.5 sm:mt-2">
                   {t('Village Youth Community', 'গ্রাম যুব কমিউনিটি')}
@@ -911,7 +911,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                   alt="Salmikkhang Youth Community Logo"
                   className="w-11 h-11 rounded-full object-contain shadow-md ring-1 ring-emerald-500/30 shrink-0"
                 />
-                <div className="font-extrabold text-slate-950 dark:text-white text-base tracking-tight">
+                <div className="font-display font-extrabold text-slate-950 dark:text-white text-base tracking-tight">
                   SALMIKKHANG
                 </div>
               </div>

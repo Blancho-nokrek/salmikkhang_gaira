@@ -261,6 +261,7 @@ const initialSettings: CommunitySettings = {
   email: 'salmikkhang.community@gmail.com',
   facebookUrl: '',
   whatsapp: '',
+  fontStyle: 'editorial',
   motto: 'Together for a greener, kinder and stronger village',
   mottoBn: 'একত্রে আমরা আমাদের গ্রামের আরও উজ্জ্বল ও সুন্দর ভবিষ্যৎ গড়তে পারি',
   about: 'Salmikkhang is a non-political, grassroots youth organization rooted in Gaira and Jolchotro, Madhupur. We bring young minds together for education, environmental preservation, sports, and community solidarity.',
@@ -925,6 +926,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     ...(heroBgAsset ? { heroBackground: heroBgAsset } : {}),
     ...(siteBgAsset ? { siteBackground: siteBgAsset } : {}),
   };
+
+  useEffect(() => {
+    const activeFont = settingsMain.fontStyle || 'editorial';
+    document.documentElement.dataset.font = activeFont;
+  }, [settingsMain.fontStyle]);
 
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);

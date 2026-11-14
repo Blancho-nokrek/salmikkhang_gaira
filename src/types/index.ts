@@ -241,6 +241,8 @@ export interface FundTransaction {
   notes?: string;
 }
 
+export type WebsiteFontStyle = 'editorial' | 'youthful' | 'heritage' | 'civic' | 'classic' | 'botanical';
+
 export interface CommunitySettings {
   name: string;
   nameBn: string;
@@ -250,6 +252,7 @@ export interface CommunitySettings {
   email: string;
   facebookUrl?: string;
   whatsapp?: string;
+  fontStyle?: WebsiteFontStyle;
   motto: string;
   mottoBn: string;
   about: string;

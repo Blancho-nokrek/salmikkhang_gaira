@@ -1,8 +1,17 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
 /* ───────── Design tokens ───────── */
 :root {
+  --font-display: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif;
+  --font-body: 'DM Sans', 'Noto Sans Bengali', system-ui, sans-serif;
+
   --forest: #064E3B; --emerald: #047857; --fresh: #22C55E; --lime: #A3E635;
   --sky: #38BDF8; --ocean: #075985; --frost: #F8FAFC; --neutral: #E2E8F0;
 
@@ -17,6 +26,24 @@
   --glass-bg: var(--g-card); --glass-border: var(--g-line); --glass-shadow: var(--g-shadow);
   --glass-card-bg: var(--g-card); --glass-card-border: var(--g-line);
 }
+html[data-font="editorial"],
+html[data-font="botanical"] {
+  --font-display: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif;
+  --font-body: 'DM Sans', 'Noto Sans Bengali', system-ui, sans-serif;
+}
+html[data-font="youthful"],
+html[data-font="civic"] {
+  --font-display: 'Urbanist', 'Baloo Da 2', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
+}
+html[data-font="heritage"] {
+  --font-display: 'Fraunces', 'Noto Serif Bengali', Georgia, serif;
+  --font-body: 'Lora', 'Noto Sans Bengali', Georgia, serif;
+}
+html[data-font="classic"] {
+  --font-display: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
+}
 .dark {
   --g-card: rgba(6, 40, 32, 0.52);
   --g-well: rgba(255, 255, 255, 0.05);
@@ -30,9 +57,14 @@
 
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 section[id], div[id] { scroll-margin-top: 5.5rem; }
-body { overflow-x: clip; }
+body { overflow-x: clip; font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
 img { max-width: 100%; }
-body { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, .font-display { font-family: var(--font-display); }
+h1, h2 { text-wrap: balance; }
+.font-preview-editorial { font-family: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif; }
+.font-preview-youthful { font-family: 'Urbanist', 'Baloo Da 2', system-ui, sans-serif; }
+.font-preview-heritage { font-family: 'Fraunces', 'Noto Serif Bengali', Georgia, serif; }
+.font-preview-classic { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif; }
 ::selection { background: rgba(163, 230, 53, .45); color: var(--forest); }
 
 /* Light mode: make muted slate text crisp dark/black on light & glass surfaces (preserving dark-surface sections) */

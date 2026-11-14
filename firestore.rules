@@ -72,7 +72,7 @@ service cloud.firestore {
       return (
         settingId == 'main' &&
         data.keys().hasAll(['name', 'village']) &&
-        data.keys().hasOnly(['name', 'nameBn', 'village', 'address', 'phone', 'email', 'facebookUrl', 'whatsapp', 'motto', 'mottoBn', 'about', 'aboutBn', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'nameBn', 'village', 'address', 'phone', 'email', 'facebookUrl', 'whatsapp', 'fontStyle', 'motto', 'mottoBn', 'about', 'aboutBn', 'updatedAt']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
         data.village is string && data.village.size() >= 1 && data.village.size() <= 120 &&
         (!('nameBn' in data) || (data.nameBn is string && data.nameBn.size() <= 200)) &&
@@ -81,6 +81,7 @@ service cloud.firestore {
         (!('email' in data) || (data.email is string && data.email.size() <= 160)) &&
         (!('facebookUrl' in data) || (data.facebookUrl is string && data.facebookUrl.size() <= 300)) &&
         (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 160)) &&
+        (!('fontStyle' in data) || data.fontStyle in ['editorial', 'youthful', 'heritage', 'civic', 'classic', 'botanical']) &&
         (!('motto' in data) || (data.motto is string && data.motto.size() <= 200)) &&
         (!('mottoBn' in data) || (data.mottoBn is string && data.mottoBn.size() <= 240)) &&
         (!('about' in data) || (data.about is string && data.about.size() <= 2000)) &&

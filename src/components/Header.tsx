@@ -372,7 +372,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain shadow-md ring-1 ring-white/40 group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="flex flex-col min-w-0">
-              <span className="font-extrabold text-sm sm:text-base tracking-tight text-slate-950 dark:text-emerald-300 font-sans leading-tight group-hover:text-emerald-800 dark:group-hover:text-emerald-200 truncate">
+              <span className="font-display font-extrabold text-sm sm:text-base tracking-tight text-slate-950 dark:text-emerald-300 leading-tight group-hover:text-emerald-800 dark:group-hover:text-emerald-200 truncate">
                 SALMIKKHANG
               </span>
               <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-900 dark:text-emerald-400/90 leading-tight truncate">
