@@ -107,17 +107,23 @@ interface CommunityContextType {
   authLoading: boolean;
   authError: string | null;
   clearAuthError: () => void;
-  loginWithGoogle: () => Promise<boolean>;
+  loginWithGoogle: (options?: { silentSuccessToast?: boolean; targetPortal?: 'member' | 'admin' }) => Promise<boolean>;
   logoutGoogle: () => Promise<void>;
 
   // Active Member Session & Auth
   currentMember: Member | null;
+  previewMemberId: string | null;
+  isMemberSessionUnlocked: boolean;
   loginAsMember: (memberOrEmail?: string, password?: string) => boolean | Promise<boolean>;
   logoutMember: () => void;
   quickSwitchMember: (memberId: string) => void;
+  resetPreviewMember: () => void;
 
   // Admin Session & Auth
   isAdminLoggedIn: boolean;
+  isAdminSessionUnlocked: boolean;
+  canViewAdminPanel: boolean;
+  isPresidentViewOnly: boolean;
   adminLogin: (password?: string) => boolean | Promise<boolean>;
   adminLogout: () => void;
   registerMemberByAdmin: (data: {
@@ -208,6 +214,7 @@ interface CommunityContextType {
   addDiscussionPost: (text: string, category: DiscussionPost['category']) => void;
   likeDiscussionPost: (id: string) => void;
   addDiscussionReply: (postId: string, text: string) => void;
+  deleteDiscussionPost: (id: string) => void;
 
   updateSettings: (newSettings: Partial<CommunitySettings>) => Promise<void>;
   resetAllData: () => void;
@@ -243,6 +250,22 @@ const initialSettings: CommunitySettings = {
 };
 
 const initialMembers: Member[] = [
+  {
+    id: 'm-0',
+    memberNo: 'SMK-ADMIN',
+    name: 'Salmikkhang Admin',
+    email: 'salmikkhang@gmail.com',
+    phone: '+880 1712-345678',
+    role: 'Admin',
+    status: 'Active',
+    village: 'Gaira',
+    bloodGroup: 'O+',
+    skills: ['System Administration', 'Community Governance', 'Registry Oversight'],
+    interests: ['Community Development', 'Transparency'],
+    joinDate: '2025-01-01',
+    bio: 'Primary System & Community Administrator of Salmikkhang Youth Council.',
+    ownerEmail: 'salmikkhang@gmail.com'
+  },
   {
     id: 'm-1',
     memberNo: 'SMK-2026-001',
@@ -808,7 +831,7 @@ const initialFunds: FundTransaction[] = [
 const CommunityContext = createContext<CommunityContextType | undefined>(undefined);
 
 export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentView, setCurrentView] = useState<'website' | 'member' | 'admin'>('website');
+  const [currentView, setCurrentViewState] = useState<'website' | 'member' | 'admin'>('website');
   const [language, setLanguageState] = useState<Language>(() => {
     return (safeStorage.get('salmikkhang_lang') as Language) || 'en';
   });
@@ -851,6 +874,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [isMemberSessionUnlocked, setIsMemberSessionUnlocked] = useState<boolean>(false);
+  const [isAdminSessionUnlocked, setIsAdminSessionUnlocked] = useState<boolean>(false);
   const [grantedRole, setGrantedRole] = useState<Role | null>(null);
   const [grantedMemberId, setGrantedMemberId] = useState<string | null>(null);
   const [firestoreSeeded, setFirestoreSeeded] = useState<boolean>(false);
@@ -880,6 +905,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);
   const seededOnceRef = useRef(false);
 
   // Modals & Feedback
@@ -921,15 +947,76 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     void (async () => {
       try {
         const res = await getRedirectResult(auth);
-        if (res?.user) {
+        let pendingPortal: string | null = null;
+        try {
+          pendingPortal = sessionStorage.getItem('salmikkhang_pending_portal');
+          sessionStorage.removeItem('salmikkhang_pending_portal');
+        } catch {
+          pendingPortal = null;
+        }
+
+        if (res?.user && res.user.emailVerified && res.user.email) {
           setAuthError(null);
-          showToast(
-            t(
-              `Signed in as ${res.user.displayName || res.user.email}`,
-              `${res.user.displayName || res.user.email} হিসেবে লগইন সফল হয়েছে`
-            ),
-            'success'
-          );
+          if (pendingPortal === 'admin') {
+            const emailLower = res.user.email.toLowerCase();
+            let allowed = emailLower === BOOTSTRAP_ADMIN_EMAIL;
+            if (!allowed) {
+              try {
+                const adminSnap = await getDoc(doc(db, 'admins', res.user.uid));
+                if (adminSnap.exists()) allowed = true;
+              } catch {
+                // Ignore lookup error and verify via roleGrants
+              }
+            }
+            if (!allowed) {
+              try {
+                const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
+                if (grantSnap.exists()) {
+                  const role = (grantSnap.data().role as Role) || 'Member';
+                  allowed = role === 'Admin' || role === 'President';
+                }
+              } catch {
+                // Not authorized
+              }
+            }
+            if (allowed) {
+              setIsAdminSessionUnlocked(true);
+              setIsMemberSessionUnlocked(false);
+              setCurrentViewState('admin');
+              showToast(
+                t(`Admin Panel unlocked for ${res.user.displayName || res.user.email}`, `${res.user.displayName || res.user.email}-এর জন্য অ্যাডমিন প্যানেল আনলক হয়েছে`),
+                'success'
+              );
+            } else {
+              const msg = t(
+                `Access Rejected! "${res.user.email}" is neither Admin nor President and cannot enter the Admin Panel.`,
+                `প্রবেশাধিকার বাতিল! "${res.user.email}" অ্যাকাউন্টটি অ্যাডমিন বা সভাপতি নয়—তাই অ্যাডমিন প্যানেলে প্রবেশ করা যাবে না।`
+              );
+              setIsAdminSessionUnlocked(false);
+              setAuthError(msg);
+              showToast(msg, 'warning');
+              setCurrentViewState('website');
+            }
+          } else if (pendingPortal === 'member') {
+            setIsMemberSessionUnlocked(true);
+            setIsAdminSessionUnlocked(false);
+            setCurrentViewState('member');
+            showToast(
+              t(
+                `Member Portal unlocked for ${res.user.displayName || res.user.email}`,
+                `${res.user.displayName || res.user.email}-এর জন্য সদস্য পোর্টাল আনলক হয়েছে`
+              ),
+              'success'
+            );
+          } else {
+            showToast(
+              t(
+                `Signed in as ${res.user.displayName || res.user.email}`,
+                `${res.user.displayName || res.user.email} হিসেবে লগইন সফল হয়েছে`
+              ),
+              'success'
+            );
+          }
         }
       } catch (err: any) {
         console.error('Google redirect sign-in error:', err);
@@ -948,22 +1035,29 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     })();
 
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
-      if (user) {
-        setAuthError(null);
-      }
       if (!user || !user.emailVerified || !user.email) {
+        setFirebaseUser(user);
+        if (user) setAuthError(null);
         setIsAdminLoggedIn(false);
+        setIsMemberSessionUnlocked(false);
+        setIsAdminSessionUnlocked(false);
         setGrantedRole(null);
         setGrantedMemberId(null);
+        setPreviewMemberId(null);
         setCurrentMember(null);
         setAuthLoading(false);
         return;
       }
 
+      setAuthLoading(true);
+      setFirebaseUser(user);
+      setAuthError(null);
+
       const emailLower = user.email.toLowerCase();
       const isBootstrap = emailLower === BOOTSTRAP_ADMIN_EMAIL;
       let adminAllowed = isBootstrap;
+      let resolvedGrantRole: Role | null = isBootstrap ? 'Admin' : null;
+      let resolvedMemberId: string | null = null;
 
       try {
         if (!isBootstrap) {
@@ -974,7 +1068,33 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn('Admin doc lookup skipped:', err);
       }
 
+      // Check role grant by verified email
+      try {
+        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
+        if (grantSnap.exists()) {
+          const data = grantSnap.data();
+          const grantRole = (data.role as Role) || 'Member';
+          resolvedMemberId = data.memberId || null;
+          if (isBootstrap) {
+            resolvedGrantRole = grantRole;
+            adminAllowed = true;
+          } else {
+            resolvedGrantRole = grantRole;
+            adminAllowed = grantRole === 'Admin';
+          }
+        } else if (adminAllowed) {
+          resolvedGrantRole = 'Admin';
+        }
+      } catch (err) {
+        console.warn('Role grant lookup:', err);
+        if (adminAllowed) {
+          resolvedGrantRole = 'Admin';
+        }
+      }
+
       setIsAdminLoggedIn(adminAllowed);
+      setGrantedRole(resolvedGrantRole);
+      setGrantedMemberId(resolvedMemberId);
 
       // Seed initial Firestore data automatically on first Admin login
       if (adminAllowed && !seededOnceRef.current) {
@@ -1002,27 +1122,79 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
 
-      // Check role grant by verified email
-      try {
-        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
-        if (grantSnap.exists()) {
-          const data = grantSnap.data();
-          setGrantedRole((data.role as Role) || 'Member');
-          setGrantedMemberId(data.memberId || null);
-        } else {
-          setGrantedRole(adminAllowed ? 'President' : null);
-          setGrantedMemberId(null);
-        }
-      } catch (err) {
-        console.warn('Role grant lookup:', err);
-        setGrantedRole(adminAllowed ? 'President' : null);
-      }
-
       setAuthLoading(false);
     });
 
     return () => unsub();
   }, []);
+
+  // 1b. Real-time roleGrants & admins listeners so role updates take effect live without re-login
+  useEffect(() => {
+    if (!firebaseUser?.emailVerified || !firebaseUser?.email) return;
+
+    const emailLower = firebaseUser.email.toLowerCase();
+    const isBootstrap = emailLower === BOOTSTRAP_ADMIN_EMAIL;
+    let hasAdminDoc = isBootstrap;
+    let grantExists = false;
+    let latestGrantRole: Role | null = isBootstrap ? 'Admin' : null;
+    let latestMemberId: string | null = null;
+
+    const applyLiveRoleState = () => {
+      if (isBootstrap) {
+        setIsAdminLoggedIn(true);
+        setGrantedRole(latestGrantRole || 'Admin');
+        setGrantedMemberId(latestMemberId);
+        return;
+      }
+      if (grantExists && latestGrantRole) {
+        setIsAdminLoggedIn(latestGrantRole === 'Admin');
+        setGrantedRole(latestGrantRole);
+        setGrantedMemberId(latestMemberId);
+      } else {
+        setIsAdminLoggedIn(hasAdminDoc);
+        setGrantedRole(hasAdminDoc ? 'Admin' : null);
+        setGrantedMemberId(null);
+      }
+    };
+
+    const unsubGrant = onSnapshot(
+      doc(db, 'roleGrants', emailLower),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          grantExists = true;
+          latestGrantRole = (data.role as Role) || 'Member';
+          latestMemberId = data.memberId || null;
+        } else {
+          grantExists = false;
+          latestGrantRole = null;
+          latestMemberId = null;
+        }
+        applyLiveRoleState();
+      },
+      (err) => {
+        console.warn('Live roleGrant listener error:', err);
+      }
+    );
+
+    const unsubAdmin = isBootstrap
+      ? () => {}
+      : onSnapshot(
+          doc(db, 'admins', firebaseUser.uid),
+          (snap) => {
+            hasAdminDoc = snap.exists();
+            applyLiveRoleState();
+          },
+          (err) => {
+            console.warn('Live admin listener error:', err);
+          }
+        );
+
+    return () => {
+      unsubGrant();
+      unsubAdmin();
+    };
+  }, [firebaseUser]);
 
   // 2. Public Firestore Listeners (always active for all website visitors)
   useEffect(() => {
@@ -1034,7 +1206,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           if (snap.exists()) {
             setFirestoreSeeded(true);
-            setSettingsMain(snap.data() as CommunitySettings);
+            const { heroBackground: _hb, siteBackground: _sb, ...cleanMain } = snap.data() as CommunitySettings;
+            setSettingsMain(cleanMain);
           } else {
             setFirestoreSeeded(false);
           }
@@ -1152,12 +1325,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             phone: '',
           }));
 
-          // Hydrate private contact info only for Admin or the member owner
+          // Hydrate private contact info for Admin, President (view-only), or the member owner
+          const canAuditAll = isAdminLoggedIn || grantedRole === 'President';
           const hydrated = await Promise.all(
             baseMembers.map(async (m) => {
               const isOwner =
                 m.ownerUid === uid || (m.ownerEmail && m.ownerEmail.toLowerCase() === emailLower);
-              if (!isAdminLoggedIn && !isOwner) return m;
+              if (!canAuditAll && !isOwner) return m;
               try {
                 const privSnap = await getDoc(doc(db, 'members', m.id, 'private', 'contact'));
                 if (privSnap.exists()) {
@@ -1182,7 +1356,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       )
     );
 
-    const isCollector = isAdminLoggedIn || grantedRole === 'Data Collector';
+    const isCollector = isAdminLoggedIn || grantedRole === 'President' || grantedRole === 'Data Collector';
 
     if (isCollector) {
       const residentGroupA = ['General Resident', 'Eligible for Aid', 'Senior Citizen'];
@@ -1314,13 +1488,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => unsubs.forEach(u => u());
   }, [firebaseUser, isAdminLoggedIn, grantedRole, firestoreSeeded]);
 
-  // 5. Admin-Only Listeners (Join Requests & Contact Inbox)
+  // 5. Admin & President (View-Only) Listeners (Join Requests & Contact Inbox)
   useEffect(() => {
-    if (
-      !isAdminLoggedIn ||
-      !firebaseUser?.emailVerified ||
-      firebaseUser.email?.toLowerCase() !== BOOTSTRAP_ADMIN_EMAIL
-    ) {
+    const canViewAdminInbox = isAdminLoggedIn || grantedRole === 'President';
+    if (!canViewAdminInbox || !firebaseUser?.emailVerified) {
       return;
     }
 
@@ -1352,16 +1523,26 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       unsubRequests();
       unsubMessages();
     };
-  }, [isAdminLoggedIn, firebaseUser, firestoreSeeded]);
+  }, [isAdminLoggedIn, grantedRole, firebaseUser, firestoreSeeded]);
 
-  // 6. Sync currentMember profile from signed-in Google user + live members list
+  // 6. Sync currentMember profile from signed-in Google user + live members list (and keep Admin preview live)
   useEffect(() => {
     if (!firebaseUser?.emailVerified || !firebaseUser?.email) {
       setCurrentMember(null);
       return;
     }
 
+    if (isAdminLoggedIn && previewMemberId) {
+      const previewMatched = members.find(m => m.id === previewMemberId);
+      if (previewMatched) {
+        setCurrentMember(previewMatched);
+        return;
+      }
+      setPreviewMemberId(null);
+    }
+
     const emailLower = firebaseUser.email.toLowerCase();
+    const isBootstrap = emailLower === BOOTSTRAP_ADMIN_EMAIL;
     const matched = members.find(
       m =>
         (grantedMemberId && m.id === grantedMemberId) ||
@@ -1369,19 +1550,22 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         m.email?.toLowerCase() === emailLower
     );
 
+    const effectiveRole: Role | undefined =
+      matched?.role || grantedRole || (isBootstrap || isAdminLoggedIn ? 'Admin' : undefined);
+
     if (matched) {
       setCurrentMember({
         ...matched,
-        role: grantedRole || matched.role,
+        role: effectiveRole || matched.role,
       });
     } else if (isAdminLoggedIn || grantedRole) {
       setCurrentMember({
         id: `auth-${firebaseUser.uid}`,
         memberNo: isAdminLoggedIn ? 'SMK-ADMIN' : 'SMK-MEMBER',
-        name: firebaseUser.displayName || 'Community Executive',
+        name: firebaseUser.displayName || (isAdminLoggedIn ? 'Salmikkhang Admin' : 'Community Executive'),
         email: emailLower,
         phone: '',
-        role: grantedRole || 'President',
+        role: effectiveRole || 'Member',
         status: 'Active',
         village: 'Gaira',
         bloodGroup: 'O+',
@@ -1396,7 +1580,47 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else {
       setCurrentMember(null);
     }
-  }, [firebaseUser, members, isAdminLoggedIn, grantedRole, grantedMemberId]);
+  }, [firebaseUser, members, isAdminLoggedIn, grantedRole, grantedMemberId, previewMemberId]);
+
+  const isPresidentRole = !isAdminLoggedIn && (grantedRole === 'President' || currentMember?.role === 'President');
+  const canViewAdminPanel = isAdminLoggedIn || isPresidentRole;
+  const isPresidentViewOnly = !isAdminLoggedIn && isPresidentRole;
+
+  const setCurrentView = (view: 'website' | 'member' | 'admin') => {
+    if (view === 'admin') {
+      if (previewMemberId) {
+        setPreviewMemberId(null);
+      }
+      if (isAdminSessionUnlocked && !authLoading && (!firebaseUser || !canViewAdminPanel)) {
+        setIsAdminSessionUnlocked(false);
+        showToast(
+          t(
+            'Access Rejected! Only Admin and President can enter the Admin Panel.',
+            'প্রবেশাধিকার বাতিল! অ্যাডমিন এবং সভাপতি ছাড়া অন্য কেউ অ্যাডমিন প্যানেলে প্রবেশ করতে পারবেন না।'
+          ),
+          'warning'
+        );
+        return;
+      }
+    }
+    setCurrentViewState(view);
+  };
+
+  useEffect(() => {
+    if (isAdminSessionUnlocked && !authLoading && (!firebaseUser || !canViewAdminPanel)) {
+      setIsAdminSessionUnlocked(false);
+      if (currentView === 'admin') {
+        setCurrentViewState('website');
+        showToast(
+          t(
+            'Access Rejected! Only Admin and President can enter the Admin Panel.',
+            'প্রবেশাধিকার বাতিল! অ্যাডমিন এবং সভাপতি ছাড়া অন্য কেউ অ্যাডমিন প্যানেলে প্রবেশ করতে পারবেন না।'
+          ),
+          'warning'
+        );
+      }
+    }
+  }, [currentView, isAdminSessionUnlocked, authLoading, firebaseUser, canViewAdminPanel]);
 
   // ───────── Authentication Actions ─────────
   const formatAuthError = (err: any): string => {
@@ -1437,7 +1661,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       : t('Google sign-in failed. Please try again.', 'Google লগইন সফল হয়নি। আবার চেষ্টা করুন।');
   };
 
-  const loginWithGoogle = async (): Promise<boolean> => {
+  const loginWithGoogle = async (options?: { silentSuccessToast?: boolean; targetPortal?: 'member' | 'admin' }): Promise<boolean> => {
     setAuthError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -1448,10 +1672,12 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         showToast(msg, 'warning');
         return false;
       }
-      showToast(
-        t(`Signed in as ${user.displayName || user.email}`, `${user.displayName || user.email} হিসেবে লগইন সফল হয়েছে`),
-        'success'
-      );
+      if (!options?.silentSuccessToast) {
+        showToast(
+          t(`Signed in as ${user.displayName || user.email}`, `${user.displayName || user.email} হিসেবে লগইন সফল হয়েছে`),
+          'success'
+        );
+      }
       return true;
     } catch (err: any) {
       console.error('Google sign-in error:', err);
@@ -1465,6 +1691,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Fallback to full-page redirect when popups are blocked or unsupported (e.g., mobile / in-app browsers)
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
         try {
+          if (options?.targetPortal) {
+            try {
+              sessionStorage.setItem('salmikkhang_pending_portal', options.targetPortal);
+            } catch {
+              // Ignore storage quota errors
+            }
+          }
           await signInWithRedirect(auth, googleProvider);
           return false;
         } catch (redirectErr: any) {
@@ -1487,8 +1720,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await signOut(auth);
       setAuthError(null);
+      setPreviewMemberId(null);
       setCurrentMember(null);
       setIsAdminLoggedIn(false);
+      setIsMemberSessionUnlocked(false);
+      setIsAdminSessionUnlocked(false);
       showToast(t('Signed out successfully', 'সফলভাবে লগআউট হয়েছে'), 'info');
     } catch (err) {
       console.error(err);
@@ -1496,25 +1732,115 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const loginAsMember = async (): Promise<boolean> => {
-    return loginWithGoogle();
+    const previousEmail = firebaseUser?.email?.toLowerCase() || null;
+    const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'member' });
+    if (!ok || !auth.currentUser?.email) return false;
+
+    const user = auth.currentUser;
+    const emailLower = user.email!.toLowerCase();
+    if (previousEmail && previousEmail !== emailLower) {
+      setIsAdminSessionUnlocked(false);
+    }
+    setPreviewMemberId(null);
+    setIsMemberSessionUnlocked(true);
+    showToast(
+      t(
+        `Member Portal unlocked for ${user.displayName || user.email}`,
+        `${user.displayName || user.email}-এর জন্য সদস্য পোর্টাল আনলক হয়েছে`
+      ),
+      'success'
+    );
+    return true;
   };
 
   const logoutMember = () => {
-    void logoutGoogle();
+    setPreviewMemberId(null);
+    setIsMemberSessionUnlocked(false);
+    if (!isAdminSessionUnlocked) {
+      void logoutGoogle();
+    } else {
+      showToast(t('Signed out of Member Portal', 'সদস্য পোর্টাল থেকে লগআউট হয়েছে'), 'info');
+    }
   };
 
   const adminLogin = async (): Promise<boolean> => {
-    const ok = await loginWithGoogle();
-    return ok;
+    const previousEmail = firebaseUser?.email?.toLowerCase() || null;
+    const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'admin' });
+    if (!ok || !auth.currentUser?.email) return false;
+
+    const user = auth.currentUser;
+    const emailLower = user.email!.toLowerCase();
+    if (previousEmail && previousEmail !== emailLower) {
+      setIsMemberSessionUnlocked(false);
+    }
+
+    let allowed = emailLower === BOOTSTRAP_ADMIN_EMAIL;
+
+    if (!allowed) {
+      try {
+        const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+        if (adminSnap.exists()) allowed = true;
+      } catch {
+        // Ignore lookup error and verify via roleGrants
+      }
+    }
+
+    if (!allowed) {
+      try {
+        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
+        if (grantSnap.exists()) {
+          const role = (grantSnap.data().role as Role) || 'Member';
+          allowed = role === 'Admin' || role === 'President';
+        }
+      } catch {
+        // Not authorized
+      }
+    }
+
+    if (!allowed) {
+      const matchedMember = members.find(
+        m => m.ownerEmail?.toLowerCase() === emailLower || m.email?.toLowerCase() === emailLower
+      );
+      if (matchedMember && (matchedMember.role === 'Admin' || matchedMember.role === 'President')) {
+        allowed = matchedMember.role === 'President';
+      }
+    }
+
+    if (!allowed) {
+      setIsAdminSessionUnlocked(false);
+      const msg = t(
+        `Access Rejected! "${user.email}" is neither Admin nor President and cannot enter the Admin Panel.`,
+        `প্রবেশাধিকার বাতিল! "${user.email}" অ্যাকাউন্টটি অ্যাডমিন বা সভাপতি নয়—তাই অ্যাডমিন প্যানেলে প্রবেশ করা যাবে না।`
+      );
+      setAuthError(msg);
+      showToast(msg, 'warning');
+      setCurrentViewState('website');
+      return false;
+    }
+
+    setPreviewMemberId(null);
+    setIsAdminSessionUnlocked(true);
+    showToast(
+      t(`Admin Panel unlocked for ${user.displayName || user.email}`, `${user.displayName || user.email}-এর জন্য অ্যাডমিন প্যানেল আনলক হয়েছে`),
+      'success'
+    );
+    return true;
   };
 
   const adminLogout = () => {
-    void logoutGoogle();
+    setPreviewMemberId(null);
+    setIsAdminSessionUnlocked(false);
+    if (!isMemberSessionUnlocked) {
+      void logoutGoogle();
+    } else {
+      showToast(t('Signed out of Admin Panel', 'অ্যাডমিন প্যানেল থেকে লগআউট হয়েছে'), 'info');
+    }
   };
 
   const quickSwitchMember = (memberId: string) => {
     const found = members.find(m => m.id === memberId);
-    if (found && isAdminLoggedIn) {
+    if (found && isAdminLoggedIn && isAdminSessionUnlocked) {
+      setPreviewMemberId(memberId);
       setCurrentMember(found);
       showToast(
         t(`Previewing profile: ${found.name} (${found.role})`, `${found.name} (${found.role}) প্রোফাইল প্রিভিউ চলছে`),
@@ -1523,9 +1849,14 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const resetPreviewMember = () => {
+    setPreviewMemberId(null);
+    showToast(t('Returned to your Admin profile', 'আপনার অ্যাডমিন প্রোফাইলে ফিরে আসা হয়েছে'), 'info');
+  };
+
   // Role Permissions
   const canManageFundsPermission = (): boolean => {
-    return checkCanManageFunds(currentMember?.role, isAdminLoggedIn);
+    return checkCanManageFunds(currentMember?.role, isAdminLoggedIn && !previewMemberId);
   };
 
   const canCollectDataPermission = (): boolean => {
@@ -1562,16 +1893,65 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     const target = members.find(m => m.id === memberId);
     if (!target) return;
-    const updated: Member = { ...target, role: newRole };
+
+    const emailLower = (target.ownerEmail || target.email || '').trim().toLowerCase();
+
+    const prevMembers = members;
+    const prevCurrentMember = currentMember;
+    const updated: Member = {
+      ...target,
+      role: newRole,
+      ...(emailLower ? { ownerEmail: emailLower, email: emailLower } : {}),
+    };
+
     setMembers(prev => prev.map(m => (m.id === memberId ? updated : m)));
     if (currentMember?.id === memberId) {
-      setCurrentMember(prev => (prev ? { ...prev, role: newRole } : null));
+      setCurrentMember(updated);
     }
+    if (emailLower && firebaseUser?.email?.toLowerCase() === emailLower) {
+      setGrantedRole(newRole);
+      if (emailLower !== BOOTSTRAP_ADMIN_EMAIL) {
+        setIsAdminLoggedIn(newRole === 'Admin');
+      }
+    }
+
     void (async () => {
-      await fsSet(`members/${sanitizeId(memberId)}`, toMemberPublicPayload(updated), OperationType.UPDATE);
-      await syncMemberRoleGrant(updated);
+      try {
+        const mId = sanitizeId(memberId);
+        await fsSet(`members/${mId}`, toMemberPublicPayload(updated), OperationType.WRITE);
+        if (emailLower) {
+          await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(updated), OperationType.WRITE);
+        }
+        await syncMemberRoleGrant(updated);
+        if (updated.ownerUid && sanitizeId(updated.ownerUid) === updated.ownerUid && emailLower !== BOOTSTRAP_ADMIN_EMAIL) {
+          if (newRole === 'Admin') {
+            await fsSet(
+              `admins/${updated.ownerUid}`,
+              {
+                uid: updated.ownerUid,
+                email: emailLower || 'admin@salmikkhang.org',
+                grantedBy: auth.currentUser?.email || BOOTSTRAP_ADMIN_EMAIL,
+              },
+              OperationType.WRITE
+            );
+          } else {
+            await fsDelete(`admins/${updated.ownerUid}`).catch(() => {});
+          }
+        }
+        showToast(t(`Role updated to ${newRole}`, `নতুন পদবি ${newRole} নির্ধারণ করা হয়েছে`), 'success');
+      } catch (err) {
+        console.error('Failed to assign member role:', err);
+        setMembers(prevMembers);
+        setCurrentMember(prevCurrentMember);
+        showToast(
+          t(
+            'Could not save role change to Firestore. Ensure latest firestore.rules are published in Firebase Console.',
+            'ফায়ারস্টোরে পদবি সংরক্ষণ করা যায়নি। Firebase Console-এ সর্বশেষ firestore.rules প্রকাশ করা আছে কিনা পরীক্ষা করুন।'
+          ),
+          'warning'
+        );
+      }
     })();
-    showToast(t(`Role updated to ${newRole}`, `নতুন পদবি ${newRole} নির্ধারণ করা হয়েছে`), 'success');
   };
 
   // Village Public Records (Confidential to Members & Admin; Add/Edit by Admin & Data Collector)
@@ -1650,7 +2030,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
-  // Funds Management (Admin, Cashier, Assistant Cashier)
+  // Funds Management (Admin, Cashier, Assistant Cashier Only)
   const addFundTransaction = (txn: Omit<FundTransaction, 'id'>): boolean => {
     if (!canManageFundsPermission()) {
       showToast(
@@ -1661,7 +2041,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     const uid = auth.currentUser?.uid || 'admin';
     const voucherNo = txn.voucherNo || `VCH-2026-${String(funds.length + 1).padStart(3, '0')}`;
-    const recordedBy = txn.recordedBy || (isAdminLoggedIn ? 'Admin Council' : `${currentMember?.name} (${currentMember?.role})`);
+    const recordedBy =
+      txn.recordedBy ||
+      (currentMember?.name
+        ? `${currentMember.name} (${currentMember.role})`
+        : isAdminLoggedIn
+        ? 'Admin Council'
+        : 'Treasury Desk');
     const newTxn: FundTransaction = {
       ...txn,
       id: `f-${Date.now()}`,
@@ -1669,9 +2055,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       recordedBy,
       recordedByUid: uid,
     };
+    const prevFunds = funds;
     setFunds(prev => [newTxn, ...prev]);
-    void fsSet(`funds/${sanitizeId(newTxn.id)}`, toFundPayload(newTxn, uid), OperationType.CREATE);
-    showToast(t(`Voucher ${voucherNo} for ৳${txn.amount.toLocaleString()} recorded!`, `৳${txn.amount.toLocaleString()} টাকার ভাউচার ${voucherNo} সফলভাবে যুক্ত হয়েছে!`), 'success');
+    void (async () => {
+      try {
+        await fsSet(`funds/${sanitizeId(newTxn.id)}`, toFundPayload(newTxn, uid), OperationType.CREATE);
+        showToast(t(`Voucher ${voucherNo} for ৳${txn.amount.toLocaleString()} recorded!`, `৳${txn.amount.toLocaleString()} টাকার ভাউচার ${voucherNo} সফলভাবে যুক্ত হয়েছে!`), 'success');
+      } catch (err) {
+        setFunds(prevFunds);
+        throw err;
+      }
+    })();
     return true;
   };
 
@@ -1683,9 +2077,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       return false;
     }
+    const prevFunds = funds;
     setFunds(prev => prev.filter(f => f.id !== id));
-    void fsDelete(`funds/${sanitizeId(id)}`);
-    showToast(t('Transaction voucher deleted from ledger', 'ভাউচারটি সফলভাবে বাতিল করা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`funds/${sanitizeId(id)}`);
+        showToast(t('Transaction voucher deleted from ledger', 'ভাউচারটি সফলভাবে বাতিল করা হয়েছে'), 'info');
+      } catch (err) {
+        setFunds(prevFunds);
+        throw err;
+      }
+    })();
     return true;
   };
 
@@ -1699,10 +2101,18 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     const existingTxn = funds.find(f => f.id === id);
     if (!existingTxn) return false;
+    const prevFunds = funds;
     const merged = { ...existingTxn, ...updated };
     setFunds(prev => prev.map(f => (f.id === id ? merged : f)));
-    void fsSet(`funds/${sanitizeId(id)}`, toFundPayload(merged), OperationType.UPDATE);
-    showToast(t('Transaction record updated', 'লেনদেনের বিবরণ সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`funds/${sanitizeId(id)}`, toFundPayload(merged), OperationType.UPDATE);
+        showToast(t('Transaction record updated', 'লেনদেনের বিবরণ সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
+      } catch (err) {
+        setFunds(prevFunds);
+        throw err;
+      }
+    })();
     return true;
   };
 
@@ -1797,53 +2207,153 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ownerEmail: emailLower,
     };
 
+    const prevMembers = members;
+    const prevJoinRequests = joinRequests;
     const updatedReq: JoinRequest = { ...req, status: 'Approved' };
     setMembers(prev => [newMember, ...prev]);
     setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
 
     void (async () => {
-      const mId = sanitizeId(newMember.id);
-      await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
-      await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
-      await syncMemberRoleGrant(newMember);
-      await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
+      try {
+        const mId = sanitizeId(newMember.id);
+        await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
+        await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
+        await syncMemberRoleGrant(newMember);
+        await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
+        showToast(
+          t(`${req.name} has been enrolled as an active member!`, `${req.name}-কে সদস্য হিসেবে নিবন্ধন করা হয়েছে!`),
+          'success'
+        );
+      } catch (err) {
+        setMembers(prevMembers);
+        setJoinRequests(prevJoinRequests);
+        throw err;
+      }
     })();
-
-    showToast(
-      t(`${req.name} has been enrolled as an active member!`, `${req.name}-কে সদস্য হিসেবে নিবন্ধন করা হয়েছে!`),
-      'success'
-    );
   };
 
   const rejectJoinRequest = (requestId: string) => {
     if (!isAdminLoggedIn) return;
     const req = joinRequests.find(r => r.id === requestId);
     if (!req) return;
+    const prevJoinRequests = joinRequests;
     const updatedReq: JoinRequest = { ...req, status: 'Rejected' };
     setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
-    void fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
-    showToast(t('Join request status updated to Rejected', 'আবেদনটি বাতিল হিসেবে চিহ্নিত হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
+        showToast(t('Join request status updated to Rejected', 'আবেদনটি বাতিল হিসেবে চিহ্নিত হয়েছে'), 'info');
+      } catch (err) {
+        setJoinRequests(prevJoinRequests);
+        throw err;
+      }
+    })();
   };
 
   const updateMember = (id: string, updated: Partial<Member>) => {
     const existingMember = members.find(m => m.id === id);
     if (!existingMember) return;
+
+    const userEmail = auth.currentUser?.email?.toLowerCase();
+    const userUid = auth.currentUser?.uid;
+    const isSelf = Boolean(
+      (userUid && existingMember.ownerUid === userUid) ||
+        (userEmail &&
+          (existingMember.ownerEmail?.toLowerCase() === userEmail ||
+            existingMember.email?.toLowerCase() === userEmail))
+    );
+
+    if (!isAdminLoggedIn && !isSelf) {
+      showToast(
+        t(
+          'Permission denied! Only Admin can edit other members.',
+          'অনুমতি নেই! শুধুমাত্র অ্যাডমিন অন্য সদস্যদের তথ্য পরিবর্তন করতে পারবেন।'
+        ),
+        'warning'
+      );
+      return;
+    }
+
+    const oldEmailLower = (existingMember.ownerEmail || existingMember.email || '').trim().toLowerCase();
+
+    const safeUpdate: Partial<Member> = isAdminLoggedIn
+      ? updated
+      : {
+          ...(updated.phone !== undefined ? { phone: updated.phone } : {}),
+          ...(updated.village !== undefined ? { village: updated.village } : {}),
+          ...(updated.bloodGroup !== undefined ? { bloodGroup: updated.bloodGroup } : {}),
+          ...(updated.bio !== undefined ? { bio: updated.bio } : {}),
+          ...(updated.avatar !== undefined ? { avatar: updated.avatar } : {}),
+        };
+
+    const nextEmailLower = (
+      isAdminLoggedIn
+        ? updated.email !== undefined
+          ? updated.email
+          : existingMember.ownerEmail || existingMember.email || ''
+        : existingMember.ownerEmail || existingMember.email || ''
+    )
+      .trim()
+      .toLowerCase();
+
     const merged: Member = {
       ...existingMember,
-      ...updated,
-      ownerEmail: (updated.email || existingMember.ownerEmail || existingMember.email || '').toLowerCase(),
+      ...safeUpdate,
+      ...(nextEmailLower ? { email: nextEmailLower } : {}),
+      ownerEmail: nextEmailLower,
     };
+
+    const prevMembers = members;
+    const prevCurrentMember = currentMember;
     setMembers(prev => prev.map(m => (m.id === id ? merged : m)));
     if (currentMember?.id === id) {
-      setCurrentMember(prev => (prev ? { ...prev, ...updated } : null));
+      setCurrentMember(merged);
+    }
+    if (isAdminLoggedIn && nextEmailLower && firebaseUser?.email?.toLowerCase() === nextEmailLower) {
+      setGrantedRole(merged.role);
+      if (nextEmailLower !== BOOTSTRAP_ADMIN_EMAIL) {
+        setIsAdminLoggedIn(merged.role === 'Admin');
+      }
     }
 
     const mId = sanitizeId(id);
     if (isAdminLoggedIn) {
       void (async () => {
-        await fsSet(`members/${mId}`, toMemberPublicPayload(merged), OperationType.UPDATE);
-        await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(merged), OperationType.UPDATE);
-        await syncMemberRoleGrant(merged);
+        try {
+          await fsSet(`members/${mId}`, toMemberPublicPayload(merged), OperationType.WRITE);
+          await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(merged), OperationType.WRITE);
+          if (oldEmailLower && nextEmailLower && oldEmailLower !== nextEmailLower) {
+            await removeMemberRoleGrant(oldEmailLower).catch(() => {});
+          }
+          await syncMemberRoleGrant(merged);
+          if (merged.ownerUid && sanitizeId(merged.ownerUid) === merged.ownerUid && nextEmailLower !== BOOTSTRAP_ADMIN_EMAIL) {
+            if (merged.role === 'Admin') {
+              await fsSet(
+                `admins/${merged.ownerUid}`,
+                {
+                  uid: merged.ownerUid,
+                  email: nextEmailLower || 'admin@salmikkhang.org',
+                  grantedBy: auth.currentUser?.email || BOOTSTRAP_ADMIN_EMAIL,
+                },
+                OperationType.WRITE
+              );
+            } else if (updated.role !== undefined) {
+              await fsDelete(`admins/${merged.ownerUid}`).catch(() => {});
+            }
+          }
+          showToast(t('Member details updated', 'সদস্যের তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
+        } catch (err) {
+          console.error('Failed to update member:', err);
+          setMembers(prevMembers);
+          setCurrentMember(prevCurrentMember);
+          showToast(
+            t(
+              'Could not save update to Firestore. Ensure latest firestore.rules are published in Firebase Console.',
+              'ফায়ারস্টোরে তথ্য সংরক্ষণ করা যায়নি। Firebase Console-এ সর্বশেষ firestore.rules প্রকাশ করা আছে কিনা পরীক্ষা করুন।'
+            ),
+            'warning'
+          );
+        }
       })();
     } else if (auth.currentUser?.uid) {
       const uid = auth.currentUser.uid;
@@ -1852,28 +2362,30 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           await updateDoc(
             doc(db, 'members', mId),
             cleanObj({
-              ...(updated.village !== undefined ? { village: clampStr(updated.village, 100) } : {}),
-              ...(updated.bloodGroup !== undefined ? { bloodGroup: clampStr(updated.bloodGroup, 10) } : {}),
-              ...(updated.bio !== undefined ? { bio: clampStr(updated.bio, 1000) } : {}),
-              ...(updated.avatar !== undefined ? { avatar: clampStr(updated.avatar, 450000) } : {}),
+              ...(safeUpdate.village !== undefined ? { village: clampStr(safeUpdate.village, 100) } : {}),
+              ...(safeUpdate.bloodGroup !== undefined ? { bloodGroup: clampStr(safeUpdate.bloodGroup, 10) } : {}),
+              ...(safeUpdate.bio !== undefined ? { bio: clampStr(safeUpdate.bio, 1000) } : {}),
+              ...(safeUpdate.avatar !== undefined ? { avatar: clampStr(safeUpdate.avatar, 450000) } : {}),
               ownerUid: uid,
             })
           );
-          if (updated.phone !== undefined) {
+          if (safeUpdate.phone !== undefined) {
             await updateDoc(
               doc(db, 'members', mId, 'private', 'contact'),
               cleanObj({
-                phone: clampStr(updated.phone, 40),
+                phone: clampStr(safeUpdate.phone, 40),
                 ownerUid: uid,
               })
             );
           }
+          showToast(t('Member details updated', 'সদস্যের তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
         } catch (err) {
+          setMembers(prevMembers);
+          setCurrentMember(prevCurrentMember);
           handleFirestoreError(err, OperationType.UPDATE, `members/${mId}`);
         }
       })();
     }
-    showToast(t('Member details updated', 'সদস্যের তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
   };
 
   const deleteMember = (id: string) => {
@@ -1911,16 +2423,32 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!isAdminLoggedIn) return;
     const existingMsg = messages.find(m => m.id === id);
     if (!existingMsg) return;
+    const prevMessages = messages;
     const merged: ContactMessage = { ...existingMsg, status };
     setMessages(prev => prev.map(m => (m.id === id ? merged : m)));
-    void fsSet(`messages/${sanitizeId(id)}`, toMessagePayload(merged), OperationType.UPDATE);
+    void (async () => {
+      try {
+        await fsSet(`messages/${sanitizeId(id)}`, toMessagePayload(merged), OperationType.UPDATE);
+      } catch (err) {
+        setMessages(prevMessages);
+        throw err;
+      }
+    })();
   };
 
   const deleteMessage = (id: string) => {
     if (!isAdminLoggedIn) return;
+    const prevMessages = messages;
     setMessages(prev => prev.filter(m => m.id !== id));
-    void fsDelete(`messages/${sanitizeId(id)}`);
-    showToast(t('Message deleted', 'বার্তা মুছে ফেলা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`messages/${sanitizeId(id)}`);
+        showToast(t('Message deleted', 'বার্তা মুছে ফেলা হয়েছে'), 'info');
+      } catch (err) {
+        setMessages(prevMessages);
+        throw err;
+      }
+    })();
   };
 
   const toggleEventRsvp = (eventId: string, userNameOrEmail: string) => {
@@ -2144,11 +2672,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const uid = auth.currentUser.uid;
     const author = currentMember?.name || auth.currentUser.displayName || 'Village Member';
     const role = currentMember?.role || 'Member';
+    const avatar = currentMember?.avatar || auth.currentUser.photoURL || undefined;
     const newPost: DiscussionPost = {
       id: `d-${Date.now()}`,
       authorUid: uid,
       authorName: author,
       authorRole: role,
+      ...(avatar ? { authorAvatar: avatar } : {}),
       date: new Date().toISOString().split('T')[0],
       text,
       category,
@@ -2221,6 +2751,22 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(t('Reply added to discussion', 'মন্তব্য সফলভাবে যুক্ত হয়েছে'), 'success');
   };
 
+  const deleteDiscussionPost = (id: string) => {
+    const target = discussions.find(p => p.id === id);
+    if (!target) return;
+    const uid = auth.currentUser?.uid;
+    if (!isAdminLoggedIn && (!uid || target.authorUid !== uid)) {
+      showToast(
+        t('Only Admin or the post author can delete this post.', 'শুধুমাত্র অ্যাডমিন বা পোস্টদাতা এটি মুছতে পারবেন।'),
+        'warning'
+      );
+      return;
+    }
+    setDiscussions(prev => prev.filter(p => p.id !== id));
+    void fsDelete(`discussions/${sanitizeId(id)}`);
+    showToast(t('Discussion post removed', 'ফোরাম পোস্টটি মুছে ফেলা হয়েছে'), 'info');
+  };
+
   const updateSettings = async (newSettings: Partial<CommunitySettings>) => {
     if (!isAdminLoggedIn) {
       showToast(t('Only Admin can update site settings.', 'শুধুমাত্র অ্যাডমিন সাইটের সেটিংস পরিবর্তন করতে পারবেন।'), 'warning');
@@ -2232,7 +2778,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (hasHeroUpdate) {
       const val = newSettings.heroBackground;
-      // Remove previous background image before replacing with the new photo
+      // Delete previous hero background photo before saving the replacement
       setHeroBgAsset(undefined);
       await fsDelete('settings/heroBackground');
       if (val) {
@@ -2240,17 +2786,27 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setHeroBgAsset(clamped);
         await fsSet('settings/heroBackground', { dataUrl: clamped, updatedAt: new Date().toISOString() }, OperationType.WRITE);
       }
+      if (settingsMain.heroBackground !== undefined) {
+        const { heroBackground: _oldHb, siteBackground: _oldSb, ...cleanExisting } = settingsMain;
+        setSettingsMain(cleanExisting);
+        await fsSet('settings/main', toSettingsMainPayload(cleanExisting), OperationType.WRITE);
+      }
     }
 
     if (hasSiteUpdate) {
       const val = newSettings.siteBackground;
-      // Remove previous background image before replacing with the new photo
+      // Delete previous site background photo before saving the replacement
       setSiteBgAsset(undefined);
       await fsDelete('settings/siteBackground');
       if (val) {
         const clamped = clampStr(val, 580000);
         setSiteBgAsset(clamped);
         await fsSet('settings/siteBackground', { dataUrl: clamped, updatedAt: new Date().toISOString() }, OperationType.WRITE);
+      }
+      if (settingsMain.siteBackground !== undefined) {
+        const { heroBackground: _oldHb, siteBackground: _oldSb, ...cleanExisting } = settingsMain;
+        setSettingsMain(cleanExisting);
+        await fsSet('settings/main', toSettingsMainPayload(cleanExisting), OperationType.WRITE);
       }
     }
 
@@ -2337,10 +2893,16 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         loginWithGoogle,
         logoutGoogle,
         currentMember,
+        previewMemberId,
+        isMemberSessionUnlocked,
         loginAsMember,
         logoutMember,
         quickSwitchMember,
+        resetPreviewMember,
         isAdminLoggedIn,
+        isAdminSessionUnlocked,
+        canViewAdminPanel,
+        isPresidentViewOnly,
         adminLogin,
         adminLogout,
         registerMemberByAdmin,
@@ -2401,6 +2963,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addDiscussionPost,
         likeDiscussionPost,
         addDiscussionReply,
+        deleteDiscussionPost,
         updateSettings,
         resetAllData,
         exportDataJSON,

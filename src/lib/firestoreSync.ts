@@ -268,16 +268,20 @@ export function toNotificationPayload(n: MemberNotification) {
 }
 
 export function toJoinRequestPayload(r: JoinRequest) {
+  const safePhone = (r.phone || '').trim();
+  const safeName = (r.name || '').trim();
+  const safeVillage = (r.village || '').trim();
+  const safeReason = (r.reason || '').trim();
   return cleanObj({
     id: sanitizeId(r.id),
-    name: clampStr(r.name, 120, 'Applicant'),
-    email: clampStr(r.email, 160),
-    phone: clampStr(r.phone, 40, '0000'),
-    village: clampStr(r.village, 100, 'Gaira'),
+    name: clampStr(safeName || 'Applicant', 120),
+    email: clampStr((r.email || '').trim().toLowerCase(), 160),
+    phone: clampStr(safePhone.length >= 4 ? safePhone : '0000', 40),
+    village: clampStr(safeVillage || 'Gaira', 100),
     bloodGroup: clampStr(r.bloodGroup, 10, 'O+'),
     skills: clampStr(r.skills, 400),
     interests: clampStr(r.interests, 400),
-    reason: clampStr(r.reason, 1500, 'Interested in volunteering'),
+    reason: clampStr(safeReason || 'Interested in volunteering', 1500),
     status: ['Pending', 'Approved', 'Rejected'].includes(r.status) ? r.status : 'Pending',
     date: clampStr(r.date, 40, new Date().toISOString().split('T')[0]),
   });

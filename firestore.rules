@@ -26,10 +26,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email is string;
     }
     function isBootstrapAdmin() {
-      return isVerifiedUser() && request.auth.token.email == 'blanchonokreksk@gmail.com';
-    }
-    function isAdmin() {
-      return isBootstrapAdmin() || (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      return isVerifiedUser() && request.auth.token.email == 'salmikkhang@gmail.com';
     }
     function hasRoleGrant() {
       return isVerifiedUser() && exists(/databases/$(database)/documents/roleGrants/$(request.auth.token.email));
@@ -37,26 +34,34 @@ service cloud.firestore {
     function memberRole() {
       return get(/databases/$(database)/documents/roleGrants/$(request.auth.token.email)).data.role;
     }
+    function isAdmin() {
+      return isBootstrapAdmin() ||
+        (hasRoleGrant() && memberRole() == 'Admin') ||
+        (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && (!hasRoleGrant() || memberRole() == 'Admin'));
+    }
+    function isPresident() {
+      return hasRoleGrant() && memberRole() == 'President';
+    }
     function isVerifiedMember() {
       return isAdmin() || hasRoleGrant();
     }
     function isCashier() {
-      return isAdmin() || (hasRoleGrant() && memberRole() in ['Cashier', 'Assistant Cashier', 'President', 'General Secretary']);
+      return isAdmin() || (hasRoleGrant() && memberRole() in ['Cashier', 'Assistant Cashier']);
     }
     function isDataCollector() {
       return isAdmin() || (hasRoleGrant() && memberRole() == 'Data Collector');
     }
     function isNoticeManager() {
-      return isAdmin() || (hasRoleGrant() && memberRole() in ['Publicity Secretary', 'General Secretary', 'President', 'Joint Secretary']);
+      return isAdmin() || (hasRoleGrant() && memberRole() in ['Publicity Secretary', 'General Secretary', 'Joint Secretary']);
     }
     function isEventManager() {
-      return isAdmin() || (hasRoleGrant() && memberRole() in ['Sports & Cultural Secretary', 'Social Welfare Secretary', 'Organizing Secretary', 'General Secretary', 'President']);
+      return isAdmin() || (hasRoleGrant() && memberRole() in ['Publicity Secretary', 'Sports & Cultural Secretary', 'Social Welfare Secretary', 'Organizing Secretary', 'General Secretary']);
     }
     function isProjectManager() {
-      return isAdmin() || (hasRoleGrant() && memberRole() in ['Youth Coordinator', 'Organizing Secretary', 'Social Welfare Secretary', 'Education & Library Secretary', 'President', 'General Secretary']);
+      return isAdmin() || (hasRoleGrant() && memberRole() in ['Youth Coordinator', 'Organizing Secretary', 'Social Welfare Secretary', 'Education & Library Secretary', 'General Secretary']);
     }
     function isGalleryManager() {
-      return isAdmin() || (hasRoleGrant() && memberRole() in ['Publicity Secretary', 'Sports & Cultural Secretary', 'President', 'General Secretary']);
+      return isAdmin() || (hasRoleGrant() && memberRole() in ['Publicity Secretary', 'Sports & Cultural Secretary', 'General Secretary']);
     }
 
     // ───────── Entity Validation Helpers ─────────
@@ -332,14 +337,14 @@ service cloud.firestore {
     }
 
     match /admins/{uid} {
-      allow get: if isValidId(uid) && (isAdmin() || (isVerifiedUser() && request.auth.uid == uid));
+      allow get: if isValidId(uid) && (isAdmin() || isPresident() || (isVerifiedUser() && request.auth.uid == uid));
       allow list: if isBootstrapAdmin();
       allow create, update: if isAdmin() && isValidId(uid) && isValidAdminUser(incoming());
       allow delete: if isAdmin() && isValidId(uid);
     }
 
     match /roleGrants/{email} {
-      allow get: if isValidEmailKey(email) && (isAdmin() || (isVerifiedUser() && request.auth.token.email == email));
+      allow get: if isValidEmailKey(email) && (isAdmin() || isPresident() || (isVerifiedUser() && request.auth.token.email == email));
       allow list: if isBootstrapAdmin();
       allow create, update: if isAdmin() && isValidEmailKey(email) && isValidRoleGrant(incoming());
       allow delete: if isAdmin() && isValidEmailKey(email);
@@ -351,7 +356,7 @@ service cloud.firestore {
       allow create: if isAdmin() && isValidId(memberId) && isValidMemberPublic(incoming());
       allow update: if isValidId(memberId) && isValidMemberPublic(incoming()) && incoming().id == existing().id && (
         isAdmin() ||
-        (isVerifiedUser() && existing().ownerEmail == request.auth.token.email &&
+        (!isPresident() && isVerifiedUser() && existing().ownerEmail == request.auth.token.email &&
           incoming().diff(existing()).affectedKeys().hasOnly(['village', 'bloodGroup', 'bio', 'avatar', 'ownerUid']) &&
           incoming().role == existing().role &&
           incoming().status == existing().status &&
@@ -362,12 +367,12 @@ service cloud.firestore {
 
       match /private/{docId} {
         allow get: if isValidId(memberId) && isValidId(docId) && (
-          isAdmin() || (isVerifiedUser() && (existing().ownerUid == request.auth.uid || existing().ownerEmail == request.auth.token.email))
+          isAdmin() || isPresident() || (isVerifiedUser() && (existing().ownerUid == request.auth.uid || existing().ownerEmail == request.auth.token.email))
         );
         allow list: if isBootstrapAdmin() || (isVerifiedUser() && resource.data.ownerEmail == request.auth.token.email);
         allow create: if isValidId(memberId) && isValidId(docId) && isAdmin() && isValidMemberPrivate(incoming());
         allow update: if isValidId(memberId) && isValidId(docId) && isValidMemberPrivate(incoming()) && (
-          isAdmin() || (isVerifiedUser() && existing().ownerEmail == request.auth.token.email &&
+          isAdmin() || (!isPresident() && isVerifiedUser() && existing().ownerEmail == request.auth.token.email &&
             incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'ownerUid']) &&
             incoming().email == existing().email &&
             (!('ownerUid' in incoming().diff(existing()).affectedKeys()) || incoming().ownerUid == request.auth.uid))
@@ -405,9 +410,9 @@ service cloud.firestore {
     }
 
     match /gallery/{galleryId} {
-      allow get: if isValidId(galleryId) && (existing().visibility == 'public' || isBootstrapAdmin());
+      allow get: if isValidId(galleryId) && (existing().visibility == 'public' || isAdmin() || isPresident());
       allow list: if resource.data.visibility == 'public';
-      allow list: if isBootstrapAdmin();
+      allow list: if isAdmin() || isPresident();
       allow create: if isValidId(galleryId) && isGalleryManager() && isValidGallery(incoming());
       allow update: if isValidId(galleryId) && isGalleryManager() && isValidGallery(incoming()) && incoming().id == existing().id;
       allow delete: if isValidId(galleryId) && isGalleryManager();
@@ -423,7 +428,7 @@ service cloud.firestore {
       allow delete: if isValidId(residentId) && isAdmin();
 
       match /private/{docId} {
-        allow get: if isValidId(residentId) && isValidId(docId) && isDataCollector();
+        allow get: if isValidId(residentId) && isValidId(docId) && (isDataCollector() || isPresident());
         allow list: if isBootstrapAdmin() || (isVerifiedUser() && resource.data.collectedByUid == request.auth.uid);
         allow create, update: if isValidId(residentId) && isValidId(docId) && isDataCollector() && isValidResidentPrivate(incoming());
         allow delete: if isValidId(residentId) && isValidId(docId) && isAdmin();
@@ -463,16 +468,16 @@ service cloud.firestore {
     }
 
     match /joinRequests/{requestId} {
-      allow get: if isValidId(requestId) && isAdmin();
-      allow list: if isBootstrapAdmin();
+      allow get: if isValidId(requestId) && (isAdmin() || isPresident());
+      allow list: if isAdmin() || isPresident();
       allow create: if isValidId(requestId) && isValidJoinRequest(incoming()) && (isAdmin() || incoming().status == 'Pending');
       allow update: if isValidId(requestId) && isAdmin() && isValidJoinRequest(incoming()) && incoming().id == existing().id;
       allow delete: if isValidId(requestId) && isAdmin();
     }
 
     match /messages/{messageId} {
-      allow get: if isValidId(messageId) && isAdmin();
-      allow list: if isBootstrapAdmin();
+      allow get: if isValidId(messageId) && (isAdmin() || isPresident());
+      allow list: if isAdmin() || isPresident();
       allow create: if isValidId(messageId) && isValidContactMessage(incoming()) && (isAdmin() || incoming().status == 'Unread');
       allow update: if isValidId(messageId) && isAdmin() && isValidContactMessage(incoming()) && incoming().id == existing().id;
       allow delete: if isValidId(messageId) && isAdmin();

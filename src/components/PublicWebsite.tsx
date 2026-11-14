@@ -738,7 +738,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                   required
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  placeholder={t('e.g. Robin Marak', 'যেমন: রবিন মারাক')}
+                  placeholder={t('Enter your name', 'আপনার নাম লিখুন')}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-sm"
                 />
               </div>

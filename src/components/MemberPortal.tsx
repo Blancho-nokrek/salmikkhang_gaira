@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
-import { Member, DiscussionPost } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
+import { DiscussionForum } from './DiscussionForum';
+import { compressImage } from '../lib/imageUpload';
 import logoImg from '../assets/images/logo.png';
 import {
   Shield,
@@ -13,11 +14,9 @@ import {
   Mail,
   Calendar,
   MessageSquare,
-  ThumbsUp,
   Search,
   Users,
   Award,
-  Send,
   Edit3,
   Check,
   DollarSign,
@@ -28,6 +27,9 @@ import {
   ExternalLink,
   Home,
   X,
+  Plus,
+  Edit2,
+  Upload,
 } from 'lucide-react';
 
 export const MemberPortal: React.FC = () => {
@@ -47,19 +49,26 @@ export const MemberPortal: React.FC = () => {
     setCurrentView,
     logoutMember,
     openModal,
-    addDiscussionPost,
-    likeDiscussionPost,
-    addDiscussionReply,
     updateMember,
     toggleEventRsvp,
     firebaseUser,
     authLoading,
     authError,
     clearAuthError,
-    loginWithGoogle,
-    logoutGoogle,
+    loginAsMember,
+    isMemberSessionUnlocked,
     isAdminLoggedIn,
-    quickSwitchMember
+    isAdminSessionUnlocked,
+    previewMemberId,
+    quickSwitchMember,
+    resetPreviewMember,
+    canManageNoticesPermission,
+    canManageEventsPermission,
+    addNewsItem,
+    updateNewsItem,
+    addEvent,
+    updateEvent,
+    showToast
   } = useCommunity();
 
   // Active tab inside member portal
@@ -67,13 +76,6 @@ export const MemberPortal: React.FC = () => {
 
   // Notification center popup state
   const [notificationOpen, setNotificationOpen] = useState(false);
-
-  // New post state
-  const [newPostText, setNewPostText] = useState('');
-  const [newPostCategory, setNewPostCategory] = useState<DiscussionPost['category']>('General');
-
-  // Reply inputs state
-  const [replyInputs, setReplyInputs] = useState<{ [key: string]: string }>({});
 
   // Directory search & blood group filter
   const [directorySearch, setDirectorySearch] = useState('');
@@ -91,8 +93,17 @@ export const MemberPortal: React.FC = () => {
   const [editBlood, setEditBlood] = useState(currentMember?.bloodGroup || '');
   const [editBio, setEditBio] = useState(currentMember?.bio || '');
 
+  // Notice & Event Upload / Edit Modal state (for Publicity Secretary & authorized officers)
+  const [portalModalMode, setPortalModalMode] = useState<'create' | 'edit' | null>(null);
+  const [portalModalTarget, setPortalModalTarget] = useState<'news' | 'event' | null>(null);
+  const [portalEditingId, setPortalEditingId] = useState<string | null>(null);
+  const [portalForm, setPortalForm] = useState<any>({});
+
   const unreadNotifsCount = notifications.filter(n => !n.read).length;
-  const canAccessDataCollectorTab = isAdminLoggedIn || currentMember?.role === 'Data Collector';
+  const canAccessDataCollectorTab =
+    isAdminLoggedIn || currentMember?.role === 'President' || currentMember?.role === 'Data Collector';
+  const canManageNotices = canManageNoticesPermission();
+  const canManageEvents = canManageEventsPermission();
 
   useEffect(() => {
     if (activeTab === 'residents' && !canAccessDataCollectorTab) {
@@ -100,8 +111,15 @@ export const MemberPortal: React.FC = () => {
     }
   }, [activeTab, canAccessDataCollectorTab]);
 
-  // 1. MEMBER LOGIN GATEWAY (Google Auth + Admin-verified Membership)
-  if (!currentMember) {
+  useEffect(() => {
+    setEditPhone(currentMember?.phone || '');
+    setEditVillage(currentMember?.village || '');
+    setEditBlood(currentMember?.bloodGroup || '');
+    setEditBio(currentMember?.bio || '');
+  }, [currentMember?.id, currentMember?.phone, currentMember?.village, currentMember?.bloodGroup, currentMember?.bio]);
+
+  // 1. MEMBER LOGIN GATEWAY (Explicit Continue with Google + Admin-verified Membership)
+  if (!currentMember || (!isMemberSessionUnlocked && !previewMemberId)) {
     return (
       <div className="max-w-xl mx-auto py-8 sm:py-16 px-4 transition-colors">
         <div className="glass-card p-5 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-5 sm:space-y-6">
@@ -116,8 +134,8 @@ export const MemberPortal: React.FC = () => {
             </h2>
             <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto">
               {t(
-                'Sign in with your registered Google account to access notices, village records, treasury, and discussions.',
-                'নোটিশ, গ্রামের তথ্য ভাণ্ডার, তহবিল ও ফোরামে প্রবেশ করতে আপনার নিবন্ধিত Google অ্যাকাউন্ট দিয়ে লগইন করুন।'
+                'Continue with your registered Google account to unlock notices, village records, treasury, and discussions.',
+                'নোটিশ, গ্রামের তথ্য ভাণ্ডার, তহবিল ও ফোরামে প্রবেশ করতে আপনার নিবন্ধিত Google অ্যাকাউন্ট দিয়ে এগিয়ে যান।'
               )}
             </p>
           </div>
@@ -126,7 +144,7 @@ export const MemberPortal: React.FC = () => {
             <div className="py-6 text-center text-xs font-bold text-emerald-800 dark:text-emerald-300">
               {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
             </div>
-          ) : firebaseUser ? (
+          ) : isMemberSessionUnlocked && firebaseUser && !currentMember ? (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs space-y-2">
                 <div className="font-bold text-amber-950 dark:text-amber-200">
@@ -150,10 +168,10 @@ export const MemberPortal: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void logoutGoogle()}
+                  onClick={() => void loginAsMember()}
                   className="py-3 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
                 >
-                  {t('Switch Google Account', 'অন্য অ্যাকাউন্ট দিন')}
+                  {t('Continue with Another Google Account', 'অন্য Google অ্যাকাউন্ট দিন')}
                 </button>
               </div>
             </div>
@@ -173,13 +191,22 @@ export const MemberPortal: React.FC = () => {
                 </div>
               )}
 
+              {firebaseUser && (
+                <div className="p-3 rounded-2xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-950 dark:text-sky-200 leading-relaxed text-center">
+                  {t(
+                    'Member Portal requires its own Continue with Google sign-in step so it stays separate from the Admin Panel.',
+                    'সদস্য পোর্টাল ও অ্যাডমিন প্যানেল আলাদা রাখতে এখানে আলাদাভাবে Google দিয়ে সাইন-ইন করতে হবে।'
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={() => void loginWithGoogle()}
+                onClick={() => void loginAsMember()}
                 className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2"
               >
                 <Shield className="w-4 h-4" />
-                <span>{t('Sign in with Google →', 'Google দিয়ে লগইন করুন →')}</span>
+                <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
               </button>
 
               <p className="text-[11px] text-center text-slate-600 dark:text-slate-400">
@@ -210,20 +237,6 @@ export const MemberPortal: React.FC = () => {
     );
   }
 
-  const handlePostSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPostText.trim()) return;
-    addDiscussionPost(newPostText.trim(), newPostCategory);
-    setNewPostText('');
-  };
-
-  const handleReplySubmit = (postId: string) => {
-    const text = replyInputs[postId]?.trim();
-    if (!text) return;
-    addDiscussionReply(postId, text);
-    setReplyInputs(prev => ({ ...prev, [postId]: '' }));
-  };
-
   const handleSaveProfile = () => {
     updateMember(currentMember.id, {
       phone: editPhone,
@@ -232,6 +245,123 @@ export const MemberPortal: React.FC = () => {
       bio: editBio
     });
     setIsEditingProfile(false);
+  };
+
+  const openPortalCreate = (target: 'news' | 'event') => {
+    if (target === 'news' && !canManageNotices) return;
+    if (target === 'event' && !canManageEvents) return;
+    setPortalModalTarget(target);
+    setPortalModalMode('create');
+    setPortalEditingId(null);
+    if (target === 'news') {
+      setPortalForm({
+        title: '',
+        titleBn: '',
+        category: 'Notice',
+        categoryBn: 'নোটিশ',
+        date: new Date().toISOString().split('T')[0],
+        summary: '',
+        summaryBn: '',
+        content: '',
+        contentBn: '',
+        image: '',
+        tagColor: 'green',
+        status: 'Published',
+        visibility: 'public',
+        pdfAttachment: undefined
+      });
+    } else {
+      setPortalForm({
+        title: '',
+        titleBn: '',
+        date: new Date().toISOString().split('T')[0],
+        time: '3:00 PM - 5:00 PM',
+        timeBn: 'বিকাল ৩:০০ - ৫:০০',
+        location: 'Gaira Village Ground',
+        locationBn: 'গাইরা গ্রাম মাঠ',
+        category: 'Meeting',
+        categoryBn: 'মতবিনিময়',
+        description: '',
+        descriptionBn: '',
+        image: '',
+        status: 'Upcoming',
+        visibility: 'public'
+      });
+    }
+  };
+
+  const openPortalEdit = (target: 'news' | 'event', item: any) => {
+    if (target === 'news' && !canManageNotices) return;
+    if (target === 'event' && !canManageEvents) return;
+    setPortalModalTarget(target);
+    setPortalModalMode('edit');
+    setPortalEditingId(item.id);
+    setPortalForm({
+      ...item,
+      visibility: item.visibility || 'public'
+    });
+  };
+
+  const handlePortalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, 1280, 350_000);
+      setPortalForm((prev: any) => ({ ...prev, image: compressed }));
+    } catch {
+      showToast(t('Could not process this image file.', 'ছবিটি প্রসেস করা যায়নি।'), 'warning');
+    }
+  };
+
+  const handlePortalPdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      showToast(
+        t('PDF must be 500 KB or smaller for cloud storage.', 'ক্লাউড স্টোরেজের জন্য PDF ফাইল ৫০০ KB বা তার কম হতে হবে।'),
+        'warning'
+      );
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        const sizeInKb = (file.size / 1024).toFixed(1) + ' KB';
+        setPortalForm((prev: any) => ({
+          ...prev,
+          pdfAttachment: {
+            fileName: file.name,
+            fileSize: sizeInKb,
+            dataUrl: event.target?.result as string
+          }
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePortalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (portalModalTarget === 'news') {
+      if (!canManageNotices) return;
+      if (portalModalMode === 'create') {
+        addNewsItem(portalForm);
+      } else if (portalEditingId) {
+        updateNewsItem(portalEditingId, portalForm);
+      }
+    } else if (portalModalTarget === 'event') {
+      if (!canManageEvents) return;
+      if (portalModalMode === 'create') {
+        addEvent(portalForm);
+      } else if (portalEditingId) {
+        updateEvent(portalEditingId, portalForm);
+      }
+    }
+    setPortalModalMode(null);
+    setPortalModalTarget(null);
+    setPortalEditingId(null);
   };
 
   // Filter directory
@@ -317,8 +447,8 @@ export const MemberPortal: React.FC = () => {
             )}
           </p>
 
-          {/* Admin Role Preview Switcher (visible only to signed-in Admin) */}
-          {isAdminLoggedIn && (
+          {/* Admin Role Preview Switcher (visible only when Admin Panel is unlocked) */}
+          {isAdminLoggedIn && isAdminSessionUnlocked && (
             <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-bold text-emerald-900 dark:text-emerald-300">{t('Admin preview profile:', 'প্রোফাইল প্রিভিউ (অ্যাডমিন):')}</span>
               {members.slice(0, 4).map(m => (
@@ -334,6 +464,14 @@ export const MemberPortal: React.FC = () => {
                   {m.name.split(' ')[0]} ({m.role.split(' ')[0]})
                 </button>
               ))}
+              {previewMemberId && (
+                <button
+                  onClick={resetPreviewMember}
+                  className="px-2.5 py-1 rounded-lg font-bold bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 transition-colors"
+                >
+                  {t('Exit Preview', 'প্রিভিউ বন্ধ')}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -558,7 +696,7 @@ export const MemberPortal: React.FC = () => {
 
           <div className="flex flex-col space-y-1">
             {[
-              { id: 'wall', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare },
+              { id: 'wall', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare, count: discussions.length },
               ...(canAccessDataCollectorTab
                 ? [{ id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length }]
                 : []),
@@ -600,196 +738,7 @@ export const MemberPortal: React.FC = () => {
 
       {/* TAB A: Youth Discussion Wall */}
       {activeTab === 'wall' && (
-        <div className="grid xl:grid-cols-12 gap-6 items-start">
-          
-          {/* Main Discussion Feed */}
-          <div className="xl:col-span-8 space-y-6 min-w-0">
-            
-            {/* Create Post Box */}
-            <div className="glass-card p-5 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 backdrop-blur-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 font-bold flex items-center justify-center text-sm border border-emerald-500/20 shadow-sm">
-                  {currentMember.name[0]}
-                </div>
-                <div>
-                  <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{currentMember.name}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">{currentMember.role} · {currentMember.village}</div>
-                </div>
-              </div>
-
-              <form onSubmit={handlePostSubmit} className="space-y-3">
-                <textarea
-                  rows={3}
-                  value={newPostText}
-                  onChange={e => setNewPostText(e.target.value)}
-                  placeholder={t(
-                    'Share an idea, question, or update with community youth...',
-                    'কমিউনিটি সদস্যদের সাথে কোনো প্রস্তাব, ভাবনা বা প্রশ্ন শেয়ার করুন...'
-                  )}
-                  className="w-full px-4 py-3 text-sm rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
-                />
-
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('Topic:', 'বিষয়:')}</span>
-                    <select
-                      value={newPostCategory}
-                      onChange={e => setNewPostCategory(e.target.value as any)}
-                      className="text-xs font-medium bg-white/60 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-white/30 dark:border-white/10 text-slate-700 dark:text-slate-300 backdrop-blur-md"
-                    >
-                      <option value="General">{t('General Thought', 'সাধারণ আলোচনা')}</option>
-                      <option value="Project Idea">{t('Project Idea', 'উদ্যোগ প্রস্তাব')}</option>
-                      <option value="Event Prep">{t('Event Prep', 'অনুষ্ঠানের প্রস্তুতি')}</option>
-                      <option value="Question">{t('Question / Help', 'সহায়তা / প্রশ্ন')}</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md border border-white/20 transition-all"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{t('Post to Wall', 'পোস্ট করুন')}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Discussions List */}
-            <div className="space-y-4">
-              {discussions.map(post => (
-                <div
-                  key={post.id}
-                  className="glass-card p-4 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 backdrop-blur-2xl"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-950 dark:text-emerald-300 font-bold flex items-center justify-center text-sm border border-emerald-100 dark:border-slate-700 shrink-0">
-                        {post.authorName[0]}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-sm text-slate-950 dark:text-slate-100 truncate">{post.authorName}</div>
-                        <div className="text-[11px] text-slate-800 dark:text-slate-400 truncate">{post.authorRole} · {post.date}</div>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-300 rounded-lg shrink-0">
-                      {post.category}
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-slate-950 dark:text-slate-200 leading-relaxed">
-                    {post.text}
-                  </p>
-
-                  <div className="flex items-center gap-4 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <button
-                      onClick={() => likeDiscussionPost(post.id)}
-                      className={`flex items-center gap-1.5 font-bold transition-colors ${
-                        post.likedByMe ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-400 hover:text-emerald-900'
-                      }`}
-                    >
-                      <ThumbsUp className={`w-4 h-4 ${post.likedByMe ? 'fill-emerald-700' : ''}`} />
-                      <span>{post.likes} {t('Appreciate', 'পছন্দ')}</span>
-                    </button>
-                    <span className="text-slate-400 dark:text-slate-600">·</span>
-                    <span className="text-slate-800 dark:text-slate-400">
-                      {post.replies.length} {t('Replies', 'মন্তব্য')}
-                    </span>
-                  </div>
-
-                  {/* Replies list */}
-                  {post.replies.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      {post.replies.map(reply => (
-                        <div key={reply.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl space-y-1 text-xs">
-                          <div className="flex flex-wrap items-center justify-between gap-1 text-slate-800 dark:text-slate-400">
-                            <span className="font-bold text-slate-950 dark:text-slate-100">{reply.author} <small className="text-slate-700 dark:text-slate-400 font-normal">({reply.role})</small></span>
-                            <span className="text-[10px] text-slate-700 dark:text-slate-400">{reply.date}</span>
-                          </div>
-                          <p className="text-slate-900 dark:text-slate-300">{reply.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Add reply row */}
-                  <div className="flex items-center gap-2 pt-2">
-                    <input
-                      type="text"
-                      value={replyInputs[post.id] || ''}
-                      onChange={e => setReplyInputs({ ...replyInputs, [post.id]: e.target.value })}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleReplySubmit(post.id);
-                        }
-                      }}
-                      placeholder={t('Write a supportive reply...', 'একটি মন্তব্য লিখুন...')}
-                      className="flex-1 min-w-0 px-3 sm:px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                    />
-                    <button
-                      onClick={() => handleReplySubmit(post.id)}
-                      className="px-3 py-2 bg-emerald-100 dark:bg-slate-800 hover:bg-emerald-200 dark:hover:bg-slate-700 text-emerald-950 dark:text-emerald-300 font-bold text-xs rounded-xl transition-colors shrink-0"
-                    >
-                      {t('Reply', 'উত্তর')}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Right Column: Values & Emergency Blood Donors Quick Box */}
-          <div className="xl:col-span-4 space-y-6 min-w-0">
-            
-            {/* Urgent Blood Network Box */}
-            <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-3xl p-5 space-y-3 text-rose-950 dark:text-rose-200">
-              <div className="flex items-center gap-2 font-bold text-sm text-rose-900 dark:text-rose-300">
-                <Droplet className="w-4 h-4 fill-rose-600 text-rose-600" />
-                <span>{t('Emergency Blood Network', 'জরুরি রক্তের নেটওয়ার্ক')}</span>
-              </div>
-              <p className="text-xs text-rose-800/90 dark:text-rose-300/90 leading-relaxed">
-                {t(
-                  'Salmikkhang members maintain a blood donor registry for Gaira & Jolchotro patients in Madhupur hospitals.',
-                  'মধুপুরের যে কোনো জরুরি প্রয়োজনে আমাদের সদস্যদের রক্তের গ্রুপ ও ফোন নম্বর প্রস্তুত রাখা আছে।'
-                )}
-              </p>
-              <button
-                onClick={() => setActiveTab('directory')}
-                className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors"
-              >
-                {t('Find Blood Donors by Group →', 'রক্তদাতাদের তালিকা দেখুন →')}
-              </button>
-            </div>
-
-            {/* Community Values Card */}
-            <div className="bg-emerald-900 dark:bg-slate-800 text-white rounded-3xl p-6 space-y-3">
-              <div className="text-emerald-300 font-bold text-xs uppercase tracking-wider">
-                {t('YOUTH CODE OF CONDUCT', 'সদস্য নীতিমালা')}
-              </div>
-              <h3 className="font-extrabold text-base text-white">
-                {t('Our Shared Commitments', 'আমাদের অঙ্গীকার')}
-              </h3>
-              <ul className="space-y-2 text-xs text-emerald-100/90 dark:text-slate-300 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Respect all community elders and encourage younger students.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Actively care for local trees and keep public spaces clean.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Honor and preserve Achik cultural heritage and songs.</span>
-                </li>
-              </ul>
-            </div>
-
-          </div>
-
-        </div>
+        <DiscussionForum onNavigateToDirectory={() => setActiveTab('directory')} />
       )}
 
       {/* TAB B: Notice Board & PDF Circulars */}
@@ -806,6 +755,16 @@ export const MemberPortal: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {canManageNotices && (
+                <button
+                  onClick={() => openPortalCreate('news')}
+                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('Upload Notice / PDF', 'নোটিশ / PDF আপলোড')}</span>
+                </button>
+              )}
+
               {/* Audience Filter Pills */}
               <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold w-full sm:w-auto">
                 <button
@@ -879,12 +838,23 @@ export const MemberPortal: React.FC = () => {
                     <span className="text-xs text-slate-700 dark:text-slate-400">{item.date}</span>
                   </div>
 
-                  {item.pdfAttachment && (
-                    <span className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
-                      <FileText className="w-4 h-4 shrink-0" />
-                      <span>{t('Official PDF Attached', 'অফিসিয়াল PDF সংযুক্ত')}</span>
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {item.pdfAttachment && (
+                      <span className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                        <FileText className="w-4 h-4 shrink-0" />
+                        <span>{t('Official PDF Attached', 'অফিসিয়াল PDF সংযুক্ত')}</span>
+                      </span>
+                    )}
+                    {canManageNotices && (
+                      <button
+                        onClick={() => openPortalEdit('news', item)}
+                        className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-slate-900 dark:text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>{t('Edit', 'সম্পাদনা')}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-950 dark:text-slate-100">
@@ -1067,13 +1037,24 @@ export const MemberPortal: React.FC = () => {
       {/* TAB D: Events & Participation */}
       {activeTab === 'events' && (
         <div className="space-y-6">
-          <div className="glass-surface p-5 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl">
-            <h2 className="text-xl font-extrabold text-slate-950 dark:text-slate-100">
-              {t('Community Events & Your Participation', 'কমিউনিটি ইভেন্ট ও অংশগ্রহণ')}
-            </h2>
-            <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
-              {t('RSVP for upcoming drives or meetings. Members-only events are marked with a lock.', 'আসন্ন অনুষ্ঠানসমূহে অংশগ্রহণের নিশ্চয়তা দিন। সদস্যদের বিশেষ ইভেন্টগুলোতে অংশগ্রহণ করুন।')}
-            </p>
+          <div className="glass-surface p-5 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-950 dark:text-slate-100">
+                {t('Community Events & Your Participation', 'কমিউনিটি ইভেন্ট ও অংশগ্রহণ')}
+              </h2>
+              <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
+                {t('RSVP for upcoming drives or meetings. Members-only events are marked with a lock.', 'আসন্ন অনুষ্ঠানসমূহে অংশগ্রহণের নিশ্চয়তা দিন। সদস্যদের বিশেষ ইভেন্টগুলোতে অংশগ্রহণ করুন।')}
+              </p>
+            </div>
+            {canManageEvents && (
+              <button
+                onClick={() => openPortalCreate('event')}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm shrink-0 self-start sm:self-auto transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('Upload / Add Event', 'ইভেন্ট আপলোড / যোগ')}</span>
+              </button>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
@@ -1085,6 +1066,11 @@ export const MemberPortal: React.FC = () => {
                   className="glass-card rounded-3xl border border-white/40 dark:border-white/10 p-4 sm:p-6 shadow-lg flex flex-col justify-between space-y-4 backdrop-blur-2xl hover:border-emerald-500/40 transition-all"
                 >
                   <div className="space-y-3">
+                    {ev.image && (
+                      <div className="h-36 rounded-2xl overflow-hidden border border-white/30 dark:border-white/10">
+                        <img src={ev.image} alt={ev.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 rounded-md">
@@ -1101,9 +1087,20 @@ export const MemberPortal: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
-                        {ev.date}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
+                          {ev.date}
+                        </span>
+                        {canManageEvents && (
+                          <button
+                            onClick={() => openPortalEdit('event', ev)}
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-slate-900 dark:text-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span>{t('Edit', 'এডিট')}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <h3 className="font-bold text-base sm:text-lg text-slate-950 dark:text-slate-100">
@@ -1155,14 +1152,14 @@ export const MemberPortal: React.FC = () => {
         </div>
       )}
 
-      {/* TAB: Village Public Records (Visible only to Admin & Data Collector) */}
+      {/* TAB: Village Public Records (Visible to Admin, President (read-only) & Data Collector) */}
       {activeTab === 'residents' && canAccessDataCollectorTab && (
         <VillageResidentsManager isAdmin={isAdminLoggedIn} />
       )}
 
-      {/* TAB: Treasury & Cash Book (Add/Remove by Cashier, Assistant Cashier & Admin) */}
+      {/* TAB: Treasury & Cash Book (Add/Edit/Delete by Cashier, Assistant Cashier & Admin) */}
       {activeTab === 'fund' && (
-        <TreasuryFundsManager isAdmin={false} />
+        <TreasuryFundsManager isAdmin={isAdminLoggedIn && !previewMemberId} />
       )}
 
       {/* TAB: Organization Structure & Role Portfolios */}
@@ -1172,6 +1169,293 @@ export const MemberPortal: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Notice / Event Create & Edit Modal for Publicity Secretary & Authorized Officers */}
+      {portalModalMode && portalModalTarget && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-auto max-h-[92dvh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-extrabold text-base text-slate-950 dark:text-slate-100">
+                {portalModalMode === 'create' ? t('Upload / Create ', 'নতুন আপলোড: ') : t('Edit ', 'সম্পাদনা: ')}
+                {portalModalTarget === 'news' ? t('Official Notice', 'অফিসিয়াল নোটিশ') : t('Community Event', 'অনুষ্ঠান / ইভেন্ট')}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPortalModalMode(null)}
+                className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePortalSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {t('Title (English) *', 'শিরোনাম (ইংরেজি) *')}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={portalForm.title || ''}
+                  onChange={e => setPortalForm({ ...portalForm, title: e.target.value })}
+                  placeholder={portalModalTarget === 'news' ? 'e.g. Monthly General Meeting Notice' : 'e.g. Village Clean-up Drive'}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {t('Title (Bangla)', 'শিরোনাম (বাংলা)')}
+                </label>
+                <input
+                  type="text"
+                  value={portalForm.titleBn || ''}
+                  onChange={e => setPortalForm({ ...portalForm, titleBn: e.target.value })}
+                  placeholder={portalModalTarget === 'news' ? 'যেমন: মাসিক সাধারণ সভার নোটিশ' : 'যেমন: পরিচ্ছন্নতা অভিযান'}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                <label className="block font-bold text-slate-800 dark:text-slate-200 text-xs">
+                  {t('Visibility & Audience *', 'দর্শক ও দৃশ্যমানতা *')}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
+                    portalForm.visibility !== 'members_only'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-950 dark:text-emerald-300 font-bold ring-1 ring-emerald-500'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="portal_visibility"
+                      value="public"
+                      checked={portalForm.visibility !== 'members_only'}
+                      onChange={() => setPortalForm({ ...portalForm, visibility: 'public' })}
+                      className="accent-emerald-600"
+                    />
+                    <div>
+                      <div className="text-xs font-bold">{t('Public', 'সার্বজনীন')}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                        {t('Visible to all visitors', 'সবাই দেখতে পাবে')}
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
+                    portalForm.visibility === 'members_only'
+                      ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-950 dark:text-amber-300 font-bold ring-1 ring-amber-500'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="portal_visibility"
+                      value="members_only"
+                      checked={portalForm.visibility === 'members_only'}
+                      onChange={() => setPortalForm({ ...portalForm, visibility: 'members_only' })}
+                      className="accent-amber-600"
+                    />
+                    <div>
+                      <div className="text-xs font-bold flex items-center gap-1">
+                        <span>🔒</span>
+                        <span>{t('Members Only', 'শুধুমাত্র সদস্য')}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                        {t('Only members can view', 'শুধু সদস্যদের পোর্টালে যাবে')}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {portalModalTarget === 'news' ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                      <select
+                        value={portalForm.category || 'Notice'}
+                        onChange={e => setPortalForm({ ...portalForm, category: e.target.value, categoryBn: e.target.value === 'Notice' ? 'নোটিশ' : 'ঘোষণা' })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="Notice">Notice (নোটিশ)</option>
+                        <option value="Announcement">Announcement (ঘোষণা)</option>
+                        <option value="Education">Education (শিক্ষা)</option>
+                        <option value="Environment">Environment (পরিবেশ)</option>
+                        <option value="Sports">Sports (খেলাধুলা)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={portalForm.date || ''}
+                        onChange={e => setPortalForm({ ...portalForm, date: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-rose-600" />
+                        <span>{t('Official PDF Attachment', 'অফিসিয়াল PDF সংযুক্তি')}</span>
+                      </label>
+                      {portalForm.pdfAttachment && (
+                        <button
+                          type="button"
+                          onClick={() => setPortalForm({ ...portalForm, pdfAttachment: undefined })}
+                          className="text-[11px] font-semibold text-rose-600 hover:underline"
+                        >
+                          {t('Remove PDF', 'PDF বাতিল')}
+                        </button>
+                      )}
+                    </div>
+                    {portalForm.pdfAttachment ? (
+                      <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-rose-900 flex items-center justify-between gap-2">
+                        <div className="truncate font-bold text-xs text-slate-900 dark:text-slate-100">
+                          {portalForm.pdfAttachment.fileName} ({portalForm.pdfAttachment.fileSize})
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-rose-200 hover:border-rose-400 dark:border-slate-700 bg-rose-50/40 dark:bg-slate-800/40 rounded-xl p-4 text-center cursor-pointer transition-colors block">
+                        <input type="file" accept="application/pdf" onChange={handlePortalPdfUpload} className="hidden" />
+                        <Upload className="w-5 h-5 text-rose-600 mx-auto mb-1" />
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {t('Click to upload PDF notice (max 500 KB)', 'PDF নোটিশ আপলোড করতে ক্লিক করুন')}
+                        </div>
+                      </label>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Summary</label>
+                    <textarea
+                      rows={2}
+                      value={portalForm.summary || ''}
+                      onChange={e => setPortalForm({ ...portalForm, summary: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Content</label>
+                    <textarea
+                      rows={3}
+                      value={portalForm.content || ''}
+                      onChange={e => setPortalForm({ ...portalForm, content: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                      <select
+                        value={portalForm.category || 'Meeting'}
+                        onChange={e => setPortalForm({ ...portalForm, category: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="Meeting">Meeting (সভা)</option>
+                        <option value="Environment">Environment (পরিবেশ)</option>
+                        <option value="Culture">Culture (সংস্কৃতি)</option>
+                        <option value="Sports">Sports (খেলাধুলা)</option>
+                        <option value="Education">Education (শিক্ষা)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={portalForm.date || ''}
+                        onChange={e => setPortalForm({ ...portalForm, date: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Time</label>
+                      <input
+                        type="text"
+                        value={portalForm.time || ''}
+                        onChange={e => setPortalForm({ ...portalForm, time: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Location</label>
+                      <input
+                        type="text"
+                        value={portalForm.location || ''}
+                        onChange={e => setPortalForm({ ...portalForm, location: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                    <textarea
+                      rows={3}
+                      value={portalForm.description || ''}
+                      onChange={e => setPortalForm({ ...portalForm, description: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Image Upload */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                    {t('Upload Photo / Banner (optional)', 'ছবি বা ব্যানার আপলোড (ঐচ্ছিক)')}
+                  </label>
+                  {portalForm.image && (
+                    <button
+                      type="button"
+                      onClick={() => setPortalForm({ ...portalForm, image: '' })}
+                      className="text-[11px] font-semibold text-rose-600 hover:underline"
+                    >
+                      {t('Remove photo', 'ছবি বাতিল')}
+                    </button>
+                  )}
+                </div>
+                {portalForm.image ? (
+                  <img src={portalForm.image} alt="Preview" className="w-full h-36 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
+                ) : (
+                  <label className="border-2 border-dashed border-emerald-300 dark:border-slate-700 hover:border-emerald-500 bg-emerald-50/40 dark:bg-slate-800/40 rounded-xl p-4 text-center cursor-pointer transition-colors block">
+                    <input type="file" accept="image/*" onChange={handlePortalImageUpload} className="hidden" />
+                    <Upload className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {t('Click to upload photo from device', 'ডিভাইস থেকে ছবি আপলোড করুন')}
+                    </div>
+                  </label>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPortalModalMode(null)}
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                >
+                  {t('Cancel', 'বাতিল')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs"
+                >
+                  {portalModalMode === 'edit' ? t('Save Changes', 'হালনাগাদ করুন') : t('Publish Now', 'প্রকাশ করুন')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -33,7 +33,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
     setTheme,
     currentMember,
     logoutMember,
+    isMemberSessionUnlocked,
+    isAdminSessionUnlocked,
     isAdminLoggedIn,
+    canViewAdminPanel,
+    isPresidentViewOnly,
     joinRequests,
     openModal,
     news,
@@ -41,6 +45,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
     projects,
     members
   } = useCommunity();
+
+  const isMemberUnlocked = Boolean(isMemberSessionUnlocked && currentMember);
+  const isAdminUnlocked = Boolean(isAdminSessionUnlocked && canViewAdminPanel);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
@@ -99,8 +106,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
   };
 
   const q = searchQuery.trim().toLowerCase();
-  const visibleNews = news.filter(n => currentMember || isAdminLoggedIn || n.visibility !== 'members_only');
-  const visibleEvents = events.filter(ev => currentMember || isAdminLoggedIn || ev.visibility !== 'members_only');
+  const visibleNews = news.filter(n => isMemberUnlocked || isAdminUnlocked || n.visibility !== 'members_only');
+  const visibleEvents = events.filter(ev => isMemberUnlocked || isAdminUnlocked || ev.visibility !== 'members_only');
 
   const searchResults = q
     ? {
@@ -240,7 +247,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                 type="button"
                 onClick={() => {
                   closeAllSearch();
-                  if (currentMember) {
+                  if (isMemberUnlocked) {
                     setCurrentView('member');
                   } else {
                     onOpenSearch();
@@ -476,7 +483,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                     ? t('Member Panel', 'সদস্য প্যানেল') 
                     : t('Admin Panel', 'অ্যাডমিন প্যানেল')}
                 </span>
-                {pendingRequestsCount > 0 && currentView !== 'admin' && (
+                {isAdminUnlocked && pendingRequestsCount > 0 && currentView !== 'admin' && (
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
                 )}
                 <ChevronDown className="w-3.5 h-3.5 opacity-80" />
@@ -527,7 +534,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                       <div>
                         <div className="font-semibold">{t('Member Portal', 'সদস্য পোর্টাল')}</div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {currentMember ? `${currentMember.name} (${currentMember.role})` : t('Login to access member area', 'সদস্য লগইন প্রয়োজন')}
+                          {isMemberUnlocked && currentMember
+                            ? `${currentMember.name} (${currentMember.role})`
+                            : t('Continue with Google required', 'Google দিয়ে লগইন প্রয়োজন')}
                         </div>
                       </div>
                     </div>
@@ -549,11 +558,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                       <div>
                         <div className="font-semibold">{t('Admin Dashboard', 'অ্যাডমিন ড্যাশবোর্ড')}</div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {isAdminLoggedIn ? t('Admin Workspace Active', 'অ্যাডমিন প্যানেল সক্রিয়') : t('Council login required', 'অ্যাডমিন লগইন প্রয়োজন')}
+                          {isAdminUnlocked && isAdminLoggedIn
+                            ? t('Admin Workspace Active', 'অ্যাডমিন প্যানেল সক্রিয়')
+                            : isAdminUnlocked && isPresidentViewOnly
+                            ? t('President View-Only Mode', 'সভাপতি (শুধু দেখার অনুমতি)')
+                            : t('Continue with Google · Admin & President', 'Google লগইন · অ্যাডমিন ও সভাপতি')}
                         </div>
                       </div>
                     </div>
-                    {pendingRequestsCount > 0 && (
+                    {isAdminUnlocked && pendingRequestsCount > 0 && (
                       <span className="px-1.5 py-0.5 text-[10px] font-bold text-white bg-amber-600 rounded-md">
                         {pendingRequestsCount}
                       </span>
@@ -561,7 +574,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                   </button>
 
                   <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
-                    {currentMember ? (
+                    {isMemberUnlocked && currentMember ? (
                       <div className="px-3 py-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                         <div className="truncate max-w-[140px] text-emerald-900 dark:text-emerald-300 font-medium">
                           {currentMember.name}
@@ -583,7 +596,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
                           className="w-full py-1.5 text-center text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center gap-1.5"
                         >
                           <LogIn className="w-3.5 h-3.5" />
-                          <span>{t('Member / Admin Login', 'সদস্য বা অ্যাডমিন লগইন')}</span>
+                          <span>{t('Member Portal Login', 'সদস্য পোর্টাল লগইন')}</span>
                         </button>
                       </div>
                     )}
@@ -602,7 +615,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              {pendingRequestsCount > 0 && !mobileMenuOpen && (
+              {isAdminUnlocked && pendingRequestsCount > 0 && !mobileMenuOpen && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500" />
               )}
             </button>
@@ -687,7 +700,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onSelectNews }) =>
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>{t('Admin Management Dashboard', 'অ্যাডমিন ড্যাশবোর্ড')}</span>
-                {pendingRequestsCount > 0 && (
+                {isAdminUnlocked && pendingRequestsCount > 0 && (
                   <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded">
                     {pendingRequestsCount}
                   </span>

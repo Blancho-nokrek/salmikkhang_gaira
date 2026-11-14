@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { VillageResident, AidStatus } from '../types';
+import { resolveRoleStampedActor } from '../lib/memberDisplay';
 import {
   Search,
   Filter,
@@ -223,7 +224,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
       r.bloodGroup,
       r.aidStatus,
       `"${(r.notes || '').replace(/"/g, '""')}"`,
-      r.collectedBy
+      resolveRoleStampedActor(members, r.collectedBy, r.collectedByUid, 'Council')
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -631,7 +632,7 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
                     </td>
 
                     <td className="py-3.5 px-4 text-[11px] text-slate-500 dark:text-slate-400">
-                      <div>{res.collectedBy || 'Council'}</div>
+                      <div>{resolveRoleStampedActor(members, res.collectedBy, res.collectedByUid, 'Council')}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{res.collectedDate}</div>
                     </td>
 
@@ -994,7 +995,12 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
               )}
 
               <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400">
-                <span>{t('Surveyed by:', 'তথ্য সংগ্রহকারী:')} <strong className="text-slate-700 dark:text-slate-300">{viewingResident.collectedBy}</strong></span>
+                <span>
+                  {t('Surveyed by:', 'তথ্য সংগ্রহকারী:')}{' '}
+                  <strong className="text-slate-700 dark:text-slate-300">
+                    {resolveRoleStampedActor(members, viewingResident.collectedBy, viewingResident.collectedByUid, 'Council')}
+                  </strong>
+                </span>
                 <span>{viewingResident.collectedDate}</span>
               </div>
             </div>

@@ -2,29 +2,54 @@ import { Role, RoleDetail, VillageResident, FundTransaction } from '../types';
 
 export const ORGANIZATION_ROLES: RoleDetail[] = [
   {
-    role: 'President',
-    titleEn: 'President',
-    titleBn: 'সভাপতি',
-    departmentEn: 'Executive Presidency & Governance',
-    departmentBn: 'নির্বাহী পরিষদ ও সামগ্রিক নেতৃত্ব',
-    descriptionEn: 'Chief constitutional head and executive leader of the community youth council.',
-    descriptionBn: 'সংগঠনের প্রধান নির্বাহী ও নীতি-নির্ধারক। সকল কার্যক্রমের সার্বিক অভিভাবকত্ব ও তদারকি করেন।',
+    role: 'Admin',
+    titleEn: 'Admin (System Administrator)',
+    titleBn: 'অ্যাডমিন (সিস্টেম প্রশাসক)',
+    departmentEn: 'System Administration & Full Governance',
+    departmentBn: 'সিস্টেম প্রশাসন ও সার্বিক নিয়ন্ত্রণ',
+    descriptionEn: 'Primary system administrator with full authority to manage members, roles, village census, treasury funds, notices, events, projects, gallery, applications, inbox, and community settings.',
+    descriptionBn: 'সিস্টেমের প্রধান প্রশাসক। সদস্য নিবন্ধন, পদবি নির্ধারণ, নাগরিক তথ্য, তহবিল, নোটিশ, ইভেন্ট, প্রকল্প, গ্যালারি, আবেদন ও কমিউনিটি সেটিংস পরিচালনার পূর্ণ ক্ষমতা রাখেন।',
     dutiesEn: [
-      'Preside over general and executive council assemblies',
-      'Approve key policy decisions, annual charters, and strategic projects',
-      'Represent the community in external administrative and regional dialogues',
-      'Sign off on major constitutional charters and community resolutions'
+      'Manage member registrations, role grants, and council access permissions',
+      'Maintain community settings, official contact email, and website backgrounds',
+      'Oversee and manage all notices, events, projects, gallery, census, and treasury records',
+      'Review and approve/reject incoming membership applications and visitor inquiries'
     ],
     dutiesBn: [
-      'সাধারণ সভা ও কার্যনির্বাহী সভার সভাপতিত্ব পরিচালনা করা',
-      'সংগঠনের বার্ষিক পরিকল্পনা, গঠনতন্ত্র ও নীতি নির্ধারণ অনুমোদন করা',
-      'প্রশাসন ও বহিরাগত ফোরামে সংগঠনের প্রধান প্রতিনিধি হিসেবে দায়িত্ব পালন',
-      'গুরুত্বপূর্ণ সিদ্ধান্ত ও স্মারকপত্রে স্বাক্ষর প্রদান করা'
+      'সদস্য নিবন্ধন, পদবি বণ্টন ও অ্যাক্সেস পারমিশন পরিচালনা করা',
+      'কমিউনিটির সেটিংস, অফিসিয়াল ইমেইল ও ওয়েবসাইট ব্যাকগ্রাউন্ড হালনাগাদ রাখা',
+      'সকল নোটিশ, ইভেন্ট, প্রকল্প, গ্যালারি, নাগরিক তথ্য ও তহবিল পরিচালনা করা',
+      'নতুন সদস্য আবেদন অনুমোদন/বাতিল ও ভিজিটর ইনবক্স তদারকি করা'
     ],
+    canManageFunds: true,
+    canCollectData: true,
     canManageMembers: true,
     canManageNotices: true,
     canManageEvents: true,
     canManageProjects: true,
+    canManageGallery: true,
+    badgeColor: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-400 dark:border-emerald-700 font-bold'
+  },
+  {
+    role: 'President',
+    titleEn: 'President',
+    titleBn: 'সভাপতি',
+    departmentEn: 'Executive Presidency & Governance (View-Only Audit)',
+    departmentBn: 'নির্বাহী পরিষদ ও সার্বিক তদারকি (পর্যবেক্ষণ)',
+    descriptionEn: 'Chief constitutional head and executive overseer of the community youth council. Has full view-only visibility across all Admin workspaces, records, applications, inbox, treasury, and settings without edit/delete rights.',
+    descriptionBn: 'সংগঠনের প্রধান নির্বাহী ও নীতি-নির্ধারক অভিভাবক। অ্যাডমিনের মতো সকল তথ্য, আবেদন, ইনবক্স, তহবিল ও সেটিংস দেখতে পারেন, তবে কোনো তথ্য পরিবর্তন বা মুছতে পারেন না।',
+    dutiesEn: [
+      'Preside over general and executive council assemblies',
+      'Review all community records, applications, treasury ledgers, and inbox in view-only mode',
+      'Represent the community in external administrative and regional dialogues',
+      'Guide policy decisions and strategic community initiatives'
+    ],
+    dutiesBn: [
+      'সাধারণ সভা ও কার্যনির্বাহী সভার সভাপতিত্ব পরিচালনা করা',
+      'কমিউনিটির সকল তথ্য, আবেদন, তহবিল হিসাব ও বার্তা পর্যবেক্ষণ করা (শুধুমাত্র দর্শন)',
+      'প্রশাসন ও বহিরাগত ফোরামে সংগঠনের প্রধান প্রতিনিধি হিসেবে দায়িত্ব পালন',
+      'সংগঠনের বার্ষিক পরিকল্পনা ও নীতি নির্ধারণে দিকনির্দেশনা প্রদান'
+    ],
     badgeColor: 'bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800'
   },
   {
@@ -214,6 +239,7 @@ export const ORGANIZATION_ROLES: RoleDetail[] = [
       'গ্রামবাসীর সাথে সৌহার্দ্যপূর্ণ যোগাযোগ ও প্রচার বাড়ানো'
     ],
     canManageNotices: true,
+    canManageEvents: true,
     canManageGallery: true,
     badgeColor: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-300 border-sky-200 dark:border-sky-800'
   },
@@ -407,44 +433,44 @@ export function getRoleDetail(role: Role): RoleDetail {
 
 // Permission checking helpers
 export function canManageFunds(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
   return role === 'Cashier' || role === 'Assistant Cashier';
 }
 
 export function canCollectData(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
   return role === 'Data Collector';
 }
 
 export function canManageNotices(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
-  return role === 'President' || role === 'General Secretary' || role === 'Joint Secretary' || role === 'Publicity Secretary';
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
+  return role === 'General Secretary' || role === 'Joint Secretary' || role === 'Publicity Secretary';
 }
 
 export function canManageEvents(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
-  return role === 'President' || role === 'General Secretary' || role === 'Joint Secretary' || role === 'Sports & Cultural Secretary';
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
+  return role === 'General Secretary' || role === 'Joint Secretary' || role === 'Publicity Secretary' || role === 'Sports & Cultural Secretary';
 }
 
 export function canManageProjects(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
-  return role === 'President' || role === 'General Secretary' || role === 'Social Welfare Secretary' || role === 'Education & Library Secretary' || role === 'Organizing Secretary';
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
+  return role === 'General Secretary' || role === 'Social Welfare Secretary' || role === 'Education & Library Secretary' || role === 'Organizing Secretary';
 }
 
 export function canManageMembers(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
-  return role === 'President' || role === 'General Secretary' || role === 'Organizing Secretary';
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
+  return role === 'General Secretary' || role === 'Organizing Secretary';
 }
 
 export function canManageGallery(role?: Role, isAdmin = false): boolean {
-  if (isAdmin) return true;
-  if (!role) return false;
+  if (isAdmin || role === 'Admin') return true;
+  if (!role || role === 'President') return false;
   return role === 'Publicity Secretary' || role === 'Sports & Cultural Secretary';
 }
 

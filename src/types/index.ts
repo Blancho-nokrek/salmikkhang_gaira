@@ -2,6 +2,7 @@ export type Language = 'en' | 'bn';
 export type Theme = 'light' | 'dark' | 'system';
 
 export type Role = 
+  | 'Admin'
   | 'President' 
   | 'Vice President'
   | 'General Secretary' 

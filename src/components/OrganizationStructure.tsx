@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Search,
-  Zap,
 } from 'lucide-react';
 
 interface OrganizationStructureProps {
@@ -84,49 +83,6 @@ export const OrganizationStructure: React.FC<OrganizationStructureProps> = ({ is
               {members.length} {t('active members assigned', 'জন সদস্য দায়িত্বপ্রাপ্ত')}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Test Bar: Try Logging In / Testing as Any Officer */}
-      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-emerald-800 dark:text-emerald-400 shrink-0" />
-            <span className="font-extrabold text-slate-950 dark:text-slate-100">
-              {t('Instant Role Testing Switcher:', 'তাৎক্ষণিক পদবি যাচাই ও স্যুইচ:')}
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-800 dark:text-slate-400">
-            {t('Click any officer below to experience their specific permissions in Member Portal', 'যেকোনো অফিসারে ক্লিক করে তাদের পারমিশন পরীক্ষা করুন')}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {[
-            { label: 'Subrata Marak (Cashier)', id: 'm-2', role: 'Cashier', color: 'bg-amber-600 text-white' },
-            { label: 'Riton Chisim (Assis Cashier)', id: 'm-3', role: 'Assistant Cashier', color: 'bg-teal-700 text-white' },
-            { label: 'Pritom Sangma (Data Collector)', id: 'm-4', role: 'Data Collector', color: 'bg-blue-600 text-white' },
-            { label: 'Blancho Nokrek (Gen Secretary)', id: 'm-1', role: 'General Secretary', color: 'bg-emerald-700 text-white' },
-            { label: 'Bipul Rema (President)', id: 'm-5', role: 'President', color: 'bg-purple-700 text-white' },
-            { label: 'Joyanto Marak (Member)', id: 'm-12', role: 'Member', color: 'bg-slate-700 text-white' }
-          ].map(tester => {
-            const isCurrent = currentMember?.role === tester.role;
-            return (
-              <button
-                key={tester.id}
-                onClick={() => {
-                  quickSwitchMember(tester.id);
-                  setCurrentView('member');
-                }}
-                className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all flex items-center gap-1.5 shadow-xs ${
-                  isCurrent ? 'ring-2 ring-emerald-500 ring-offset-1 ' + tester.color : tester.color + ' opacity-90 hover:opacity-100'
-                }`}
-              >
-                <span>{tester.label}</span>
-                {isCurrent && <span className="text-[10px] bg-white/30 px-1 rounded">Active</span>}
-              </button>
-            );
-          })}
         </div>
       </div>
 

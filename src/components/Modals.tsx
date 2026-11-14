@@ -30,8 +30,9 @@ export const Modals: React.FC<ModalsProps> = ({
     authLoading,
     authError,
     clearAuthError,
-    loginWithGoogle,
-    logoutGoogle,
+    loginAsMember,
+    logoutMember,
+    isMemberSessionUnlocked,
     currentMember,
     members,
     news,
@@ -75,7 +76,7 @@ export const Modals: React.FC<ModalsProps> = ({
   };
 
   const handleGoogleSignIn = async () => {
-    const ok = await loginWithGoogle();
+    const ok = await loginAsMember();
     if (ok) {
       closeModal();
       setCurrentView('member');
@@ -262,7 +263,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
                 />
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                  {t('Salmikkhang Member & Admin Portal', 'সদস্য ও অ্যাডমিন প্যানেলে প্রবেশ')}
+                  {t('Salmikkhang Member Portal Login', 'সদস্য পোর্টালে লগইন')}
                 </h3>
               </div>
               <button onClick={closeModal} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -272,8 +273,8 @@ export const Modals: React.FC<ModalsProps> = ({
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {t(
-                'Sign in securely with Google using your registered Gmail address to access the Member Portal or Admin Dashboard.',
-                'সদস্য পোর্টাল বা অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে আপনার নিবন্ধিত Gmail অ্যাকাউন্ট দিয়ে নিরাপদে Google সাইন-ইন করুন।'
+                'Continue with Google using your registered Gmail address to unlock the Member Portal. Admin Panel requires a separate Continue with Google verification.',
+                'সদস্য পোর্টালে প্রবেশ করতে আপনার নিবন্ধিত Gmail দিয়ে Google সাইন-ইন করুন। অ্যাডমিন প্যানেলের জন্য আলাদাভাবে প্রবেশ করতে হবে।'
               )}
             </p>
 
@@ -281,7 +282,7 @@ export const Modals: React.FC<ModalsProps> = ({
               <div className="py-4 text-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
               </div>
-            ) : firebaseUser ? (
+            ) : isMemberSessionUnlocked && firebaseUser ? (
               <div className="space-y-3">
                 <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
                   <div className="font-bold text-slate-900 dark:text-slate-100">
@@ -317,7 +318,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   )}
                   <button
                     type="button"
-                    onClick={() => void logoutGoogle()}
+                    onClick={logoutMember}
                     className="px-3.5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl"
                   >
                     {t('Sign Out', 'লগআউট')}
@@ -346,7 +347,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
                 >
                   <Shield className="w-4 h-4" />
-                  <span>{t('Sign in with Google →', 'Google দিয়ে লগইন করুন →')}</span>
+                  <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
                 </button>
 
                 <button

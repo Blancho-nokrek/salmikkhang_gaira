@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { Member, Project, Role } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
+import { DiscussionForum } from './DiscussionForum';
 import { compressImage } from '../lib/imageUpload';
 import logoImg from '../assets/images/logo.png';
 import {
@@ -32,6 +33,8 @@ import {
   Award,
   Home,
   DollarSign,
+  Eye,
+  MessageSquare,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -45,6 +48,7 @@ export const AdminDashboard: React.FC = () => {
     projects,
     gallery,
     messages,
+    discussions,
     funds,
     villageResidents,
     setCurrentView,
@@ -70,19 +74,21 @@ export const AdminDashboard: React.FC = () => {
     exportDataJSON,
     resetAllData,
     isAdminLoggedIn,
+    isAdminSessionUnlocked,
+    canViewAdminPanel,
+    isPresidentViewOnly,
     adminLogin,
     adminLogout,
     firebaseUser,
     authLoading,
     authError,
     clearAuthError,
-    logoutGoogle,
     showToast
   } = useCommunity();
 
   // Active admin section
   const [activeAdminTab, setActiveAdminTab] = useState<
-    'overview' | 'members' | 'roles' | 'residents' | 'funds' | 'news' | 'events' | 'projects' | 'gallery' | 'requests' | 'messages' | 'settings'
+    'overview' | 'members' | 'roles' | 'residents' | 'funds' | 'discussions' | 'news' | 'events' | 'projects' | 'gallery' | 'requests' | 'messages' | 'settings'
   >('overview');
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +101,25 @@ export const AdminDashboard: React.FC = () => {
 
   // Form states
   const [formData, setFormData] = useState<any>({});
+  const [settingsForm, setSettingsForm] = useState({
+    name: settings.name || '',
+    nameBn: settings.nameBn || '',
+    village: settings.village || '',
+    address: settings.address || '',
+    phone: settings.phone || '',
+    email: settings.email || '',
+  });
+
+  useEffect(() => {
+    setSettingsForm({
+      name: settings.name || '',
+      nameBn: settings.nameBn || '',
+      village: settings.village || '',
+      address: settings.address || '',
+      phone: settings.phone || '',
+      email: settings.email || '',
+    });
+  }, [settings.name, settings.nameBn, settings.village, settings.address, settings.phone, settings.email]);
 
   const pendingRequests = joinRequests.filter(r => r.status === 'Pending');
   const unreadMessages = messages.filter(m => m.status === 'Unread');
@@ -142,6 +167,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const openCreateModal = (target: 'news' | 'event' | 'project' | 'gallery' | 'member') => {
+    if (!isAdminLoggedIn) return;
     setModalTarget(target);
     setModalMode('create');
     setEditingItem(null);
@@ -221,6 +247,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const openEditModal = (target: 'news' | 'event' | 'project' | 'gallery' | 'member', item: any) => {
+    if (!isAdminLoggedIn) return;
     setModalTarget(target);
     setModalMode('edit');
     setEditingItem(item);
@@ -233,6 +260,7 @@ export const AdminDashboard: React.FC = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdminLoggedIn) return;
     if (modalTarget === 'news') {
       if (modalMode === 'create') {
         addNewsItem(formData);
@@ -288,8 +316,8 @@ export const AdminDashboard: React.FC = () => {
     setEditingItem(null);
   };
 
-  // 1. ADMIN LOGIN GATE (If not logged in as Admin via Google)
-  if (!isAdminLoggedIn) {
+  // 1. ADMIN / PRESIDENT LOGIN GATE
+  if (!isAdminSessionUnlocked || !canViewAdminPanel) {
     return (
       <div className="max-w-md mx-auto py-10 sm:py-20 px-4">
         <div className="glass-card p-6 sm:p-10 rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl space-y-6 backdrop-blur-2xl">
@@ -300,12 +328,12 @@ export const AdminDashboard: React.FC = () => {
               className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-contain mx-auto shadow-lg ring-2 ring-white/40"
             />
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
-              {t('Executive Admin Login', 'অ্যাডমিন প্যানেল লগইন')}
+              {t('Admin & President Panel', 'অ্যাডমিন ও সভাপতি প্যানেল')}
             </h2>
             <p className="text-slate-800 dark:text-slate-400 text-xs sm:text-sm">
               {t(
-                'Sign in with an authorized Council Administrator Google account to manage the live cloud database.',
-                'লাইভ ক্লাউড ডেটাবেস পরিচালনা করতে অনুমোদিত অ্যাডমিন Google অ্যাকাউন্ট দিয়ে লগইন করুন।'
+                'Restricted to Admin and President only. Continue with an authorized Google account to unlock this panel.',
+                'শুধুমাত্র অ্যাডমিন এবং সভাপতি এই প্যানেলে প্রবেশ করতে পারবেন। আনলক করতে অনুমোদিত Google অ্যাকাউন্ট দিয়ে এগিয়ে যান।'
               )}
             </p>
           </div>
@@ -313,26 +341,6 @@ export const AdminDashboard: React.FC = () => {
           {authLoading ? (
             <div className="py-6 text-center text-xs font-bold text-emerald-800 dark:text-emerald-300">
               {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
-            </div>
-          ) : firebaseUser ? (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-xs space-y-1.5">
-                <div className="font-bold text-amber-950 dark:text-amber-200">
-                  {t('Signed-in account does not have Admin access', 'এই অ্যাকাউন্টে অ্যাডমিন অনুমতি নেই')}
-                </div>
-                <div className="text-slate-700 dark:text-slate-300 break-all">
-                  {t('Currently signed in as:', 'বর্তমান অ্যাকাউন্ট:')}{' '}
-                  <span className="font-mono font-bold">{firebaseUser.email}</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void logoutGoogle()}
-                className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors"
-              >
-                {t('Sign out & Switch Google Account', 'লগআউট করে অন্য Google অ্যাকাউন্ট দিন')}
-              </button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -350,13 +358,22 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
+              {firebaseUser && (
+                <div className="p-3.5 rounded-2xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-950 dark:text-sky-200 leading-relaxed">
+                  {t(
+                    'Admin Panel stays locked separately from Member Portal. Click Continue with Google below to verify Admin or President access.',
+                    'সদস্য পোর্টাল থেকে অ্যাডমিন প্যানেল আলাদা রাখা হয়েছে। অ্যাডমিন বা সভাপতি যাচাই করতে নিচে Google দিয়ে এগিয়ে যান।'
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => void adminLogin()}
                 className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2.5"
               >
                 <Shield className="w-4 h-4" />
-                <span>{t('Sign in with Google (Admin) →', 'Google দিয়ে অ্যাডমিন লগইন →')}</span>
+                <span>{t('Continue with Google (Admin / President) →', 'Google দিয়ে এগিয়ে যান (অ্যাডমিন / সভাপতি) →')}</span>
               </button>
             </div>
           )}
@@ -381,21 +398,33 @@ export const AdminDashboard: React.FC = () => {
       {/* Top Banner & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 sm:pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <img
               src={logoImg}
               alt="Salmikkhang Logo"
               className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
             />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-400">
-              SALMIKKHANG EXECUTIVE WORKSPACE
+              {isPresidentViewOnly
+                ? t('PRESIDENT EXECUTIVE AUDIT VIEW', 'সভাপতি (তদারকি ও শুধু দেখার অনুমতি)')
+                : 'SALMIKKHANG EXECUTIVE WORKSPACE'}
             </span>
           </div>
           <h1 className="text-xl sm:text-3xl font-extrabold text-slate-950 dark:text-slate-100 mt-1">
-            {t('Community Administration & CMS', 'কমিউনিটি পরিচালনা ও নিয়ন্ত্রণ প্যানেল')}
+            {isPresidentViewOnly
+              ? t('Community Executive Overview (View Only)', 'কমিউনিটি পর্যবেক্ষণ প্যানেল (শুধুমাত্র দেখার জন্য)')
+              : t('Community Administration & CMS', 'কমিউনিটি পরিচালনা ও নিয়ন্ত্রণ প্যানেল')}
           </h1>
           <p className="text-xs text-slate-800 dark:text-slate-400 mt-0.5">
-            {t('Full dynamic control over members, applications, events, circulars with PDF upload, and settings.', 'সদস্য নিবন্ধন, অনুষ্ঠান ও PDF নোটিশ প্রকাশ এবং কমিউনিটি নিয়ন্ত্রণের কেন্দ্রীয় ড্যাশবোর্ড।')}
+            {isPresidentViewOnly
+              ? t(
+                  'You can inspect all community records, census, treasury, applications, and settings, without making edits.',
+                  'আপনি সকল তথ্য, গ্রামবাসী জরিপ, তহবিল, আবেদন ও সেটিংস দেখতে পারবেন, তবে কোনো পরিবর্তন করতে পারবেন না।'
+                )
+              : t(
+                  'Full dynamic control over members, applications, events, circulars with PDF upload, and settings.',
+                  'সদস্য নিবন্ধন, অনুষ্ঠান ও PDF নোটিশ প্রকাশ এবং কমিউনিটি নিয়ন্ত্রণের কেন্দ্রীয় ড্যাশবোর্ড।'
+                )}
           </p>
         </div>
 
@@ -425,6 +454,19 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
+      {isPresidentViewOnly && (
+        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-start sm:items-center gap-3 text-xs">
+          <Eye className="w-4 h-4 text-amber-800 dark:text-amber-300 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="text-amber-950 dark:text-amber-200 leading-relaxed">
+            <strong>{t('President Read-Only Access:', 'সভাপতি শুধুমাত্র দেখার অনুমতি:')}</strong>{' '}
+            {t(
+              'Every section of the Admin Dashboard is visible to you for supervision, while creating, editing, approving, or deleting records is restricted exclusively to the Admin.',
+              'অ্যাডমিন প্যানেলের সব অংশই আপনি তদারকির জন্য দেখতে পারবেন, তবে তথ্য সংযোজন, সম্পাদনা, অনুমোদন বা মুছে ফেলার ক্ষমতা শুধুমাত্র অ্যাডমিনের।'
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-12 gap-5 lg:gap-8 pt-5 sm:pt-6 items-start">
         
         {/* Sidebar Nav (Left vertical list) */}
@@ -440,6 +482,7 @@ export const AdminDashboard: React.FC = () => {
               { id: 'residents', labelEn: 'Village Public Records (Census)', labelBn: 'গ্রামবাসী ও নাগরিক তথ্য', icon: Home, count: villageResidents.length },
               { id: 'funds', labelEn: 'Treasury & Cash Book', labelBn: 'তহবিল ও ক্যাশ বুক', icon: DollarSign, count: funds.length },
               { id: 'members', labelEn: 'Member Registration & Registry', labelBn: 'সদস্য নিবন্ধন ও তালিকা', icon: Users, count: members.length },
+              { id: 'discussions', labelEn: 'Discussion Forum', labelBn: 'কমিউনিটি ফোরাম', icon: MessageSquare, count: discussions.length },
               { id: 'news', labelEn: 'News & PDF Notices', labelBn: 'নোটিশ ও PDF পরিপত্র', icon: Newspaper, count: news.length },
               { id: 'events', labelEn: 'Events & Audience Manager', labelBn: 'অনুষ্ঠান ও ক্যালেন্ডার', icon: Calendar, count: events.length },
               { id: 'requests', labelEn: 'Join Applications', labelBn: 'নতুন সদস্য আবেদন', icon: UserPlus, badge: pendingRequests.length },
@@ -574,13 +617,15 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => openCreateModal('member')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('Register New Member Now', 'নতুন সদস্য নিবন্ধন করুন')}</span>
-                </button>
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => openCreateModal('member')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{t('Register New Member Now', 'নতুন সদস্য নিবন্ধন করুন')}</span>
+                  </button>
+                )}
               </div>
 
               {/* Quick Summary Tables */}
@@ -592,12 +637,14 @@ export const AdminDashboard: React.FC = () => {
                     <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                       {t('Recent Notices & Circulars', 'সাম্প্রতিক নোটিশ ও পরিপত্র')}
                     </span>
-                    <button
-                      onClick={() => openCreateModal('news')}
-                      className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
-                    >
-                      + {t('Post Notice', 'নোটিশ দিন')}
-                    </button>
+                    {isAdminLoggedIn && (
+                      <button
+                        onClick={() => openCreateModal('news')}
+                        className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
+                      >
+                        + {t('Post Notice', 'নোটিশ দিন')}
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     {news.slice(0, 3).map(n => (
@@ -623,12 +670,14 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                           <div className="text-[11px] text-slate-500 dark:text-slate-400">{n.date} · {n.category}</div>
                         </div>
-                        <button
-                          onClick={() => openEditModal('news', n)}
-                          className="px-2 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-semibold shrink-0"
-                        >
-                          {t('Edit', 'এডিট')}
-                        </button>
+                        {isAdminLoggedIn && (
+                          <button
+                            onClick={() => openEditModal('news', n)}
+                            className="px-2 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-semibold shrink-0"
+                          >
+                            {t('Edit', 'এডিট')}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -640,12 +689,14 @@ export const AdminDashboard: React.FC = () => {
                     <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                       {t('Upcoming Events & Drives', 'আসন্ন অনুষ্ঠানসমূহ')}
                     </span>
-                    <button
-                      onClick={() => openCreateModal('event')}
-                      className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
-                    >
-                      + {t('Add Event', 'ইভেন্ট যোগ')}
-                    </button>
+                    {isAdminLoggedIn && (
+                      <button
+                        onClick={() => openCreateModal('event')}
+                        className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
+                      >
+                        + {t('Add Event', 'ইভেন্ট যোগ')}
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     {events.slice(0, 3).map(ev => (
@@ -679,17 +730,25 @@ export const AdminDashboard: React.FC = () => {
 
           {/* TAB: ORGANIZATIONAL STRUCTURE & ROLES */}
           {activeAdminTab === 'roles' && (
-            <OrganizationStructure isAdmin={true} />
+            <OrganizationStructure isAdmin={isAdminLoggedIn} />
           )}
 
           {/* TAB: VILLAGE PUBLIC RECORDS & CENSUS */}
           {activeAdminTab === 'residents' && (
-            <VillageResidentsManager isAdmin={true} />
+            <VillageResidentsManager isAdmin={isAdminLoggedIn} />
           )}
 
           {/* TAB: COMMUNITY FUNDS & TREASURY */}
           {activeAdminTab === 'funds' && (
-            <TreasuryFundsManager isAdmin={true} />
+            <TreasuryFundsManager isAdmin={isAdminLoggedIn} />
+          )}
+
+          {/* TAB: COMMUNITY DISCUSSION FORUM */}
+          {activeAdminTab === 'discussions' && (
+            <DiscussionForum
+              readOnly={isPresidentViewOnly}
+              onNavigateToDirectory={() => setActiveAdminTab('members')}
+            />
           )}
 
           {/* 2. MEMBERS DIRECTORY & ADMIN REGISTRATION */}
@@ -715,20 +774,22 @@ export const AdminDashboard: React.FC = () => {
                       className="w-full sm:w-auto pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
-                  <button
-                    onClick={() => openCreateModal('member')}
-                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>{t('Register New Member', 'নতুন সদস্য নিবন্ধন')}</span>
-                  </button>
+                  {isAdminLoggedIn && (
+                    <button
+                      onClick={() => openCreateModal('member')}
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>{t('Register New Member', 'নতুন সদস্য নিবন্ধন')}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Mobile Member Cards */}
               <div className="md:hidden space-y-3">
                 {members
-                  .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || (m.email || m.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()))
                   .map(m => (
                     <div key={m.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 space-y-3 text-xs">
                       <div className="flex items-start justify-between gap-2">
@@ -753,9 +814,11 @@ export const AdminDashboard: React.FC = () => {
                       <div className="space-y-1.5">
                         <select
                           value={m.role}
+                          disabled={!isAdminLoggedIn}
                           onChange={e => updateMember(m.id, { role: e.target.value as Role })}
-                          className="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100"
+                          className="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                         >
+                          <option value="Admin">Admin (অ্যাডমিন - Full Control)</option>
                           <option value="President">President (সভাপতি)</option>
                           <option value="Vice President">Vice President (সহ-সভাপতি)</option>
                           <option value="General Secretary">General Secretary (সাধারণ সম্পাদক)</option>
@@ -780,22 +843,24 @@ export const AdminDashboard: React.FC = () => {
                         <div className="text-[11px] text-slate-800 dark:text-slate-300 truncate max-w-[180px]">
                           {m.village} · <span className="font-mono">{m.email || m.ownerEmail || '-'}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openEditModal('member', m)}
-                            className="px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 rounded-lg font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>{t('Edit', 'এডিট')}</span>
-                          </button>
-                          <button
-                            onClick={() => setDeletingMember(m)}
-                            className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
-                            title="Delete Member"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {isAdminLoggedIn && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditModal('member', m)}
+                              className="px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 rounded-lg font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>{t('Edit', 'এডিট')}</span>
+                            </button>
+                            <button
+                              onClick={() => setDeletingMember(m)}
+                              className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                              title="Delete Member"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -815,7 +880,7 @@ export const AdminDashboard: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {members
-                      .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || (m.email || m.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()))
                       .map(m => (
                         <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                           <td className="py-3 px-4 font-bold text-slate-950 dark:text-slate-100">
@@ -836,9 +901,11 @@ export const AdminDashboard: React.FC = () => {
                           <td className="py-3 px-4">
                             <select
                               value={m.role}
+                              disabled={!isAdminLoggedIn}
                               onChange={e => updateMember(m.id, { role: e.target.value as Role })}
-                              className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 font-medium"
+                              className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 font-medium disabled:opacity-75 disabled:cursor-not-allowed"
                             >
+                              <option value="Admin">Admin (অ্যাডমিন - Full Control)</option>
                               <option value="President">President (সভাপতি)</option>
                               <option value="Vice President">Vice President (সহ-সভাপতি)</option>
                               <option value="General Secretary">General Secretary (সাধারণ সম্পাদক)</option>
@@ -864,22 +931,28 @@ export const AdminDashboard: React.FC = () => {
                             {m.email || m.ownerEmail || '-'}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => openEditModal('member', m)}
-                                className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-emerald-700 rounded"
-                                title="Edit Member Details"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setDeletingMember(m)}
-                                className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded"
-                                title="Delete Member"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {isAdminLoggedIn ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => openEditModal('member', m)}
+                                  className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-emerald-700 rounded"
+                                  title="Edit Member Details"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingMember(m)}
+                                  className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded"
+                                  title="Delete Member"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                {t('View Only', 'শুধু দেখুন')}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -901,13 +974,15 @@ export const AdminDashboard: React.FC = () => {
                     {t('Upload official PDF circulars or news. Registered members receive instant notification.', 'অফিসিয়াল PDF নোটিশ আপলোড করুন। সদস্যদের কাছে সরাসরি নোটিফিকেশন যাবে।')}
                   </p>
                 </div>
-                <button
-                  onClick={() => openCreateModal('news')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('Post Notice / PDF', 'নতুন নোটিশ / PDF')}</span>
-                </button>
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => openCreateModal('news')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{t('Post Notice / PDF', 'নতুন নোটিশ / PDF')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -958,21 +1033,25 @@ export const AdminDashboard: React.FC = () => {
                           <span>{t('Open PDF', 'PDF দেখুন')}</span>
                         </a>
                       )}
-                      <button
-                        onClick={() => openEditModal('news', item)}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
-                        title="Edit News"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>{t('Edit', 'সম্পাদনা')}</span>
-                      </button>
-                      <button
-                        onClick={() => deleteNewsItem(item.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
-                        title="Delete Notice"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdminLoggedIn && (
+                        <>
+                          <button
+                            onClick={() => openEditModal('news', item)}
+                            className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
+                            title="Edit News"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>{t('Edit', 'সম্পাদনা')}</span>
+                          </button>
+                          <button
+                            onClick={() => deleteNewsItem(item.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                            title="Delete Notice"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -992,13 +1071,15 @@ export const AdminDashboard: React.FC = () => {
                     {t('Create or edit events. Choose between Public Events or Members Only access.', 'ইভেন্ট তৈরি বা এডিট করুন। সার্বজনীন অথবা শুধুমাত্র সদস্যদের জন্য অপশন নির্বাচন করুন।')}
                   </p>
                 </div>
-                <button
-                  onClick={() => openCreateModal('event')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('Add New Event', 'নতুন ইভেন্ট যোগ')}</span>
-                </button>
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => openCreateModal('event')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{t('Add New Event', 'নতুন ইভেন্ট যোগ')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -1036,23 +1117,25 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
-                      <button
-                        onClick={() => openEditModal('event', ev)}
-                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors"
-                        title="Edit Event"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>{t('Edit', 'সম্পাদনা')}</span>
-                      </button>
-                      <button
-                        onClick={() => deleteEvent(ev.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
-                        title="Delete Event"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {isAdminLoggedIn && (
+                      <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                        <button
+                          onClick={() => openEditModal('event', ev)}
+                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors"
+                          title="Edit Event"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>{t('Edit', 'সম্পাদনা')}</span>
+                        </button>
+                        <button
+                          onClick={() => deleteEvent(ev.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                          title="Delete Event"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1115,7 +1198,7 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        {req.status === 'Pending' && (
+                        {isAdminLoggedIn && req.status === 'Pending' && (
                           <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
                             <button
                               onClick={() => approveJoinRequest(req.id, 'Volunteer')}
@@ -1168,13 +1251,15 @@ export const AdminDashboard: React.FC = () => {
                     {t('Track Greener Gaira tree planting, tutoring circles, and youth cleanups.', 'উদ্যোগের অগ্রগতি ও স্বেচ্ছাসেবক তালিকা আপডেট করুন।')}
                   </p>
                 </div>
-                <button
-                  onClick={() => openCreateModal('project')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('New Project', 'নতুন উদ্যোগ')}</span>
-                </button>
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => openCreateModal('project')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{t('New Project', 'নতুন উদ্যোগ')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -1188,20 +1273,22 @@ export const AdminDashboard: React.FC = () => {
                       <h4 className="font-bold text-sm text-slate-950 dark:text-slate-100">{proj.title}</h4>
                       <p className="text-xs text-slate-800 dark:text-slate-400">{proj.description}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => openEditModal('project', proj)}
-                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-950 dark:text-slate-200 rounded-lg text-xs font-bold"
-                      >
-                        {t('Edit', 'এডিট')}
-                      </button>
-                      <button
-                        onClick={() => deleteProject(proj.id)}
-                        className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {isAdminLoggedIn && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => openEditModal('project', proj)}
+                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-950 dark:text-slate-200 rounded-lg text-xs font-bold"
+                        >
+                          {t('Edit', 'এডিট')}
+                        </button>
+                        <button
+                          onClick={() => deleteProject(proj.id)}
+                          className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-rose-600 rounded-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1220,13 +1307,15 @@ export const AdminDashboard: React.FC = () => {
                     {t('Add authentic village photos directly from your phone or PC.', 'গ্রামের সুন্দর মুহূর্ত ও যুব কার্যক্রমের ছবি সরাসরি আপলোড করুন।')}
                   </p>
                 </div>
-                <button
-                  onClick={() => openCreateModal('gallery')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('Upload Photo', 'ফটো আপলোড')}</span>
-                </button>
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => openCreateModal('gallery')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs shrink-0 w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{t('Upload Photo', 'ফটো আপলোড')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1236,12 +1325,14 @@ export const AdminDashboard: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
                       <div className="font-bold text-xs leading-tight">{img.title}</div>
                       <div className="text-[10px] text-emerald-300">{img.category} · {img.date}</div>
-                      <button
-                        onClick={() => deleteGalleryItem(img.id)}
-                        className="mt-2 text-rose-300 text-xs font-bold hover:underline self-start"
-                      >
-                        {t('Delete photo', 'মুছুন')}
-                      </button>
+                      {isAdminLoggedIn && (
+                        <button
+                          onClick={() => deleteGalleryItem(img.id)}
+                          className="mt-2 text-rose-300 text-xs font-bold hover:underline self-start"
+                        >
+                          {t('Delete photo', 'মুছুন')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1276,12 +1367,14 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-[10px] text-slate-700 dark:text-slate-400">{msg.date}</span>
-                        <button
-                          onClick={() => deleteMessage(msg.id)}
-                          className="text-slate-700 dark:text-slate-400 hover:text-rose-600 p-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {isAdminLoggedIn && (
+                          <button
+                            onClick={() => deleteMessage(msg.id)}
+                            className="text-slate-700 dark:text-slate-400 hover:text-rose-600 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-xs text-slate-900 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">{msg.message}</p>
@@ -1299,14 +1392,22 @@ export const AdminDashboard: React.FC = () => {
                   {t('Community Organization Profile', 'কমিউনিটি পরিচিতি সেটিংস')}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {t('Update village address, phone, motto, and organizational background.', 'সংস্থার নাম, ঠিকানা, উদ্দেশ্য ও পরিচিতি সম্পাদনা করুন।')}
+                  {t('Update village address, phone, Gmail, and organizational background.', 'সংস্থার নাম, ঠিকানা, ফোন, Gmail ও পরিচিতি সম্পাদনা করুন।')}
                 </p>
               </div>
 
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  updateSettings(settings);
+                  if (!isAdminLoggedIn) return;
+                  void updateSettings({
+                    name: settingsForm.name.trim() || settings.name,
+                    nameBn: settingsForm.nameBn.trim(),
+                    village: settingsForm.village.trim() || settings.village,
+                    address: settingsForm.address.trim(),
+                    phone: settingsForm.phone.trim(),
+                    email: settingsForm.email.trim(),
+                  });
                 }}
                 className="space-y-4 text-xs"
               >
@@ -1315,61 +1416,99 @@ export const AdminDashboard: React.FC = () => {
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Organization Name (English)</label>
                     <input
                       type="text"
-                      value={settings.name}
-                      onChange={e => updateSettings({ name: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.name}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">সংস্থার নাম (বাংলা)</label>
                     <input
                       type="text"
-                      value={settings.nameBn}
-                      onChange={e => updateSettings({ nameBn: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.nameBn}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, nameBn: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Village & Address</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Village & Address', 'গ্রাম ও ঠিকানা')}
+                    </label>
                     <input
                       type="text"
-                      value={settings.address}
-                      onChange={e => updateSettings({ address: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.address}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, address: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Phone</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Contact Phone', 'যোগাযোগের ফোন নম্বর')}
+                    </label>
                     <input
                       type="text"
-                      value={settings.phone}
-                      onChange={e => updateSettings({ phone: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.phone}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={resetAllData}
-                    className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-xs font-bold rounded-xl"
-                  >
-                    {t('Reset Demo Database', 'ডেমো ডাটা রিসেট')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs"
-                  >
-                    {t('Save Settings', 'সংরক্ষণ করুন')}
-                  </button>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Official Gmail / Email', 'অফিসিয়াল Gmail / ইমেইল')}
+                    </label>
+                    <input
+                      type="email"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.email}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="salmikkhang@gmail.com"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('Primary Village / Area', 'মূল গ্রাম / এলাকা')}
+                    </label>
+                    <input
+                      type="text"
+                      disabled={!isAdminLoggedIn}
+                      value={settingsForm.village}
+                      onChange={e => setSettingsForm(prev => ({ ...prev, village: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
                 </div>
+
+                {isAdminLoggedIn && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={resetAllData}
+                      className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-xs font-bold rounded-xl"
+                    >
+                      {t('Reset Demo Database', 'ডেমো ডাটা রিসেট')}
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs"
+                    >
+                      {t('Save Settings', 'সংরক্ষণ করুন')}
+                    </button>
+                  </div>
+                )}
               </form>
 
-              <BackgroundSettings />
+              <BackgroundSettings readOnly={isPresidentViewOnly} />
             </div>
           )}
 
@@ -1488,6 +1627,7 @@ export const AdminDashboard: React.FC = () => {
                         onChange={e => setFormData({ ...formData, role: e.target.value })}
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
                       >
+                        <option value="Admin">Admin (অ্যাডমিন - Full Control)</option>
                         <option value="President">President (সভাপতি)</option>
                         <option value="Vice President">Vice President (সহ-সভাপতি)</option>
                         <option value="General Secretary">General Secretary (সাধারণ সম্পাদক)</option>

@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
-export const BOOTSTRAP_ADMIN_EMAIL = 'blanchonokreksk@gmail.com';
+export const BOOTSTRAP_ADMIN_EMAIL = 'salmikkhang@gmail.com';
 
 const env = (import.meta as any).env || {};
 const firebaseConfig = {

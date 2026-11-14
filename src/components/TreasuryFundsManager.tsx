@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { FundTransaction } from '../types';
+import { resolvePresidentName, resolveRoleStampedActor } from '../lib/memberDisplay';
 import {
   TrendingUp,
   TrendingDown,
@@ -15,6 +16,7 @@ import {
   X,
   Tag,
   Check,
+  Edit2,
 } from 'lucide-react';
 
 interface TreasuryFundsManagerProps {
@@ -25,6 +27,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
   const {
     funds,
     addFundTransaction,
+    updateFundTransaction,
     deleteFundTransaction,
     canManageFundsPermission,
     currentMember,
@@ -42,6 +45,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingTxn, setEditingTxn] = useState<FundTransaction | null>(null);
   const [selectedVoucher, setSelectedVoucher] = useState<FundTransaction | null>(null);
   const [deletingTxn, setDeletingTxn] = useState<FundTransaction | null>(null);
   const [assignCashierModalOpen, setAssignCashierModalOpen] = useState(false);
@@ -84,7 +88,9 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
   };
 
   const openAddModal = (type: 'Inflow' | 'Outflow') => {
+    if (!canManage) return;
     resetForm();
+    setEditingTxn(null);
     const nextVoucher = `VCH-2026-${String(funds.length + 1).padStart(3, '0')}`;
     setFormData(prev => ({
       ...prev,
@@ -95,8 +101,29 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
     setIsAddOpen(true);
   };
 
+  const openEditModal = (txn: FundTransaction) => {
+    if (!canManage) return;
+    setEditingTxn(txn);
+    setFormData({
+      type: txn.type,
+      amount: txn.amount,
+      title: txn.title,
+      titleBn: txn.titleBn || '',
+      donorOrBeneficiary: txn.donorOrBeneficiary || '',
+      category: txn.category,
+      voucherNo: txn.voucherNo || '',
+      date: txn.date || new Date().toISOString().split('T')[0],
+      notes: txn.notes || '',
+    });
+    setIsAddOpen(true);
+  };
+
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) {
+      showToast(t('Only Cashier, Assistant Cashier, or Admin can change treasury records.', 'শুধুমাত্র ক্যাশিয়ার, সহকারী ক্যাশিয়ার বা অ্যাডমিন তহবিল পরিবর্তন করতে পারেন।'), 'warning');
+      return;
+    }
     const numAmount = Number(formData.amount);
     if (!numAmount || numAmount <= 0) {
       showToast(t('Please enter a valid amount.', 'সঠিক টাকার পরিমাণ দিন।'), 'warning');
@@ -107,7 +134,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
       return;
     }
 
-    addFundTransaction({
+    const payload = {
       type: formData.type,
       amount: numAmount,
       title: formData.title.trim(),
@@ -117,9 +144,16 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
       voucherNo: formData.voucherNo.trim() || undefined,
       date: formData.date || new Date().toISOString().split('T')[0],
       notes: formData.notes.trim() || undefined
-    });
+    };
+
+    if (editingTxn) {
+      updateFundTransaction(editingTxn.id, payload);
+    } else {
+      addFundTransaction(payload);
+    }
 
     setIsAddOpen(false);
+    setEditingTxn(null);
     resetForm();
   };
 
@@ -410,7 +444,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800">
                   <span className="text-[11px] text-slate-700 dark:text-slate-400">
-                    {txn.recordedBy || 'Treasury Desk'}
+                    {resolveRoleStampedActor(members, txn.recordedBy, txn.recordedByUid, 'Treasury Desk')}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -421,13 +455,22 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                       <span>{t('Slip', 'রসিদ')}</span>
                     </button>
                     {canManage && (
-                      <button
-                        onClick={() => setDeletingTxn(txn)}
-                        className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
-                        title={t('Cancel / Delete Voucher', 'ভাউচার বাতিল করুন')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openEditModal(txn)}
+                          className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg"
+                          title={t('Edit Voucher', 'ভাউচার এডিট করুন')}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingTxn(txn)}
+                          className="p-1.5 text-rose-700 dark:text-rose-400 rounded-lg"
+                          title={t('Cancel / Delete Voucher', 'ভাউচার বাতিল করুন')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -489,7 +532,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                     </td>
 
                     <td className="py-3.5 px-4 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      {txn.recordedBy || 'Treasury Desk'}
+                      {resolveRoleStampedActor(members, txn.recordedBy, txn.recordedByUid, 'Treasury Desk')}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
@@ -513,13 +556,22 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                         </button>
 
                         {canManage && (
-                          <button
-                            onClick={() => setDeletingTxn(txn)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                            title={t('Cancel / Delete Voucher', 'ভাউচার বাতিল করুন')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openEditModal(txn)}
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title={t('Edit Voucher', 'ভাউচার এডিট করুন')}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingTxn(txn)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title={t('Cancel / Delete Voucher', 'ভাউচার বাতিল করুন')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -543,7 +595,9 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                   {formData.type === 'Inflow' ? t('Treasury Inflow Receipt', 'তহবিল জমা রসিদ') : t('Treasury Expense Voucher', 'তহবিল খরচ ভাউচার')}
                 </span>
                 <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
-                  {formData.type === 'Inflow'
+                  {editingTxn
+                    ? t('Edit Treasury Voucher Entry', 'ভাউচার তথ্য হালনাগাদ করুন')
+                    : formData.type === 'Inflow'
                     ? t('Record Incoming Fund / Member Due', 'চাঁদা বা অনুদান সংগ্রহ লিপিবদ্ধ করুন')
                     : t('Record Outgoing Community Expense', 'খরচ বা ক্রয়ের ভাউচার লিপিবদ্ধ করুন')}
                 </h3>
@@ -551,6 +605,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
               <button
                 onClick={() => {
                   setIsAddOpen(false);
+                  setEditingTxn(null);
                   resetForm();
                 }}
                 className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
@@ -703,6 +758,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                   type="button"
                   onClick={() => {
                     setIsAddOpen(false);
+                    setEditingTxn(null);
                     resetForm();
                   }}
                   className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold"
@@ -715,7 +771,11 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                     formData.type === 'Inflow' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-700 hover:bg-rose-800'
                   }`}
                 >
-                  {formData.type === 'Inflow' ? t('Submit Inflow Voucher', 'জমা ভাউচার নিশ্চিত করুন') : t('Submit Expense Voucher', 'খরচ ভাউচার নিশ্চিত করুন')}
+                  {editingTxn
+                    ? t('Save Voucher Changes', 'পরিবর্তন সংরক্ষণ করুন')
+                    : formData.type === 'Inflow'
+                    ? t('Submit Inflow Voucher', 'জমা ভাউচার নিশ্চিত করুন')
+                    : t('Submit Expense Voucher', 'খরচ ভাউচার নিশ্চিত করুন')}
                 </button>
               </div>
             </form>
@@ -812,11 +872,15 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
               {/* Signature Blocks */}
               <div className="grid grid-cols-2 gap-4 pt-6 text-[10px] text-center">
                 <div className="border-t border-slate-300 dark:border-slate-700 pt-1">
-                  <div className="font-bold text-slate-700 dark:text-slate-300">{selectedVoucher.recordedBy || 'Treasurer / Cashier'}</div>
+                  <div className="font-bold text-slate-700 dark:text-slate-300">
+                    {resolveRoleStampedActor(members, selectedVoucher.recordedBy, selectedVoucher.recordedByUid, 'Treasurer / Cashier')}
+                  </div>
                   <div className="text-slate-400">{t('Cashier / Treasury Desk', 'কোষাধ্যক্ষ / সহকারী ক্যাশিয়ার')}</div>
                 </div>
                 <div className="border-t border-slate-300 dark:border-slate-700 pt-1">
-                  <div className="font-bold text-slate-700 dark:text-slate-300">Bipul Rema</div>
+                  <div className="font-bold text-slate-700 dark:text-slate-300">
+                    {resolvePresidentName(members, t('Council President', 'সভাপতি'))}
+                  </div>
                   <div className="text-slate-400">{t('President / Council Counter-Seal', 'সভাপতি / নিরীক্ষা সিল')}</div>
                 </div>
               </div>
