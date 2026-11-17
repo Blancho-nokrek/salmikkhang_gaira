@@ -10,6 +10,7 @@ import {
   WifiOff,
   ExternalLink,
   CheckCircle2,
+  Info,
 } from 'lucide-react';
 import { useCommunity } from '../context/CommunityContext';
 import { usePWAInstall, useOnlineStatus } from '../hooks/usePWAInstall';
@@ -22,7 +23,7 @@ interface PWAInstallModalProps {
 
 export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClose }) => {
   const { t, showToast } = useCommunity();
-  const { isInstallable, isInstalled, isIOS, isMobile, install } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, isMobile, inIframe, install } = usePWAInstall();
   const [activeTab, setActiveTab] = useState<'android' | 'ios' | 'desktop'>(() => {
     if (typeof navigator !== 'undefined') {
       const ua = navigator.userAgent.toLowerCase();
@@ -45,19 +46,21 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const appUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://salmikkhang.app/';
+    typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://salmikkhang.vercel.app/';
 
   const handleDirectInstall = async () => {
     if (isInstallable) {
-      const accepted = await install();
-      if (accepted) {
+      const outcome = await install();
+      if (outcome === 'accepted') {
         showToast(
           t(
-            'Salmikkhang shortcut added! You can now launch it directly from your Home Screen or Desktop.',
-            'সালমিকখাং শর্টকাট যোগ হয়েছে! এখন হোম স্ক্রিন বা ডেস্কটপ থেকেই সরাসরি চালু করতে পারবেন।'
+            'Salmikkhang app installed! You can now launch it directly from your Home Screen or Desktop.',
+            'সালমিকখাং অ্যাপ ইনস্টল হয়েছে! এখন হোম স্ক্রিন বা ডেস্কটপ থেকেই সরাসরি চালু করতে পারবেন।'
           ),
           'success'
         );
+        onClose();
+      } else if (outcome === 'dismissed') {
         onClose();
       }
       return;
@@ -72,7 +75,10 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
       showToast(t('Website link copied!', 'ওয়েবসাইটের লিঙ্ক কপি হয়েছে!'), 'success');
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      showToast(t('Copy failed. Please copy from address bar.', 'কপি করা যায়নি, ব্রাউজার বার থেকে কপি করুন।'), 'warning');
+      showToast(
+        t('Copy failed. Please copy from address bar.', 'কপি করা যায়নি, ব্রাউজার বার থেকে কপি করুন।'),
+        'warning'
+      );
     }
   };
 
@@ -113,10 +119,10 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             />
             <div className="min-w-0">
               <h3 className="font-display font-extrabold text-base text-slate-950 dark:text-white">
-                {t('Direct Access & Home Screen Shortcut', 'সরাসরি ব্রাউজ ও হোম স্ক্রিন শর্টকাট')}
+                {t('Install Salmikkhang App', 'সালমিকখাং অ্যাপ ডাউনলোড ও ইনস্টল')}
               </h3>
               <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                {t('Save on Phone, Laptop & Desktop PC', 'ফোন, ল্যাপটপ ও ডেস্কটপ পিসিতে শর্টকাট রাখুন')}
+                {t('Direct app access on Phone, Laptop & PC', 'ফোন, ল্যাপটপ ও ডেস্কটপ পিসিতে সরাসরি ব্যবহার করুন')}
               </p>
             </div>
           </div>
@@ -135,8 +141,8 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
               {t(
-                'App shortcut is active! You are viewing Salmikkhang in standalone app mode.',
-                'অ্যাপ শর্টকাট সক্রিয় আছে! আপনি এখন অ্যাপ মোডে ওয়েবসাইটটি ব্যবহার করছেন।'
+                'App is already installed! You can launch Salmikkhang anytime from your Home Screen or Desktop.',
+                'অ্যাপটি ইতিমধ্যেই ইনস্টল করা আছে! হোম স্ক্রিন বা ডেস্কটপ থেকেই সরাসরি চালু করতে পারবেন।'
               )}
             </span>
           </div>
@@ -149,8 +155,31 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>{t('Install App / Add Shortcut (1-Click)', 'এখনই ইনস্টল ও শর্টকাট যোগ করুন (১ ক্লিকে)')}</span>
+            <span>{t('Install App Now (1-Click)', 'এখনই ইনস্টল করুন (১ ক্লিকে)')}</span>
           </button>
+        )}
+
+        {!isInstalled && !isInstallable && inIframe && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/70 space-y-2.5">
+            <div className="flex items-start gap-2 text-xs text-emerald-950 dark:text-emerald-200 leading-relaxed">
+              <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <span>
+                {t(
+                  'Inside an embedded preview frame, browsers block the 1-click "Install app" popup. Open this page in a direct browser tab to install in 1 click!',
+                  'প্রিভিউ ফ্রেমের ভেতর ব্রাউজার ১-ক্লিক ইনস্টল পপআপ ব্লক করে রাখে। সরাসরি ব্রাউজার ট্যাবে খুলে ডাউনলোডে ক্লিক করলেই ১-ক্লিকে ইনস্টল পপআপ আসবে।'
+                )}
+              </span>
+            </div>
+            <a
+              href={appUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>{t('Open in Browser Tab to Install', 'ইনস্টল করতে নতুন ট্যাবে খুলুন')}</span>
+            </a>
+          </div>
         )}
 
         {/* Device Switcher Tabs */}
@@ -196,20 +225,19 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
         {activeTab === 'android' && (
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
             <div className="font-bold text-emerald-900 dark:text-emerald-300">
-              {t('Android Phone (Chrome / Edge)', 'অ্যান্ড্রয়েড ফোন (Chrome / Edge ব্রাউজার)')}
+              {t('Android Phone (Chrome / Brave / Edge)', 'অ্যান্ড্রয়েড ফোন (Chrome / Brave / Edge)')}
             </div>
             <ol className="list-decimal pl-4 space-y-1.5">
-              <li>{t('Open this website in Google Chrome.', 'Google Chrome ব্রাউজারে এই ওয়েবসাইটটি খুলুন।')}</li>
               <li>
                 {t(
-                  'Tap the top-right ⋮ menu button.',
-                  'উপরের ডান কোণায় থাকা ⋮ (তিন ডট) মেনুতে ট্যাপ করুন।'
+                  'Tap Download in the menu to trigger the 1-click "Install app" popup automatically.',
+                  'মেনু থেকে ডাউনলোডে ট্যাপ করলেই সরাসরি "Install app" পপআপ আসবে।'
                 )}
               </li>
               <li>
                 {t(
-                  'Select "Add to Home screen" → "Install" (or "Create shortcut").',
-                  '"Add to Home screen" অথবা "Install app" সিলেক্ট করে যোগ করুন।'
+                  'If the popup was dismissed earlier, tap the top-right ⋮ menu → "Install app" or "Add to Home screen".',
+                  'যদি আগে বাতিল করে থাকেন বা না আসে, উপরে ডানদিকে ⋮ মেনু → "Install app" বা "Add to Home screen" চাপুন।'
                 )}
               </li>
             </ol>
@@ -242,19 +270,19 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
         {activeTab === 'desktop' && (
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
             <div className="font-bold text-emerald-900 dark:text-emerald-300">
-              {t('Windows PC, Mac & Laptop (Chrome / Edge)', 'উইন্ডোজ পিসি, ম্যাক ও ল্যাপটপ (Chrome / Edge)')}
+              {t('Windows PC, Mac & Laptop (Brave / Chrome / Edge)', 'উইন্ডোজ পিসি, ম্যাক ও ল্যাপটপ (Brave / Chrome / Edge)')}
             </div>
             <ol className="list-decimal pl-4 space-y-1.5">
               <li>
                 {t(
-                  'Click the Install app icon on the right side of the browser address bar, OR open ⋮ Menu → Cast, save, and share → Install page as app / Create shortcut.',
-                  'ব্রাউজার অ্যাড্রেস বারের ডানদিকে Install আইকনে ক্লিক করুন, অথবা ⋮ মেনু → Cast, save, and share → Create shortcut / Install page as app ব্যবহার করুন।'
+                  'Click the Install icon (screen with downward arrow) on the right side of the browser address bar to open the "Install app" dialog.',
+                  'ব্রাউজার অ্যাড্রেস বারের ডানদিকে থাকা Install আইকনে ক্লিক করলেই সরাসরি "Install app" পপআপ আসবে।'
                 )}
               </li>
               <li>
                 {t(
-                  'Or download the Windows Desktop Shortcut file below and keep it directly on your Desktop.',
-                  'অথবা নিচের বাটন থেকে সরাসরি ডেস্কটপ শর্টকাট (.url) ডাউনলোড করে পিসি স্ক্রিনে রাখতে পারেন।'
+                  'Or open the browser menu (☰ / ⋮) → Cast, save, and share → Install page as app.',
+                  'অথবা ব্রাউজার মেনু (☰ / ⋮) → Cast, save, and share → Install page as app ব্যবহার করুন।'
                 )}
               </li>
             </ol>
@@ -269,7 +297,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             className="w-full py-2.5 px-3 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>{t('Download PC Shortcut (.url)', 'পিসি শর্টকাট ডাউনলোড (.url)')}</span>
+            <span>{t('PC Shortcut (.url)', 'পিসি শর্টকাট (.url)')}</span>
           </button>
 
           <button

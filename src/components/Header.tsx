@@ -186,7 +186,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'home', labelEn: 'Home', labelBn: 'হোম', mobileLabelEn: 'Home', mobileLabelBn: 'হোম' },
     { id: 'about', labelEn: 'About', labelBn: 'পরিচিতি', mobileLabelEn: 'About Salmikkhang', mobileLabelBn: 'আমাদের পরিচিতি' },
     { id: 'events', labelEn: 'Events', labelBn: 'অনুষ্ঠান', mobileLabelEn: 'Upcoming Events', mobileLabelBn: 'আসন্ন অনুষ্ঠান' },
-    { id: 'news', labelEn: 'News & Notices', labelBn: 'সংবাদ ও নোটিশ', mobileLabelEn: 'News & Community Updates', mobileLabelBn: 'খবর ও আপডেট' },
+    { id: 'news', labelEn: 'Notices', labelBn: 'নোটিশ', mobileLabelEn: 'News & Community Updates', mobileLabelBn: 'খবর ও আপডেট' },
     { id: 'projects', labelEn: 'Projects', labelBn: 'উদ্যোগ', mobileLabelEn: 'Village Projects', mobileLabelBn: 'গ্রামের উদ্যোগ' },
     { id: 'gallery', labelEn: 'Gallery', labelBn: 'গ্যালারি', mobileLabelEn: 'Photo Gallery', mobileLabelBn: 'ফটো গ্যালারি' },
     { id: 'contact', labelEn: 'Contact', labelBn: 'যোগাযোগ', mobileLabelEn: 'Contact Us', mobileLabelBn: 'যোগাযোগ' },
@@ -371,12 +371,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Brand Logo & Name */}
           <div 
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 shrink"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group min-w-0 shrink xl:shrink-0"
           >
             <img
               src={logoImg}
               alt="Salmikkhang Youth Community logo"
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain shadow-md ring-1 ring-white/40 group-hover:scale-105 transition-transform shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain shadow-md ring-1 ring-white/40 group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="flex flex-col min-w-0">
               <span className="font-display font-extrabold text-sm sm:text-base tracking-tight text-slate-950 dark:text-emerald-300 leading-tight group-hover:text-emerald-800 dark:group-hover:text-emerald-200 truncate">
@@ -389,7 +389,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Center Navigation Links (xl+ to prevent collision on resize across tablet/small laptop) */}
-          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-5 shrink-0">
+          <nav className="hidden xl:flex items-center gap-3 2xl:gap-4 shrink-0">
             {navItems.map(item => {
               const isActive = !isAppInstallOpen && currentView === 'website' && activeSection === item.id;
               return (
@@ -442,7 +442,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   placeholder={t('Search...', 'অনুসন্ধান করুন...')}
                   aria-label={t('Search website', 'ওয়েবসাইট অনুসন্ধান')}
-                  className="w-40 md:w-52 lg:w-60 xl:w-40 2xl:w-52 pl-8 pr-7 py-1.5 text-xs font-medium rounded-xl border border-emerald-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
+                  className="w-40 md:w-48 lg:w-56 xl:w-32 2xl:w-48 pl-8 pr-7 py-1.5 text-xs font-medium rounded-xl border border-emerald-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
                 />
                 {searchQuery && (
                   <button
@@ -837,7 +837,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800'
                 }`}
               >
-                {t('Download App', 'অ্যাপ ডাউনলোড')}
+                {t('Download', 'ডাউনলোড')}
               </button>
             )}
 

@@ -6,6 +6,7 @@ import { MemberPortal } from './components/MemberPortal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Modals } from './components/Modals';
 import { PWAInstallModal, OfflineIndicator } from './components/PWAInstallBanner';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import natureBgImg from './assets/images/nature_glass_bg_1794467445710.jpg';
 
@@ -13,13 +14,37 @@ const MainApp: React.FC = () => {
   const {
     currentView,
     settings,
-    toast
+    toast,
+    showToast,
+    t
   } = useCommunity();
+
+  const { isInstallable, install } = usePWAInstall();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
+
+  const handleDownloadClick = async () => {
+    if (isInstallable) {
+      const outcome = await install();
+      if (outcome === 'accepted') {
+        showToast(
+          t(
+            'Salmikkhang app installed! You can now open it directly from your Home Screen or Desktop.',
+            'সালমিকখাং অ্যাপ ইনস্টল হয়েছে! এখন হোম স্ক্রিন বা ডেস্কটপ থেকেই সরাসরি চালাতে পারবেন।'
+          ),
+          'success'
+        );
+        return;
+      }
+      if (outcome === 'dismissed') {
+        return;
+      }
+    }
+    setInstallModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen overflow-x-clip relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
@@ -66,7 +91,7 @@ const MainApp: React.FC = () => {
         <Header
           onOpenSearch={() => setSearchOpen(true)}
           onSelectNews={(id) => setSelectedNewsId(id)}
-          onOpenAppInstall={() => setInstallModalOpen(true)}
+          onOpenAppInstall={() => void handleDownloadClick()}
           isAppInstallOpen={installModalOpen}
         />
 
