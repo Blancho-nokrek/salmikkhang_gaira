@@ -5,6 +5,7 @@ import { PublicWebsite } from './components/PublicWebsite';
 import { MemberPortal } from './components/MemberPortal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Modals } from './components/Modals';
+import { PWAInstallModal, OfflineIndicator } from './components/PWAInstallBanner';
 import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import natureBgImg from './assets/images/nature_glass_bg_1794467445710.jpg';
 
@@ -18,6 +19,7 @@ const MainApp: React.FC = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen overflow-x-clip relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
@@ -64,6 +66,8 @@ const MainApp: React.FC = () => {
         <Header
           onOpenSearch={() => setSearchOpen(true)}
           onSelectNews={(id) => setSelectedNewsId(id)}
+          onOpenAppInstall={() => setInstallModalOpen(true)}
+          isAppInstallOpen={installModalOpen}
         />
 
         {/* Main View Router */}
@@ -89,6 +93,15 @@ const MainApp: React.FC = () => {
           selectedGalleryItem={selectedGalleryItem}
           onCloseGallery={() => setSelectedGalleryItem(null)}
         />
+
+        {/* Home Screen & Desktop Shortcut Modal */}
+        <PWAInstallModal
+          isOpen={installModalOpen}
+          onClose={() => setInstallModalOpen(false)}
+        />
+
+        {/* Offline Connectivity Indicator */}
+        <OfflineIndicator />
       </div>
 
     </div>
