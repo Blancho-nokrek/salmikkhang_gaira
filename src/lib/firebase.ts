@@ -1,6 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  doc,
+  getDocFromServer,
+  type Firestore,
+} from 'firebase/firestore';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
 export const BOOTSTRAP_ADMIN_EMAIL = 'salmikkhang@gmail.com';
@@ -24,7 +32,24 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+function createFirestoreInstance(): Firestore {
+  try {
+    return initializeFirestore(
+      app,
+      {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      },
+      firebaseConfig.firestoreDatabaseId
+    );
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+}
+
+export const db = createFirestoreInstance();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -53,6 +78,27 @@ export interface FirestoreErrorInfo {
       email?: string | null;
     }[];
   };
+}
+
+export function isFirestoreConnectivityOrQuotaError(error: unknown): boolean {
+  const code = typeof (error as any)?.code === 'string' ? ((error as any).code as string).toLowerCase() : '';
+  const msg = (error instanceof Error ? error.message : String(error || '')).toLowerCase();
+  if (
+    code === 'resource-exhausted' ||
+    code === 'unavailable' ||
+    code === 'failed-precondition' ||
+    code === 'aborted' ||
+    code === 'deadline-exceeded'
+  ) {
+    return true;
+  }
+  return (
+    msg.includes('quota limit exceeded') ||
+    msg.includes('resource-exhausted') ||
+    msg.includes('the client is offline') ||
+    msg.includes('could not reach cloud firestore backend') ||
+    msg.includes("backend didn't respond")
+  );
 }
 
 export function handleFirestoreError(
@@ -85,8 +131,11 @@ async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
+    if (isFirestoreConnectivityOrQuotaError(error)) {
+      console.warn(
+        'Firestore running in cached/local mode (connection unavailable or quota exceeded):',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 }

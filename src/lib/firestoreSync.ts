@@ -11,6 +11,7 @@ import {
   auth,
   OperationType,
   handleFirestoreError,
+  isFirestoreConnectivityOrQuotaError,
   BOOTSTRAP_ADMIN_EMAIL,
 } from './firebase';
 import type {
@@ -305,6 +306,10 @@ export async function fsSet(path: string, data: Record<string, any>, op: Operati
     const parts = path.split('/').filter(Boolean);
     await setDoc(doc(db, parts[0], ...parts.slice(1)), data);
   } catch (err) {
+    if (isFirestoreConnectivityOrQuotaError(err)) {
+      console.warn(`Firestore write skipped (offline/quota) at ${path}:`, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
     handleFirestoreError(err, op, path);
   }
 }
@@ -314,6 +319,10 @@ export async function fsDelete(path: string) {
     const parts = path.split('/').filter(Boolean);
     await deleteDoc(doc(db, parts[0], ...parts.slice(1)));
   } catch (err) {
+    if (isFirestoreConnectivityOrQuotaError(err)) {
+      console.warn(`Firestore delete skipped (offline/quota) at ${path}:`, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
@@ -399,6 +408,10 @@ export async function seedInitialFirestoreIfEmpty(seed: {
     await batch.commit();
     return true;
   } catch (err) {
+    if (isFirestoreConnectivityOrQuotaError(err)) {
+      console.warn('Skipped initial Firestore seeding (client offline or daily quota reached).');
+      return false;
+    }
     handleFirestoreError(err, OperationType.WRITE, 'seedInitialFirestoreIfEmpty');
   }
 }

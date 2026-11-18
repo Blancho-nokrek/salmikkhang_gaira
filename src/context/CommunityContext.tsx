@@ -24,6 +24,7 @@ import {
   isBootstrapAdminEmail,
   OperationType,
   handleFirestoreError,
+  isFirestoreConnectivityOrQuotaError,
 } from '../lib/firebase';
 import {
   cleanObj,
@@ -899,7 +900,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isAdminSessionUnlocked, setIsAdminSessionUnlocked] = useState<boolean>(false);
   const [grantedRole, setGrantedRole] = useState<Role | null>(null);
   const [grantedMemberId, setGrantedMemberId] = useState<string | null>(null);
-  const [firestoreSeeded, setFirestoreSeeded] = useState<boolean>(false);
+  const firestoreSeededRef = useRef<boolean>(false);
+  const quotaOrOfflineNotifiedRef = useRef<boolean>(false);
 
   const clearAuthError = () => setAuthError(null);
   const clearMemberAccessNotice = () => setMemberAccessNotice(null);
@@ -936,6 +938,26 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);
   const seededOnceRef = useRef(false);
 
+  // Derived primitive flags so Firestore listeners do not tear down and re-subscribe on object/role jitter
+  const verifiedUid = firebaseUser?.emailVerified ? firebaseUser.uid : null;
+  const verifiedEmail =
+    firebaseUser?.emailVerified && firebaseUser.email
+      ? firebaseUser.email.toLowerCase()
+      : null;
+  const isAuthorizedMember = Boolean(
+    verifiedUid && verifiedEmail && (isAdminLoggedIn || grantedRole)
+  );
+  const canAuditAllMembers = Boolean(
+    isAuthorizedMember && (isAdminLoggedIn || grantedRole === 'President')
+  );
+  const isCollector = Boolean(
+    isAuthorizedMember &&
+      (isAdminLoggedIn || grantedRole === 'President' || grantedRole === 'Data Collector')
+  );
+  const canViewAdminInbox = Boolean(
+    isAuthorizedMember && (isAdminLoggedIn || grantedRole === 'President')
+  );
+
   // Modals & Feedback
   const [toast, setToast] = useState<ToastInfo | null>(null);
   const [activeModal, setActiveModal] = useState<'join' | 'contact' | 'login' | 'rsvp' | null>(null);
@@ -958,6 +980,27 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTimeout(() => {
       setToast(prev => (prev?.message === message ? null : prev));
     }, 3400);
+  };
+
+  const handleListenerError = (error: unknown, op: OperationType, path: string) => {
+    if (isFirestoreConnectivityOrQuotaError(error)) {
+      console.warn(
+        `Firestore listener running with cached/local data (${path}):`,
+        error instanceof Error ? error.message : String(error)
+      );
+      if (!quotaOrOfflineNotifiedRef.current) {
+        quotaOrOfflineNotifiedRef.current = true;
+        showToast(
+          t(
+            'Cloud database quota reached or offline — showing cached/local community data.',
+            'ক্লাউড ডেটাবেস কোটা পূর্ণ বা অফলাইন — সংরক্ষিত/লোকাল তথ্য দেখানো হচ্ছে।'
+          ),
+          'warning'
+        );
+      }
+      return;
+    }
+    handleFirestoreError(error, op, path);
   };
 
   const openModal = (modal: 'join' | 'contact' | 'login' | 'rsvp', payload?: any) => {
@@ -1055,7 +1098,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fsSet(`joinRequests/${reqId}`, toJoinRequestPayload(newReq), OperationType.CREATE);
     } catch (err) {
-      console.error('Could not create automatic join request:', err);
+      if (isFirestoreConnectivityOrQuotaError(err)) {
+        console.warn('Could not create automatic join request (offline/quota):', err);
+      } else {
+        console.error('Could not create automatic join request:', err);
+      }
     }
     return 'sent';
   };
@@ -1280,9 +1327,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 1b. Real-time roleGrants & admins listeners so role updates take effect live without re-login
   useEffect(() => {
-    if (!firebaseUser?.emailVerified || !firebaseUser?.email) return;
+    if (!verifiedUid || !verifiedEmail) return;
 
-    const emailLower = firebaseUser.email.toLowerCase();
+    const emailLower = verifiedEmail;
     const isBootstrap = isBootstrapAdminEmail(emailLower);
     let hasAdminDoc = isBootstrap;
     let grantExists = false;
@@ -1337,7 +1384,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubAdmin = isBootstrap
       ? () => {}
       : onSnapshot(
-          doc(db, 'admins', firebaseUser.uid),
+          doc(db, 'admins', verifiedUid),
           (snap) => {
             hasAdminDoc = snap.exists();
             applyLiveRoleState();
@@ -1351,7 +1398,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       unsubGrant();
       unsubAdmin();
     };
-  }, [firebaseUser]);
+  }, [verifiedUid, verifiedEmail]);
 
   // 2. Public Firestore Listeners (always active for all website visitors)
   useEffect(() => {
@@ -1362,14 +1409,14 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         doc(db, 'settings', 'main'),
         (snap) => {
           if (snap.exists()) {
-            setFirestoreSeeded(true);
+            firestoreSeededRef.current = true;
             const { heroBackground: _hb, siteBackground: _sb, ...cleanMain } = snap.data() as CommunitySettings;
             setSettingsMain(cleanMain);
           } else {
-            setFirestoreSeeded(false);
+            firestoreSeededRef.current = false;
           }
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'settings/main')
+        (error) => handleListenerError(error, OperationType.GET, 'settings/main')
       )
     );
 
@@ -1379,7 +1426,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           setHeroBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'settings/heroBackground')
+        (error) => handleListenerError(error, OperationType.GET, 'settings/heroBackground')
       )
     );
 
@@ -1389,7 +1436,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           setSiteBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
         },
-        (error) => handleFirestoreError(error, OperationType.GET, 'settings/siteBackground')
+        (error) => handleListenerError(error, OperationType.GET, 'settings/siteBackground')
       )
     );
 
@@ -1397,11 +1444,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'projects'), where('status', 'in', ['Ongoing', 'Planning', 'Completed'])),
         (snap) => {
-          if (!snap.empty || firestoreSeeded) {
+          if (!snap.empty || firestoreSeededRef.current) {
             setProjects(snap.docs.map(d => d.data() as Project));
           }
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'projects')
+        (error) => handleListenerError(error, OperationType.LIST, 'projects')
       )
     );
 
@@ -1409,24 +1456,21 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'gallery'), where('visibility', '==', 'public')),
         (snap) => {
-          if (!snap.empty || firestoreSeeded) {
+          if (!snap.empty || firestoreSeededRef.current) {
             const list = snap.docs.map(d => d.data() as GalleryItem);
             list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setGallery(list);
           }
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'gallery')
+        (error) => handleListenerError(error, OperationType.LIST, 'gallery')
       )
     );
 
     return () => unsubs.forEach(u => u());
-  }, [firestoreSeeded]);
+  }, []);
 
   // 3. News & Events Listeners (public-only for guests & unregistered users; full list only for verified database members)
   useEffect(() => {
-    const isAuthorizedMember = Boolean(
-      firebaseUser?.emailVerified && firebaseUser?.email && (isAdminLoggedIn || grantedRole)
-    );
     const newsQuery = isAuthorizedMember
       ? query(collection(db, 'news'), where('status', 'in', ['Published', 'Draft']))
       : query(collection(db, 'news'), where('visibility', '==', 'public'));
@@ -1438,77 +1482,109 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubNews = onSnapshot(
       newsQuery,
       (snap) => {
-        if (!snap.empty || firestoreSeeded) {
+        if (!snap.empty || firestoreSeededRef.current) {
           const items = snap.docs.map(d => d.data() as NewsItem);
           items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setNews(items);
         }
       },
-      (error) => handleFirestoreError(error, OperationType.LIST, 'news')
+      (error) => handleListenerError(error, OperationType.LIST, 'news')
     );
 
     const unsubEvents = onSnapshot(
       eventsQuery,
       (snap) => {
-        if (!snap.empty || firestoreSeeded) {
+        if (!snap.empty || firestoreSeededRef.current) {
           const items = snap.docs.map(d => d.data() as CommunityEvent);
           items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
           setEvents(items);
         }
       },
-      (error) => handleFirestoreError(error, OperationType.LIST, 'events')
+      (error) => handleListenerError(error, OperationType.LIST, 'events')
     );
 
     return () => {
       unsubNews();
       unsubEvents();
     };
-  }, [firebaseUser, isAdminLoggedIn, grantedRole, firestoreSeeded]);
+  }, [isAuthorizedMember]);
 
   // 4. Member & Authenticated Listeners (only attached when user is a verified member in the database)
   useEffect(() => {
-    const isAuthorizedMember = Boolean(
-      firebaseUser?.emailVerified && firebaseUser?.email && (isAdminLoggedIn || grantedRole)
-    );
-    if (!isAuthorizedMember || !firebaseUser?.email) {
+    if (!isAuthorizedMember || !verifiedUid || !verifiedEmail) {
       setVillageResidents([]);
       return;
     }
 
-    const uid = firebaseUser.uid;
-    const emailLower = firebaseUser.email.toLowerCase();
+    const uid = verifiedUid;
+    const emailLower = verifiedEmail;
     const unsubs: (() => void)[] = [];
+    const memberPrivateCache = new Map<string, { email: string; phone: string }>();
+    const residentPrivateCache = new Map<
+      string,
+      { guardianName: string; phone: string; nidOrBirthCert: string }
+    >();
 
     unsubs.push(
       onSnapshot(
         query(collection(db, 'members'), where('status', 'in', ['Active', 'Inactive'])),
         async (snap) => {
-          if (snap.empty && !firestoreSeeded) return;
+          if (snap.empty && !firestoreSeededRef.current) return;
+          const changedMemberIds = new Set<string>();
+          for (const change of snap.docChanges()) {
+            if (change.type === 'removed') {
+              memberPrivateCache.delete(change.doc.id);
+            } else {
+              changedMemberIds.add(change.doc.id);
+            }
+          }
+
           const baseMembers = snap.docs.map(d => ({
             ...(d.data() as Member),
             email: (d.data() as Member).ownerEmail || '',
             phone: '',
           }));
 
-          // Hydrate private contact info for Admin, President (view-only), or the member owner
-          const canAuditAll = isAdminLoggedIn || grantedRole === 'President';
+          // Hydrate private contact info for Admin, President (view-only), or the member owner (cached across updates)
           const hydrated = await Promise.all(
             baseMembers.map(async (m) => {
               const isOwner =
                 m.ownerUid === uid || (m.ownerEmail && m.ownerEmail.toLowerCase() === emailLower);
-              if (!canAuditAll && !isOwner) return m;
+              if (!canAuditAllMembers && !isOwner) return m;
+
+              const cached = memberPrivateCache.get(m.id);
+              if (cached && !changedMemberIds.has(m.id)) {
+                return {
+                  ...m,
+                  email: cached.email || m.email,
+                  phone: cached.phone || '',
+                };
+              }
+
               try {
                 const privSnap = await getDoc(doc(db, 'members', m.id, 'private', 'contact'));
                 if (privSnap.exists()) {
                   const pData = privSnap.data();
+                  const entry = {
+                    email: (pData.email as string) || m.email || '',
+                    phone: (pData.phone as string) || '',
+                  };
+                  memberPrivateCache.set(m.id, entry);
                   return {
                     ...m,
-                    email: pData.email || m.email,
-                    phone: pData.phone || '',
+                    email: entry.email || m.email,
+                    phone: entry.phone,
                   };
                 }
+                memberPrivateCache.set(m.id, { email: m.email || '', phone: '' });
               } catch {
-                // Keep non-PII fields if private doc is restricted
+                if (cached) {
+                  return {
+                    ...m,
+                    email: cached.email || m.email,
+                    phone: cached.phone || '',
+                  };
+                }
               }
               return m;
             })
@@ -1517,11 +1593,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           hydrated.sort((a, b) => (a.memberNo || '').localeCompare(b.memberNo || ''));
           setMembers(hydrated);
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'members')
+        (error) => handleListenerError(error, OperationType.LIST, 'members')
       )
     );
-
-    const isCollector = isAdminLoggedIn || grantedRole === 'President' || grantedRole === 'Data Collector';
 
     if (isCollector) {
       const residentGroupA = ['General Resident', 'Eligible for Aid', 'Senior Citizen'];
@@ -1531,30 +1605,54 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       let groupAReady = false;
       let groupBReady = false;
 
-      const hydrateAndPublishResidents = async () => {
+      const hydrateAndPublishResidents = async (dirtyIds: Set<string>) => {
         if (!groupAReady && !groupBReady) return;
         const combinedMap = new Map<string, VillageResident>();
         for (const r of [...groupARows, ...groupBRows]) {
           combinedMap.set(r.id, r);
         }
         const baseResidents = Array.from(combinedMap.values());
-        if (baseResidents.length === 0 && !firestoreSeeded) return;
+        if (baseResidents.length === 0 && !firestoreSeededRef.current) return;
 
         const hydrated = await Promise.all(
           baseResidents.map(async (r) => {
+            const cached = residentPrivateCache.get(r.id);
+            if (cached && !dirtyIds.has(r.id)) {
+              return {
+                ...r,
+                guardianName: cached.guardianName,
+                phone: cached.phone,
+                nidOrBirthCert: cached.nidOrBirthCert,
+              };
+            }
+
             try {
               const privSnap = await getDoc(doc(db, 'villageResidents', r.id, 'private', 'info'));
               if (privSnap.exists()) {
                 const p = privSnap.data();
+                const entry = {
+                  guardianName: (p.guardianName as string) || '',
+                  phone: (p.phone as string) || '',
+                  nidOrBirthCert: (p.nidOrBirthCert as string) || '',
+                };
+                residentPrivateCache.set(r.id, entry);
                 return {
                   ...r,
-                  guardianName: p.guardianName || '',
-                  phone: p.phone || '',
-                  nidOrBirthCert: p.nidOrBirthCert || '',
+                  ...entry,
                 };
               }
+              residentPrivateCache.set(r.id, {
+                guardianName: '',
+                phone: '',
+                nidOrBirthCert: '',
+              });
             } catch {
-              // Keep non-PII census fields
+              if (cached) {
+                return {
+                  ...r,
+                  ...cached,
+                };
+              }
             }
             return r;
           })
@@ -1562,6 +1660,20 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         hydrated.sort((a, b) => (b.collectedDate || '').localeCompare(a.collectedDate || ''));
         setVillageResidents(hydrated);
+      };
+
+      const collectDirtyIds = (snap: {
+        docChanges: () => Array<{ type: string; doc: { id: string } }>;
+      }): Set<string> => {
+        const dirty = new Set<string>();
+        for (const change of snap.docChanges()) {
+          if (change.type === 'removed') {
+            residentPrivateCache.delete(change.doc.id);
+          } else {
+            dirty.add(change.doc.id);
+          }
+        }
+        return dirty;
       };
 
       const mapResidentSnapshot = (snap: { docs: Array<{ data: () => unknown }> }): VillageResident[] =>
@@ -1578,9 +1690,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           async (snap) => {
             groupAReady = true;
             groupARows = mapResidentSnapshot(snap);
-            await hydrateAndPublishResidents();
+            await hydrateAndPublishResidents(collectDirtyIds(snap));
           },
-          (error) => handleFirestoreError(error, OperationType.LIST, 'villageResidents')
+          (error) => handleListenerError(error, OperationType.LIST, 'villageResidents')
         )
       );
 
@@ -1590,9 +1702,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           async (snap) => {
             groupBReady = true;
             groupBRows = mapResidentSnapshot(snap);
-            await hydrateAndPublishResidents();
+            await hydrateAndPublishResidents(collectDirtyIds(snap));
           },
-          (error) => handleFirestoreError(error, OperationType.LIST, 'villageResidents')
+          (error) => handleListenerError(error, OperationType.LIST, 'villageResidents')
         )
       );
     } else {
@@ -1603,13 +1715,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'funds'), where('type', 'in', ['Inflow', 'Outflow'])),
         (snap) => {
-          if (!snap.empty || firestoreSeeded) {
+          if (!snap.empty || firestoreSeededRef.current) {
             const list = snap.docs.map(d => d.data() as FundTransaction);
             list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setFunds(list);
           }
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'funds')
+        (error) => handleListenerError(error, OperationType.LIST, 'funds')
       )
     );
 
@@ -1620,7 +1732,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           where('category', 'in', ['General', 'Project Idea', 'Question', 'Event Prep'])
         ),
         (snap) => {
-          if (!snap.empty || firestoreSeeded) {
+          if (!snap.empty || firestoreSeededRef.current) {
             const list = snap.docs.map(d => {
               const data = d.data() as DiscussionPost;
               return {
@@ -1632,7 +1744,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setDiscussions(list);
           }
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'discussions')
+        (error) => handleListenerError(error, OperationType.LIST, 'discussions')
       )
     );
 
@@ -1640,55 +1752,54 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'notifications'), where('type', 'in', ['notice', 'event', 'system'])),
         (snap) => {
-          if (!snap.empty || firestoreSeeded) {
+          if (!snap.empty || firestoreSeededRef.current) {
             const list = snap.docs.map(d => d.data() as MemberNotification);
             list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setNotifications(list);
           }
         },
-        (error) => handleFirestoreError(error, OperationType.LIST, 'notifications')
+        (error) => handleListenerError(error, OperationType.LIST, 'notifications')
       )
     );
 
     return () => unsubs.forEach(u => u());
-  }, [firebaseUser, isAdminLoggedIn, grantedRole, firestoreSeeded]);
+  }, [isAuthorizedMember, verifiedUid, verifiedEmail, canAuditAllMembers, isCollector]);
 
   // 5. Admin & President (View-Only) Listeners (Join Requests & Contact Inbox)
   useEffect(() => {
-    const canViewAdminInbox = isAdminLoggedIn || grantedRole === 'President';
-    if (!canViewAdminInbox || !firebaseUser?.emailVerified) {
+    if (!canViewAdminInbox) {
       return;
     }
 
     const unsubRequests = onSnapshot(
       collection(db, 'joinRequests'),
       (snap) => {
-        if (!snap.empty || firestoreSeeded) {
+        if (!snap.empty || firestoreSeededRef.current) {
           const list = snap.docs.map(d => d.data() as JoinRequest);
           list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setJoinRequests(list);
         }
       },
-      (error) => handleFirestoreError(error, OperationType.LIST, 'joinRequests')
+      (error) => handleListenerError(error, OperationType.LIST, 'joinRequests')
     );
 
     const unsubMessages = onSnapshot(
       collection(db, 'messages'),
       (snap) => {
-        if (!snap.empty || firestoreSeeded) {
+        if (!snap.empty || firestoreSeededRef.current) {
           const list = snap.docs.map(d => d.data() as ContactMessage);
           list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setMessages(list);
         }
       },
-      (error) => handleFirestoreError(error, OperationType.LIST, 'messages')
+      (error) => handleListenerError(error, OperationType.LIST, 'messages')
     );
 
     return () => {
       unsubRequests();
       unsubMessages();
     };
-  }, [isAdminLoggedIn, grantedRole, firebaseUser, firestoreSeeded]);
+  }, [canViewAdminInbox]);
 
   // 6. Sync currentMember profile from signed-in Google user + live members list (and keep Admin preview live)
   useEffect(() => {
@@ -2139,6 +2250,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const logFirestoreFailure = (err: unknown, op: OperationType, path: string | null) => {
+    if (isFirestoreConnectivityOrQuotaError(err)) {
+      console.warn(
+        `Firestore operation skipped (offline/quota) at ${path}:`,
+        err instanceof Error ? err.message : String(err)
+      );
+      return;
+    }
     try {
       handleFirestoreError(err, op, path);
     } catch {
