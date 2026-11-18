@@ -13,6 +13,7 @@ import {
   getDoc,
   onSnapshot,
   query,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -93,7 +94,7 @@ export interface ToastInfo {
 
 export interface MemberAccessNotice {
   email: string;
-  status: 'sent' | 'pending' | 'rejected' | 'inactive';
+  status: 'sent' | 'pending' | 'rejected' | 'inactive' | 'failed';
 }
 
 export interface AdminAccessWarning {
@@ -124,6 +125,7 @@ interface CommunityContextType {
   adminAccessWarning: AdminAccessWarning | null;
   clearAdminAccessWarning: () => void;
   loginWithGoogle: (options?: { silentSuccessToast?: boolean; targetPortal?: 'member' | 'admin' }) => Promise<boolean>;
+  verifyExistingGoogleSession: (targetPortal: 'member' | 'admin') => Promise<boolean>;
   logoutGoogle: () => Promise<void>;
 
   // Active Member Session & Auth
@@ -937,6 +939,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);
   const seededOnceRef = useRef(false);
+  const membersRef = useRef<Member[]>(initialMembers);
+  const linkingUidRef = useRef<Set<string>>(new Set());
+  const authFlowInProgressRef = useRef(false);
+
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
 
   // Derived primitive flags so Firestore listeners do not tear down and re-subscribe on object/role jitter
   const verifiedUid = firebaseUser?.emailVerified ? firebaseUser.uid : null;
@@ -1020,52 +1029,175 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     isAdmin: boolean;
     role: Role | null;
     memberId: string | null;
-    reason?: 'inactive' | 'not_found';
+    reason?: 'inactive' | 'not_found' | 'offline';
   }> => {
     const emailLower = (user.email || '').trim().toLowerCase();
     if (!emailLower || !user.emailVerified) {
       return { allowed: false, isAdmin: false, role: null, memberId: null, reason: 'not_found' };
     }
+
+    const matchedLocal = membersRef.current.find(
+      m => (m.ownerEmail || m.email || '').trim().toLowerCase() === emailLower
+    );
+
     if (isBootstrapAdminEmail(emailLower)) {
-      return { allowed: true, isAdmin: true, role: 'Admin', memberId: null };
+      let resolvedRole: Role = 'Admin';
+      let resolvedMemberId: string | null = matchedLocal?.id || null;
+      try {
+        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
+        if (grantSnap.exists()) {
+          const data = grantSnap.data();
+          if (data.role) resolvedRole = data.role as Role;
+          if (data.memberId) resolvedMemberId = data.memberId as string;
+        }
+      } catch {
+        // Bootstrap admin remains authorized even if offline/quota-limited
+      }
+      return { allowed: true, isAdmin: true, role: resolvedRole, memberId: resolvedMemberId };
     }
 
     let hasAdminDoc = false;
+    let firestoreUnreachable = false;
+
     try {
       const adminSnap = await getDoc(doc(db, 'admins', user.uid));
       if (adminSnap.exists()) hasAdminDoc = true;
-    } catch {
-      // Ignore lookup error and verify via roleGrants
+    } catch (err) {
+      if (isFirestoreConnectivityOrQuotaError(err)) {
+        firestoreUnreachable = true;
+      }
     }
 
+    let grantFound = false;
     try {
       const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
       if (grantSnap.exists()) {
+        grantFound = true;
         const data = grantSnap.data();
         const grantStatus = (data.status as string | undefined) || 'Active';
         if (grantStatus === 'Inactive' && !hasAdminDoc) {
-          return { allowed: false, isAdmin: false, role: null, memberId: data.memberId || null, reason: 'inactive' };
+          return {
+            allowed: false,
+            isAdmin: false,
+            role: null,
+            memberId: (data.memberId as string) || null,
+            reason: 'inactive',
+          };
         }
         const role = (data.role as Role) || 'Member';
         return {
           allowed: true,
           isAdmin: hasAdminDoc || role === 'Admin',
           role,
-          memberId: data.memberId || null,
+          memberId: (data.memberId as string) || matchedLocal?.id || null,
         };
       }
-    } catch {
-      // Not found or inaccessible
+    } catch (err) {
+      if (isFirestoreConnectivityOrQuotaError(err)) {
+        firestoreUnreachable = true;
+      }
     }
 
     if (hasAdminDoc) {
-      return { allowed: true, isAdmin: true, role: 'Admin', memberId: null };
+      return {
+        allowed: true,
+        isAdmin: true,
+        role: matchedLocal?.role || 'Admin',
+        memberId: matchedLocal?.id || null,
+      };
     }
 
-    return { allowed: false, isAdmin: false, role: null, memberId: null, reason: 'not_found' };
+    // Fallback to cached/default directory when Firestore is offline/quota-limited or not yet seeded
+    if (!grantFound && (firestoreUnreachable || !firestoreSeededRef.current) && matchedLocal) {
+      if (matchedLocal.status === 'Inactive') {
+        return { allowed: false, isAdmin: false, role: null, memberId: matchedLocal.id, reason: 'inactive' };
+      }
+      return {
+        allowed: true,
+        isAdmin: matchedLocal.role === 'Admin',
+        role: matchedLocal.role || 'Member',
+        memberId: matchedLocal.id,
+      };
+    }
+
+    return {
+      allowed: false,
+      isAdmin: false,
+      role: null,
+      memberId: null,
+      reason: firestoreUnreachable ? 'offline' : 'not_found',
+    };
   };
 
-  const ensureAutoJoinRequestForUser = async (user: User): Promise<'sent' | 'pending' | 'rejected'> => {
+  const syncAuthenticatedUserWithDatabase = async (
+    user: User,
+    access: {
+      allowed: boolean;
+      isAdmin: boolean;
+      role: Role | null;
+      memberId: string | null;
+    }
+  ) => {
+    if (!access.allowed || !user.emailVerified || !user.email) return;
+    const emailLower = user.email.trim().toLowerCase();
+    const cacheKey = `${user.uid}:${emailLower}`;
+    if (linkingUidRef.current.has(cacheKey)) return;
+    linkingUidRef.current.add(cacheKey);
+
+    try {
+      // 1. Ensure admins/{uid} document exists for Admin users so Firestore rules recognize UID immediately
+      if (access.isAdmin) {
+        try {
+          const adminDocRef = doc(db, 'admins', user.uid);
+          const existingAdmin = await getDoc(adminDocRef);
+          if (!existingAdmin.exists()) {
+            await setDoc(adminDocRef, {
+              uid: user.uid,
+              email: emailLower,
+              grantedBy: isBootstrapAdminEmail(emailLower) ? 'bootstrap' : 'google-link',
+            });
+          }
+        } catch (err) {
+          if (!isFirestoreConnectivityOrQuotaError(err)) {
+            console.warn('Could not link admins doc for UID:', err);
+          }
+        }
+      }
+
+      // 2. Link user.uid onto matching members/{memberId} and members/{memberId}/private/contact
+      const matched = membersRef.current.find(
+        m =>
+          (access.memberId && m.id === access.memberId) ||
+          m.ownerEmail?.toLowerCase() === emailLower ||
+          m.email?.toLowerCase() === emailLower
+      );
+
+      if (matched && matched.ownerUid !== user.uid) {
+        const mId = sanitizeId(matched.id);
+        setMembers(prev => prev.map(m => (m.id === matched.id ? { ...m, ownerUid: user.uid, ownerEmail: emailLower } : m)));
+        try {
+          await updateDoc(doc(db, 'members', mId), { ownerUid: user.uid });
+        } catch (err) {
+          if (!isFirestoreConnectivityOrQuotaError(err)) {
+            console.warn('Could not link ownerUid on member public doc:', err);
+          }
+        }
+        try {
+          await updateDoc(doc(db, 'members', mId, 'private', 'contact'), { ownerUid: user.uid });
+        } catch (err) {
+          if (!isFirestoreConnectivityOrQuotaError(err)) {
+            console.warn('Could not link ownerUid on member private doc:', err);
+          }
+        }
+      }
+    } finally {
+      // Allow re-check if member doc arrives later via snapshot without ownerUid
+    }
+  };
+
+  const ensureAutoJoinRequestForUser = async (
+    user: User
+  ): Promise<'sent' | 'pending' | 'rejected' | 'failed'> => {
     const emailLower = (user.email || '').trim().toLowerCase();
     const reqId = sanitizeId(`req-${user.uid}`);
 
@@ -1097,14 +1229,15 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     try {
       await fsSet(`joinRequests/${reqId}`, toJoinRequestPayload(newReq), OperationType.CREATE);
+      return 'sent';
     } catch (err) {
       if (isFirestoreConnectivityOrQuotaError(err)) {
         console.warn('Could not create automatic join request (offline/quota):', err);
       } else {
         console.error('Could not create automatic join request:', err);
       }
+      return 'failed';
     }
-    return 'sent';
   };
 
   // 1. Complete any pending redirect sign-in and listen to Firebase Auth State
@@ -1172,6 +1305,16 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               setAuthError(msg);
               showToast(msg, 'warning');
               setCurrentViewState('member');
+            } else if (access.reason === 'offline') {
+              setIsMemberSessionUnlocked(false);
+              setMemberAccessNotice({ email: emailLower, status: 'failed' });
+              const msg = t(
+                `Could not connect to the cloud database for "${emailLower}". Please check your internet connection or try again later.`,
+                `"${emailLower}"-এর জন্য ক্লাউড ডেটাবেসের সাথে সংযোগ করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।`
+              );
+              setAuthError(msg);
+              showToast(msg, 'warning');
+              setCurrentViewState('member');
             } else {
               setIsMemberSessionUnlocked(false);
               const reqStatus = await ensureAutoJoinRequestForUser(res.user);
@@ -1186,6 +1329,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   ? t(
                       `"${emailLower}" is not in the member database yet. Your request is already pending Admin approval.`,
                       `"${emailLower}" এখনো সদস্য ডেটাবেসে যুক্ত হয়নি। আপনার রিকোয়েস্ট অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে।`
+                    )
+                  : reqStatus === 'failed'
+                  ? t(
+                      `Signed in as "${emailLower}", but could not reach the cloud database to send an access request right now.`,
+                      `"${emailLower}" হিসেবে লগইন হয়েছে, কিন্তু এই মুহূর্তে ডেটাবেসে অ্যাক্সেস রিকোয়েস্ট পাঠানো যায়নি।`
                     )
                   : t(
                       `Access Denied! "${emailLower}" is not in the database. An access request has been sent to the Admin.`,
@@ -1236,90 +1384,59 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
-      setAuthLoading(true);
+      const isManualFlow = authFlowInProgressRef.current;
+      if (!isManualFlow) {
+        setAuthLoading(true);
+      }
       setFirebaseUser(user);
 
-      const emailLower = user.email.toLowerCase();
-      const isBootstrap = isBootstrapAdminEmail(emailLower);
-      let adminAllowed = isBootstrap;
-      let resolvedGrantRole: Role | null = isBootstrap ? 'Admin' : null;
-      let resolvedMemberId: string | null = null;
+      const access = await verifyMemberDatabaseAccess(user);
 
-      try {
-        if (!isBootstrap) {
-          const adminSnap = await getDoc(doc(db, 'admins', user.uid));
-          if (adminSnap.exists()) adminAllowed = true;
-        }
-      } catch (err) {
-        console.warn('Admin doc lookup skipped:', err);
-      }
+      setIsAdminLoggedIn(access.isAdmin);
+      setGrantedRole(access.role);
+      setGrantedMemberId(access.memberId);
 
-      // Check role grant by verified email
-      try {
-        const grantSnap = await getDoc(doc(db, 'roleGrants', emailLower));
-        if (grantSnap.exists()) {
-          const data = grantSnap.data();
-          const grantStatus = (data.status as string | undefined) || 'Active';
-          if (grantStatus === 'Inactive' && !isBootstrap && !adminAllowed) {
-            resolvedGrantRole = null;
-            resolvedMemberId = data.memberId || null;
-            adminAllowed = false;
-          } else {
-            const grantRole = (data.role as Role) || 'Member';
-            resolvedMemberId = data.memberId || null;
-            if (isBootstrap) {
-              resolvedGrantRole = grantRole;
-              adminAllowed = true;
-            } else {
-              resolvedGrantRole = grantRole;
-              adminAllowed = adminAllowed || grantRole === 'Admin';
-            }
-          }
-        } else if (adminAllowed) {
-          resolvedGrantRole = 'Admin';
-        }
-      } catch (err) {
-        console.warn('Role grant lookup:', err);
-        if (adminAllowed) {
-          resolvedGrantRole = 'Admin';
-        }
-      }
-
-      setIsAdminLoggedIn(adminAllowed);
-      setGrantedRole(resolvedGrantRole);
-      setGrantedMemberId(resolvedMemberId);
-      if (!adminAllowed && !resolvedGrantRole) {
+      if (!isManualFlow && !access.allowed && access.reason !== 'offline') {
         setIsMemberSessionUnlocked(false);
         setIsAdminSessionUnlocked(false);
       }
 
-      // Seed initial Firestore data automatically on first Admin login
-      if (adminAllowed && !seededOnceRef.current) {
-        seededOnceRef.current = true;
-        try {
-          const didSeed = await seedInitialFirestoreIfEmpty({
-            settings: initialSettings,
-            members: initialMembers,
-            joinRequests: initialJoinRequests,
-            events: initialEvents,
-            news: initialNews,
-            notifications: initialNotifications,
-            projects: initialProjects,
-            gallery: initialGallery,
-            messages: initialMessages,
-            discussions: initialDiscussions,
-            funds: initialDetailedFunds,
-            villageResidents: initialVillageResidents,
-          });
-          if (didSeed) {
-            showToast(t('Cloud database initialized with community records!', 'ক্লাউড ডেটাবেস সফলভাবে সেটআপ হয়েছে!'), 'success');
-          }
-        } catch (err) {
-          console.error(err);
-        }
+      // Always unblock auth UI immediately; run background linking/seeding without stalling
+      setAuthLoading(false);
+
+      if (access.allowed) {
+        void syncAuthenticatedUserWithDatabase(user, access);
       }
 
-      setAuthLoading(false);
+      if (access.isAdmin && !seededOnceRef.current) {
+        seededOnceRef.current = true;
+        void (async () => {
+          try {
+            const didSeed = await seedInitialFirestoreIfEmpty({
+              settings: initialSettings,
+              members: initialMembers,
+              joinRequests: initialJoinRequests,
+              events: initialEvents,
+              news: initialNews,
+              notifications: initialNotifications,
+              projects: initialProjects,
+              gallery: initialGallery,
+              messages: initialMessages,
+              discussions: initialDiscussions,
+              funds: initialDetailedFunds,
+              villageResidents: initialVillageResidents,
+            });
+            if (didSeed) {
+              showToast(
+                t('Cloud database initialized with community records!', 'ক্লাউড ডেটাবেস সফলভাবে সেটআপ হয়েছে!'),
+                'success'
+              );
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        })();
+      }
     });
 
     return () => unsub();
@@ -1964,8 +2081,18 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return false;
       }
 
-      // Fallback to full-page redirect when popups are blocked or unsupported (e.g., mobile / in-app browsers)
+      // Fallback when popups are blocked or unsupported
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+        if (isInIframe) {
+          const msg = t(
+            'Popup was blocked inside the preview frame. Please allow popups in your browser address bar, or open this app in a full browser tab to sign in with Google.',
+            'প্রিভিউ ফ্রেমে পপআপ ব্লক হয়েছে। ব্রাউজারে পপআপ অনুমতি দিন অথবা নতুন ট্যাবে ওয়েবসাইটটি খুলে Google দিয়ে সাইন-ইন করুন।'
+          );
+          setAuthError(msg);
+          showToast(msg, 'warning');
+          return false;
+        }
         try {
           if (options?.targetPortal) {
             try {
@@ -2009,21 +2136,59 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const loginAsMember = async (): Promise<boolean> => {
-    const previousEmail = firebaseUser?.email?.toLowerCase() || null;
-    setMemberAccessNotice(null);
-    setAdminAccessWarning(null);
-    const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'member' });
-    if (!ok || !auth.currentUser?.email) return false;
-
-    const user = auth.currentUser;
-    const emailLower = user.email!.toLowerCase();
-    if (previousEmail && previousEmail !== emailLower) {
-      setIsAdminSessionUnlocked(false);
+  const authorizeVerifiedUserForPortal = async (
+    user: User,
+    targetPortal: 'member' | 'admin'
+  ): Promise<boolean> => {
+    if (!user.email || !user.emailVerified) {
+      const msg = t('Please use a verified Google account.', 'যাচাইকৃত Google অ্যাকাউন্ট দিয়ে লগইন করুন।');
+      setAuthError(msg);
+      showToast(msg, 'warning');
+      return false;
     }
-    setPreviewMemberId(null);
 
+    const emailLower = user.email.toLowerCase();
     const access = await verifyMemberDatabaseAccess(user);
+
+    if (targetPortal === 'admin') {
+      const allowed = access.allowed && (access.isAdmin || access.role === 'President');
+      if (!allowed) {
+        setIsAdminSessionUnlocked(false);
+        if (access.reason === 'offline') {
+          const msg = t(
+            'Could not verify Admin privileges because the cloud database is currently offline or quota-limited. Please try again later.',
+            'ক্লাউড ডেটাবেস অফলাইন বা কোটা পূর্ণ থাকায় অ্যাডমিন অনুমতি যাচাই করা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।'
+          );
+          setAuthError(msg);
+          showToast(msg, 'warning');
+          return false;
+        }
+        setAdminAccessWarning({ email: emailLower, role: access.role });
+        const msg = t(
+          `RESTRICTED ACCESS WARNING: "${user.email}" is not authorized for the Admin & President Panel. No access request is accepted here.`,
+          `সতর্কতা — সংরক্ষিত প্রবেশাধিকার: "${user.email}" অ্যাডমিন বা সভাপতি প্যানেলের জন্য অনুমোদিত নয়। এখানে কোনো রিকোয়েস্ট পাঠানো বা গ্রহণ করা হয় না।`
+        );
+        setAuthError(msg);
+        showToast(msg, 'warning');
+        return false;
+      }
+
+      setIsAdminLoggedIn(access.isAdmin);
+      setGrantedRole(access.role);
+      setGrantedMemberId(access.memberId);
+      setAdminAccessWarning(null);
+      setAuthError(null);
+      setPreviewMemberId(null);
+      setIsAdminSessionUnlocked(true);
+      void syncAuthenticatedUserWithDatabase(user, access);
+      showToast(
+        t(`Admin Panel unlocked for ${user.displayName || user.email}`, `${user.displayName || user.email}-এর জন্য অ্যাডমিন প্যানেল আনলক হয়েছে`),
+        'success'
+      );
+      return true;
+    }
+
+    // Member portal verification & linking
     if (!access.allowed) {
       setIsMemberSessionUnlocked(false);
       if (access.reason === 'inactive') {
@@ -2031,6 +2196,16 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const msg = t(
           `Access Denied! "${emailLower}" is marked Inactive in the database and cannot enter the Member Portal.`,
           `প্রবেশাধিকার নেই! "${emailLower}" ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে—তাই সদস্য পোর্টালে প্রবেশ করা যাবে না।`
+        );
+        setAuthError(msg);
+        showToast(msg, 'warning');
+        return false;
+      }
+      if (access.reason === 'offline') {
+        setMemberAccessNotice({ email: emailLower, status: 'failed' });
+        const msg = t(
+          `Signed in as "${emailLower}", but could not reach the cloud database right now. Please check your connection or try again later.`,
+          `"${emailLower}" হিসেবে লগইন হয়েছে, কিন্তু এই মুহূর্তে ক্লাউড ডেটাবেসের সাথে সংযোগ পাওয়া যায়নি। পরে আবার চেষ্টা করুন।`
         );
         setAuthError(msg);
         showToast(msg, 'warning');
@@ -2050,6 +2225,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               `Not Registered Yet! "${emailLower}" is not in the database. Your access request is already pending Admin approval.`,
               `নিবন্ধিত নয়! "${emailLower}" ডেটাবেসে নেই। আপনার রিকোয়েস্ট অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে।`
             )
+          : reqStatus === 'failed'
+          ? t(
+              `"${emailLower}" is not in the local directory and the cloud database could not be reached to submit a join request.`,
+              `"${emailLower}" তালিকায় নেই এবং ক্লাউড ডেটাবেসে রিকোয়েস্ট পাঠানো যায়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।`
+            )
           : t(
               `Access Denied! "${emailLower}" is not in the database. An access request has been sent to the Admin.`,
               `প্রবেশাধিকার নেই! "${emailLower}" ডেটাবেসে নেই। অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে।`
@@ -2059,9 +2239,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
 
+    setIsAdminLoggedIn(access.isAdmin);
+    setGrantedRole(access.role);
+    setGrantedMemberId(access.memberId);
     setMemberAccessNotice(null);
     setAuthError(null);
     setIsMemberSessionUnlocked(true);
+    void syncAuthenticatedUserWithDatabase(user, access);
     showToast(
       t(
         `Member Portal unlocked for ${user.displayName || user.email}`,
@@ -2070,6 +2254,47 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       'success'
     );
     return true;
+  };
+
+  const verifyExistingGoogleSession = async (targetPortal: 'member' | 'admin'): Promise<boolean> => {
+    const user = auth.currentUser || firebaseUser;
+    if (!user || !user.email || !user.emailVerified) {
+      if (targetPortal === 'admin') return adminLogin();
+      return loginAsMember();
+    }
+    setMemberAccessNotice(null);
+    setAdminAccessWarning(null);
+    setAuthError(null);
+    setPreviewMemberId(null);
+    authFlowInProgressRef.current = true;
+    try {
+      return await authorizeVerifiedUserForPortal(user, targetPortal);
+    } finally {
+      authFlowInProgressRef.current = false;
+      setAuthLoading(false);
+    }
+  };
+
+  const loginAsMember = async (): Promise<boolean> => {
+    const previousEmail = firebaseUser?.email?.toLowerCase() || null;
+    setMemberAccessNotice(null);
+    setAdminAccessWarning(null);
+    authFlowInProgressRef.current = true;
+    try {
+      const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'member' });
+      if (!ok || !auth.currentUser?.email) return false;
+
+      const user = auth.currentUser;
+      const emailLower = user.email!.toLowerCase();
+      if (previousEmail && previousEmail !== emailLower) {
+        setIsAdminSessionUnlocked(false);
+      }
+      setPreviewMemberId(null);
+      return await authorizeVerifiedUserForPortal(user, 'member');
+    } finally {
+      authFlowInProgressRef.current = false;
+      setAuthLoading(false);
+    }
   };
 
   const logoutMember = () => {
@@ -2086,39 +2311,21 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const adminLogin = async (): Promise<boolean> => {
     const previousEmail = firebaseUser?.email?.toLowerCase() || null;
     setAdminAccessWarning(null);
-    const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'admin' });
-    if (!ok || !auth.currentUser?.email) return false;
+    authFlowInProgressRef.current = true;
+    try {
+      const ok = await loginWithGoogle({ silentSuccessToast: true, targetPortal: 'admin' });
+      if (!ok || !auth.currentUser?.email) return false;
 
-    const user = auth.currentUser;
-    const emailLower = user.email!.toLowerCase();
-    if (previousEmail && previousEmail !== emailLower) {
-      setIsMemberSessionUnlocked(false);
+      const user = auth.currentUser;
+      const emailLower = user.email!.toLowerCase();
+      if (previousEmail && previousEmail !== emailLower) {
+        setIsMemberSessionUnlocked(false);
+      }
+      return await authorizeVerifiedUserForPortal(user, 'admin');
+    } finally {
+      authFlowInProgressRef.current = false;
+      setAuthLoading(false);
     }
-
-    const access = await verifyMemberDatabaseAccess(user);
-    const allowed = access.allowed && (access.isAdmin || access.role === 'President');
-
-    if (!allowed) {
-      setIsAdminSessionUnlocked(false);
-      setAdminAccessWarning({ email: emailLower, role: access.role });
-      const msg = t(
-        `RESTRICTED ACCESS WARNING: "${user.email}" is not authorized for the Admin & President Panel. No access request is accepted here.`,
-        `সতর্কতা — সংরক্ষিত প্রবেশাধিকার: "${user.email}" অ্যাডমিন বা সভাপতি প্যানেলের জন্য অনুমোদিত নয়। এখানে কোনো রিকোয়েস্ট পাঠানো বা গ্রহণ করা হয় না।`
-      );
-      setAuthError(msg);
-      showToast(msg, 'warning');
-      return false;
-    }
-
-    setAdminAccessWarning(null);
-    setAuthError(null);
-    setPreviewMemberId(null);
-    setIsAdminSessionUnlocked(true);
-    showToast(
-      t(`Admin Panel unlocked for ${user.displayName || user.email}`, `${user.displayName || user.email}-এর জন্য অ্যাডমিন প্যানেল আনলক হয়েছে`),
-      'success'
-    );
-    return true;
   };
 
   const adminLogout = () => {
@@ -3403,6 +3610,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         adminAccessWarning,
         clearAdminAccessWarning,
         loginWithGoogle,
+        verifyExistingGoogleSession,
         logoutGoogle,
         currentMember,
         previewMemberId,

@@ -84,6 +84,7 @@ export const AdminDashboard: React.FC = () => {
     canViewAdminPanel,
     isPresidentViewOnly,
     adminLogin,
+    verifyExistingGoogleSession,
     adminLogout,
     firebaseUser,
     authLoading,
@@ -438,26 +439,42 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {firebaseUser && !adminAccessWarning && (
-                <div className="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-950 dark:text-amber-200 leading-relaxed flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>
+              {firebaseUser?.emailVerified && firebaseUser?.email && !adminAccessWarning ? (
+                <div className="space-y-2.5">
+                  <div className="p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-950 dark:text-emerald-200 leading-relaxed text-center">
                     {t(
-                      'Strictly restricted area. Only verified Admin or President accounts can unlock this panel—no join requests are accepted here.',
-                      'অত্যন্ত সংরক্ষিত এলাকা। শুধুমাত্র যাচাইকৃত অ্যাডমিন বা সভাপতি এই প্যানেল আনলক করতে পারবেন—এখানে কোনো রিকোয়েস্ট গ্রহণ করা হয় না।'
+                      `Google account connected: ${firebaseUser.email}`,
+                      `সংযুক্ত Google অ্যাকাউন্ট: ${firebaseUser.email}`
                     )}
-                  </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void verifyExistingGoogleSession('admin')}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2.5"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="truncate">
+                      {t(`Unlock Admin Panel as ${firebaseUser.email} →`, `${firebaseUser.email} দিয়ে অ্যাডমিন প্যানেল খুলুন →`)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void adminLogin()}
+                    className="w-full py-2.5 px-4 bg-slate-900/90 dark:bg-slate-800 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl border border-white/10 transition-colors"
+                  >
+                    {t('Use Another Google Account', 'অন্য Google অ্যাকাউন্ট দিয়ে এগিয়ে যান')}
+                  </button>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void adminLogin()}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2.5"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>{t('Continue with Google (Admin / President) →', 'Google দিয়ে এগিয়ে যান (অ্যাডমিন / সভাপতি) →')}</span>
+                </button>
               )}
-
-              <button
-                type="button"
-                onClick={() => void adminLogin()}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2.5"
-              >
-                <Shield className="w-4 h-4" />
-                <span>{t('Continue with Google (Admin / President) →', 'Google দিয়ে এগিয়ে যান (অ্যাডমিন / সভাপতি) →')}</span>
-              </button>
             </div>
           )}
 

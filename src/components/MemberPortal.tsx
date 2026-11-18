@@ -62,6 +62,7 @@ export const MemberPortal: React.FC = () => {
     memberAccessNotice,
     clearMemberAccessNotice,
     loginAsMember,
+    verifyExistingGoogleSession,
     isMemberSessionUnlocked,
     isAdminLoggedIn,
     isAdminSessionUnlocked,
@@ -171,6 +172,8 @@ export const MemberPortal: React.FC = () => {
                         ? t('Access Pending Admin Approval', 'অ্যাডমিনের অনুমোদনের অপেক্ষায়')
                         : memberAccessNotice.status === 'rejected'
                         ? t('Access Request Declined', 'প্রবেশের আবেদন প্রত্যাখ্যাত হয়েছে')
+                        : memberAccessNotice.status === 'failed'
+                        ? t('Database Connection Unavailable', 'ডেটাবেসের সাথে সংযোগ পাওয়া যায়নি')
                         : t('Membership Account Inactive', 'সদস্যপদ নিষ্ক্রিয় রয়েছে')}
                     </span>
                   </div>
@@ -201,6 +204,11 @@ export const MemberPortal: React.FC = () => {
                     ? t(
                         `The access request for ${memberAccessNotice.email} was declined by Admin. Please contact Council Admin or submit a complete membership application.`,
                         `${memberAccessNotice.email}-এর আবেদনটি অ্যাডমিন কর্তৃক বাতিল করা হয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন অথবা পূর্ণাঙ্গ আবেদন পাঠান।`
+                      )
+                    : memberAccessNotice.status === 'failed'
+                    ? t(
+                        `Signed in as ${memberAccessNotice.email}, but the cloud database could not be reached right now (offline or daily quota reached). Please try again shortly.`,
+                        `${memberAccessNotice.email} দিয়ে সাইন-ইন হয়েছে, কিন্তু এই মুহূর্তে ক্লাউড ডেটাবেসে সংযোগ পাওয়া যাচ্ছে না (অফলাইন বা দৈনিক কোটা পূর্ণ)। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।`
                       )
                     : t(
                         `Your email (${memberAccessNotice.email}) is currently marked Inactive in the database. Contact Council Admin to reactivate access.`,
@@ -273,23 +281,42 @@ export const MemberPortal: React.FC = () => {
                 </div>
               )}
 
-              {firebaseUser && (
-                <div className="p-3 rounded-2xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-950 dark:text-sky-200 leading-relaxed text-center">
-                  {t(
-                    'Only Google emails registered in our database can enter the Member Portal. Unregistered emails will automatically send an access request to Admin.',
-                    'শুধুমাত্র ডেটাবেসে নিবন্ধিত Google ইমেইল দিয়েই সদস্য পোর্টালে প্রবেশ করা যাবে। নিবন্ধিত না থাকলে স্বয়ংক্রিয়ভাবে অ্যাডমিনের কাছে রিকোয়েস্ট যাবে।'
-                  )}
+              {firebaseUser?.emailVerified && firebaseUser?.email ? (
+                <div className="space-y-2.5">
+                  <div className="p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-950 dark:text-emerald-200 leading-relaxed text-center">
+                    {t(
+                      `Google account connected: ${firebaseUser.email}`,
+                      `সংযুক্ত Google অ্যাকাউন্ট: ${firebaseUser.email}`
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void verifyExistingGoogleSession('member')}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="truncate">
+                      {t(`Continue & Link as ${firebaseUser.email} →`, `${firebaseUser.email} দিয়ে প্রবেশ ও লিংক করুন →`)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void loginAsMember()}
+                    className="w-full py-2.5 px-4 bg-slate-900/90 dark:bg-slate-800 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl border border-white/10 transition-colors"
+                  >
+                    {t('Use Another Google Account', 'অন্য Google অ্যাকাউন্ট দিয়ে এগিয়ে যান')}
+                  </button>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void loginAsMember()}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
+                </button>
               )}
-
-              <button
-                type="button"
-                onClick={() => void loginAsMember()}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20 flex items-center justify-center gap-2"
-              >
-                <Shield className="w-4 h-4" />
-                <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
-              </button>
 
               <p className="text-[11px] text-center text-slate-600 dark:text-slate-400">
                 {t(

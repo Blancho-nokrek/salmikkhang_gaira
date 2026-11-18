@@ -363,26 +363,39 @@ service cloud.firestore {
       allow create: if isAdmin() && isValidId(memberId) && isValidMemberPublic(incoming());
       allow update: if isValidId(memberId) && isValidMemberPublic(incoming()) && incoming().id == existing().id && (
         isAdmin() ||
-        (!isPresident() && isVerifiedMember() && 'ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower() &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['village', 'bloodGroup', 'bio', 'avatar', 'ownerUid']) &&
+        (isVerifiedMember() && 'ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower() &&
           incoming().role == existing().role &&
           incoming().status == existing().status &&
           incoming().memberNo == existing().memberNo &&
-          (!('ownerUid' in incoming().diff(existing()).affectedKeys()) || incoming().ownerUid == request.auth.uid))
+          (
+            (incoming().diff(existing()).affectedKeys().hasOnly(['ownerUid']) && incoming().ownerUid == request.auth.uid) ||
+            (!isPresident() &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['village', 'bloodGroup', 'bio', 'avatar', 'ownerUid']) &&
+              (!('ownerUid' in incoming().diff(existing()).affectedKeys()) || incoming().ownerUid == request.auth.uid))
+          ))
       );
       allow delete: if isAdmin() && isValidId(memberId);
 
       match /private/{docId} {
         allow get: if isValidId(memberId) && isValidId(docId) && (
-          isAdmin() || isPresident() || (isVerifiedMember() && (existing().ownerUid == request.auth.uid || ('ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower())))
+          isAdmin() || isPresident() || (isVerifiedMember() && (
+            ('ownerUid' in existing() && existing().ownerUid == request.auth.uid) ||
+            ('ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower())
+          ))
         );
-        allow list: if isBootstrapAdmin() || (isVerifiedMember() && resource.data.ownerEmail == request.auth.token.email.lower());
+        allow list: if isBootstrapAdmin() || (isVerifiedMember() && 'ownerEmail' in resource.data && resource.data.ownerEmail is string && resource.data.ownerEmail.lower() == request.auth.token.email.lower());
         allow create: if isValidId(memberId) && isValidId(docId) && isAdmin() && isValidMemberPrivate(incoming());
         allow update: if isValidId(memberId) && isValidId(docId) && isValidMemberPrivate(incoming()) && (
-          isAdmin() || (!isPresident() && isVerifiedMember() && 'ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower() &&
-            incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'ownerUid']) &&
+          isAdmin() ||
+          (isVerifiedMember() && 'ownerEmail' in existing() && existing().ownerEmail.lower() == request.auth.token.email.lower() &&
             incoming().email == existing().email &&
-            (!('ownerUid' in incoming().diff(existing()).affectedKeys()) || incoming().ownerUid == request.auth.uid))
+            (!('ownerEmail' in existing()) || incoming().ownerEmail == existing().ownerEmail) &&
+            (
+              (incoming().diff(existing()).affectedKeys().hasOnly(['ownerUid']) && incoming().ownerUid == request.auth.uid) ||
+              (!isPresident() &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'ownerUid']) &&
+                (!('ownerUid' in incoming().diff(existing()).affectedKeys()) || incoming().ownerUid == request.auth.uid))
+            ))
         );
         allow delete: if isAdmin() && isValidId(memberId) && isValidId(docId);
       }
@@ -436,7 +449,7 @@ service cloud.firestore {
 
       match /private/{docId} {
         allow get: if isValidId(residentId) && isValidId(docId) && (isDataCollector() || isPresident());
-        allow list: if isBootstrapAdmin() || ((isDataCollector() || isPresident()) && resource.data.collectedByUid == request.auth.uid);
+        allow list: if isBootstrapAdmin() || ((isDataCollector() || isPresident()) && 'collectedByUid' in resource.data && resource.data.collectedByUid == request.auth.uid);
         allow create, update: if isValidId(residentId) && isValidId(docId) && isDataCollector() && isValidResidentPrivate(incoming());
         allow delete: if isValidId(residentId) && isValidId(docId) && isAdmin();
       }

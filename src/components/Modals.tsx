@@ -35,6 +35,7 @@ export const Modals: React.FC<ModalsProps> = ({
     memberAccessNotice,
     clearMemberAccessNotice,
     loginAsMember,
+    verifyExistingGoogleSession,
     logoutMember,
     isMemberSessionUnlocked,
     isAdminSessionUnlocked,
@@ -83,6 +84,14 @@ export const Modals: React.FC<ModalsProps> = ({
 
   const handleGoogleSignIn = async () => {
     const ok = await loginAsMember();
+    if (ok) {
+      closeModal();
+      setCurrentView('member');
+    }
+  };
+
+  const handleExistingGoogleLink = async () => {
+    const ok = await verifyExistingGoogleSession('member');
     if (ok) {
       closeModal();
       setCurrentView('member');
@@ -312,6 +321,8 @@ export const Modals: React.FC<ModalsProps> = ({
                           ? t('Access Pending Admin Approval', 'অ্যাডমিনের অনুমোদনের অপেক্ষায়')
                           : memberAccessNotice.status === 'rejected'
                           ? t('Access Request Declined', 'আবেদন প্রত্যাখ্যাত হয়েছে')
+                          : memberAccessNotice.status === 'failed'
+                          ? t('Database Connection Unavailable', 'ডেটাবেসের সাথে সংযোগ পাওয়া যায়নি')
                           : t('Membership Inactive', 'সদস্যপদ নিষ্ক্রিয়')}
                       </span>
                     </div>
@@ -342,6 +353,11 @@ export const Modals: React.FC<ModalsProps> = ({
                       ? t(
                           `The request for "${memberAccessNotice.email}" was declined by Admin.`,
                           `"${memberAccessNotice.email}" আবেদনটি অ্যাডমিন কর্তৃক বাতিল করা হয়েছে।`
+                        )
+                      : memberAccessNotice.status === 'failed'
+                      ? t(
+                          `Signed in as "${memberAccessNotice.email}", but could not connect to the cloud database right now (offline or daily quota reached).`,
+                          `"${memberAccessNotice.email}" দিয়ে লগইন হয়েছে, কিন্তু এই মুহূর্তে ক্লাউড ডেটাবেসে সংযোগ পাওয়া যাচ্ছে না।`
                         )
                       : t(
                           `"${memberAccessNotice.email}" is marked Inactive in the database.`,
@@ -426,14 +442,36 @@ export const Modals: React.FC<ModalsProps> = ({
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => void handleGoogleSignIn()}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
-                >
-                  <Shield className="w-4 h-4" />
-                  <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
-                </button>
+                {firebaseUser?.emailVerified && firebaseUser?.email ? (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleExistingGoogleLink()}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 px-3"
+                    >
+                      <Shield className="w-4 h-4 shrink-0" />
+                      <span className="truncate">
+                        {t(`Continue & Link as ${firebaseUser.email} →`, `${firebaseUser.email} দিয়ে প্রবেশ করুন →`)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleGoogleSignIn()}
+                      className="w-full py-2.5 bg-slate-900/90 dark:bg-slate-800 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl"
+                    >
+                      {t('Use Another Google Account', 'অন্য Google অ্যাকাউন্ট দিন')}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleGoogleSignIn()}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
