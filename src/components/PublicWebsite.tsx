@@ -357,17 +357,23 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                   >
                     <div className="flex items-start gap-3.5 sm:contents w-full">
                       {/* Date Badge */}
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-slate-950 dark:text-emerald-300 flex flex-col items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400">
-                          {new Date(event.date).toLocaleString('default', { month: 'short' })}
-                        </span>
-                        <span className="text-xl sm:text-2xl font-black leading-none my-0.5">
-                          {new Date(event.date).getDate()}
-                        </span>
-                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-400">
-                          {new Date(event.date).getFullYear()}
-                        </span>
-                      </div>
+                      {(() => {
+                        const parsed = event.date ? new Date(event.date) : null;
+                        const isValidDate = parsed !== null && !Number.isNaN(parsed.getTime());
+                        return (
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-slate-950 dark:text-emerald-300 flex flex-col items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400">
+                              {isValidDate ? parsed.toLocaleString('default', { month: 'short' }) : 'EVENT'}
+                            </span>
+                            <span className="text-xl sm:text-2xl font-black leading-none my-0.5">
+                              {isValidDate ? parsed.getDate() : '--'}
+                            </span>
+                            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-400">
+                              {isValidDate ? parsed.getFullYear() : (event.date || 'TBA')}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Details */}
                       <div className="flex-1 min-w-0 space-y-1.5">

@@ -449,9 +449,9 @@ export const MemberPortal: React.FC = () => {
   // Filter directory
   const filteredMembers = members.filter(m => {
     const matchesSearch =
-      m.name.toLowerCase().includes(directorySearch.toLowerCase()) ||
-      m.village.toLowerCase().includes(directorySearch.toLowerCase()) ||
-      m.skills.some(s => s.toLowerCase().includes(directorySearch.toLowerCase()));
+      (m.name || '').toLowerCase().includes(directorySearch.toLowerCase()) ||
+      (m.village || '').toLowerCase().includes(directorySearch.toLowerCase()) ||
+      (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(directorySearch.toLowerCase()));
 
     const matchesBlood = bloodFilter === 'All' || m.bloodGroup === bloodFilter;
     const matchesVillage = villageFilter === 'All' || m.village === villageFilter;
@@ -586,7 +586,7 @@ export const MemberPortal: React.FC = () => {
                 {currentMember.avatar ? (
                   <img src={currentMember.avatar} alt={currentMember.name} className="w-full h-full object-cover" />
                 ) : (
-                  currentMember.name[0]
+                  currentMember.name?.[0] || 'M'
                 )}
               </div>
 
@@ -1056,7 +1056,7 @@ export const MemberPortal: React.FC = () => {
                       {member.avatar ? (
                         <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                       ) : (
-                        member.name[0]
+                        member.name?.[0] || 'M'
                       )}
                     </div>
                     <div className="min-w-0">

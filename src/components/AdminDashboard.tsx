@@ -1522,6 +1522,11 @@ export const AdminDashboard: React.FC = () => {
                     facebookUrl: settingsForm.facebookUrl.trim(),
                     whatsapp: settingsForm.whatsapp.trim(),
                     fontStyle: settingsForm.fontStyle,
+                  }).catch(() => {
+                    showToast(
+                      t('Could not save settings to cloud database.', 'ক্লাউড ডেটাবেসে সেটিংস সংরক্ষণ করা যায়নি।'),
+                      'warning'
+                    );
                   });
                 }}
                 className="space-y-4 text-xs"
@@ -1678,7 +1683,12 @@ export const AdminDashboard: React.FC = () => {
                         onClick={() => {
                           if (!isAdminLoggedIn) return;
                           setSettingsForm(prev => ({ ...prev, fontStyle: preset.id }));
-                          void updateSettings({ fontStyle: preset.id });
+                          void updateSettings({ fontStyle: preset.id }).catch(() => {
+                            showToast(
+                              t('Could not save font style to cloud database.', 'ফন্ট স্টাইল ক্লাউড ডেটাবেসে সংরক্ষণ করা যায়নি।'),
+                              'warning'
+                            );
+                          });
                         }}
                         className={`text-left p-4 rounded-2xl border transition-all disabled:opacity-75 disabled:cursor-not-allowed ${
                           isSelected
@@ -1914,7 +1924,7 @@ export const AdminDashboard: React.FC = () => {
                       <select
                         value={formData.bloodGroup || 'O+'}
                         onChange={e => setFormData({ ...formData, bloodGroup: e.target.value })}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold text-rose-600"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 font-bold"
                       >
                         {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => (
                           <option key={b} value={b}>{b}</option>

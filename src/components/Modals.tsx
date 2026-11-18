@@ -8,6 +8,7 @@ interface ModalsProps {
   onCloseSearch: () => void;
   selectedNewsId: string | null;
   onCloseNews: () => void;
+  onSelectNews?: (newsId: string) => void;
   selectedGalleryItem: any | null;
   onCloseGallery: () => void;
 }
@@ -17,6 +18,7 @@ export const Modals: React.FC<ModalsProps> = ({
   onCloseSearch,
   selectedNewsId,
   onCloseNews,
+  onSelectNews,
   selectedGalleryItem,
   onCloseGallery
 }) => {
@@ -35,6 +37,8 @@ export const Modals: React.FC<ModalsProps> = ({
     loginAsMember,
     logoutMember,
     isMemberSessionUnlocked,
+    isAdminSessionUnlocked,
+    canViewAdminPanel,
     currentMember,
     members,
     news,
@@ -87,14 +91,17 @@ export const Modals: React.FC<ModalsProps> = ({
 
   const selectedNews = selectedNewsId ? news.find(n => n.id === selectedNewsId) : null;
 
-  // Filtered search results
+  // Filtered search results (respect members_only visibility for visitors)
+  const canSeePrivate = Boolean((isMemberSessionUnlocked && currentMember) || (isAdminSessionUnlocked && canViewAdminPanel));
+  const visibleEvents = events.filter(e => canSeePrivate || e.visibility !== 'members_only');
+  const visibleNews = news.filter(n => canSeePrivate || n.visibility !== 'members_only');
   const q = searchQuery.toLowerCase().trim();
   const searchResults = q
     ? {
-        events: events.filter(e => e.title.toLowerCase().includes(q) || e.location.toLowerCase().includes(q)),
-        news: news.filter(n => n.title.toLowerCase().includes(q) || n.summary.toLowerCase().includes(q)),
-        projects: projects.filter(p => p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)),
-        members: members.filter(m => m.name.toLowerCase().includes(q) || m.skills.some(s => s.toLowerCase().includes(q)))
+        events: visibleEvents.filter(e => (e.title || '').toLowerCase().includes(q) || (e.location || '').toLowerCase().includes(q)),
+        news: visibleNews.filter(n => (n.title || '').toLowerCase().includes(q) || (n.summary || '').toLowerCase().includes(q)),
+        projects: projects.filter(p => (p.title || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)),
+        members: members.filter(m => (m.name || '').toLowerCase().includes(q) || (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(q)))
       }
     : null;
 
@@ -197,7 +204,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   <select
                     value={joinBlood}
                     onChange={e => setJoinBlood(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-bold text-rose-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-bold"
                   >
                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => (
                       <option key={b} value={b}>{b}</option>
@@ -630,6 +637,11 @@ export const Modals: React.FC<ModalsProps> = ({
                           onClick={() => {
                             onCloseSearch();
                             setCurrentView('website');
+                            if (onSelectNews) {
+                              setTimeout(() => onSelectNews(n.id), 60);
+                            } else {
+                              setTimeout(() => document.getElementById('news')?.scrollIntoView({ behavior: 'smooth' }), 80);
+                            }
                           }}
                           className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
                         >
@@ -659,6 +671,7 @@ export const Modals: React.FC<ModalsProps> = ({
                           onClick={() => {
                             onCloseSearch();
                             setCurrentView('website');
+                            setTimeout(() => document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }), 80);
                           }}
                           className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
                         >

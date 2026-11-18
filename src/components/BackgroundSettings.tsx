@@ -55,6 +55,8 @@ export const BackgroundSettings: React.FC<BackgroundSettingsProps> = ({ readOnly
     try {
       await updateSettings({ [key]: undefined } as any);
       showToast(t('Uploaded photo deleted and default background restored.', 'আপলোড করা ছবিটি মুছে ডিফল্ট ব্যাকগ্রাউন্ড ফেরানো হয়েছে।'), 'info');
+    } catch {
+      showToast(t('Could not restore default background.', 'ডিফল্ট ব্যাকগ্রাউন্ড ফেরানো যায়নি।'), 'warning');
     } finally {
       setBusy(null);
     }

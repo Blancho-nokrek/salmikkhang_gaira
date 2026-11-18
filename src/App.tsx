@@ -115,6 +115,7 @@ const MainApp: React.FC = () => {
           onCloseSearch={() => setSearchOpen(false)}
           selectedNewsId={selectedNewsId}
           onCloseNews={() => setSelectedNewsId(null)}
+          onSelectNews={(id) => setSelectedNewsId(id)}
           selectedGalleryItem={selectedGalleryItem}
           onCloseGallery={() => setSelectedGalleryItem(null)}
         />
@@ -133,10 +134,55 @@ const MainApp: React.FC = () => {
   );
 };
 
+interface AppErrorBoundaryState {
+  hasError: boolean;
+}
+
+class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, AppErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): AppErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown, info: React.ErrorInfo) {
+    console.error('Application ErrorBoundary caught an error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950 text-slate-100">
+          <div className="max-w-md w-full rounded-3xl border border-white/10 bg-slate-900/90 p-6 text-center space-y-4 shadow-2xl">
+            <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+            <h1 className="text-lg font-extrabold">Something went wrong · একটি ত্রুটি ঘটেছে</h1>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              An unexpected display issue occurred. Please reload the page to restore normal operation.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors"
+            >
+              Reload Application · পেজ রিলোড করুন
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <CommunityProvider>
-      <MainApp />
-    </CommunityProvider>
+    <AppErrorBoundary>
+      <CommunityProvider>
+        <MainApp />
+      </CommunityProvider>
+    </AppErrorBoundary>
   );
 }

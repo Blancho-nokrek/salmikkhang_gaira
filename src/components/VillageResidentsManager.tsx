@@ -187,15 +187,15 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
   const filtered = villageResidents.filter(res => {
     const q = searchTerm.toLowerCase();
     const matchSearch =
-      res.name.toLowerCase().includes(q) ||
+      (res.name || '').toLowerCase().includes(q) ||
       (res.nameBn && res.nameBn.includes(q)) ||
-      res.guardianName.toLowerCase().includes(q) ||
-      res.phone.includes(q) ||
-      res.para.toLowerCase().includes(q) ||
-      res.occupation.toLowerCase().includes(q) ||
+      (res.guardianName || '').toLowerCase().includes(q) ||
+      (res.phone || '').includes(q) ||
+      (res.para || '').toLowerCase().includes(q) ||
+      (res.occupation || '').toLowerCase().includes(q) ||
       (res.nidOrBirthCert && res.nidOrBirthCert.includes(q));
 
-    const matchVillage = villageFilter === 'All' || res.village.toLowerCase() === villageFilter.toLowerCase();
+    const matchVillage = villageFilter === 'All' || (res.village || '').toLowerCase() === villageFilter.toLowerCase();
     const matchAid = aidFilter === 'All' || res.aidStatus === aidFilter;
     const matchBlood = bloodFilter === 'All' || res.bloodGroup === bloodFilter;
 
@@ -210,23 +210,24 @@ export const VillageResidentsManager: React.FC<VillageResidentsManagerProps> = (
 
   // Export CSV
   const exportCSV = () => {
+    const escapeCsv = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
     const headers = ['Resident ID', 'Name', 'Guardian', 'Village', 'Para', 'Phone', 'NID / BirthCert', 'Occupation', 'Family Members', 'Blood Group', 'Aid Status', 'Notes', 'Surveyor'];
     const rows = filtered.map(r => [
-      r.residentNo,
-      r.name,
-      r.guardianName,
-      r.village,
-      r.para,
-      r.phone,
-      r.nidOrBirthCert || '',
-      r.occupation,
-      r.familyMembersCount,
-      r.bloodGroup,
-      r.aidStatus,
-      `"${(r.notes || '').replace(/"/g, '""')}"`,
-      resolveRoleStampedActor(members, r.collectedBy, r.collectedByUid, 'Council')
+      escapeCsv(r.residentNo),
+      escapeCsv(r.name),
+      escapeCsv(r.guardianName),
+      escapeCsv(r.village),
+      escapeCsv(r.para),
+      escapeCsv(r.phone),
+      escapeCsv(r.nidOrBirthCert || ''),
+      escapeCsv(r.occupation),
+      escapeCsv(r.familyMembersCount),
+      escapeCsv(r.bloodGroup),
+      escapeCsv(r.aidStatus),
+      escapeCsv(r.notes || ''),
+      escapeCsv(resolveRoleStampedActor(members, r.collectedBy, r.collectedByUid, 'Council'))
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.map(escapeCsv).join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);

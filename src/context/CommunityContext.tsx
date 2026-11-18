@@ -1411,7 +1411,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           if (!snap.empty || firestoreSeeded) {
             const list = snap.docs.map(d => d.data() as GalleryItem);
-            list.sort((a, b) => b.date.localeCompare(a.date));
+            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setGallery(list);
           }
         },
@@ -1440,7 +1440,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       (snap) => {
         if (!snap.empty || firestoreSeeded) {
           const items = snap.docs.map(d => d.data() as NewsItem);
-          items.sort((a, b) => b.date.localeCompare(a.date));
+          items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setNews(items);
         }
       },
@@ -1452,7 +1452,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       (snap) => {
         if (!snap.empty || firestoreSeeded) {
           const items = snap.docs.map(d => d.data() as CommunityEvent);
-          items.sort((a, b) => a.date.localeCompare(b.date));
+          items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
           setEvents(items);
         }
       },
@@ -1514,7 +1514,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             })
           );
 
-          hydrated.sort((a, b) => a.memberNo.localeCompare(b.memberNo));
+          hydrated.sort((a, b) => (a.memberNo || '').localeCompare(b.memberNo || ''));
           setMembers(hydrated);
         },
         (error) => handleFirestoreError(error, OperationType.LIST, 'members')
@@ -1560,7 +1560,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           })
         );
 
-        hydrated.sort((a, b) => b.collectedDate.localeCompare(a.collectedDate));
+        hydrated.sort((a, b) => (b.collectedDate || '').localeCompare(a.collectedDate || ''));
         setVillageResidents(hydrated);
       };
 
@@ -1605,7 +1605,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           if (!snap.empty || firestoreSeeded) {
             const list = snap.docs.map(d => d.data() as FundTransaction);
-            list.sort((a, b) => b.date.localeCompare(a.date));
+            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setFunds(list);
           }
         },
@@ -1628,7 +1628,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 likedByMe: Array.isArray(data.likedByUids) ? data.likedByUids.includes(uid) : false,
               };
             });
-            list.sort((a, b) => b.date.localeCompare(a.date));
+            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setDiscussions(list);
           }
         },
@@ -1642,7 +1642,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (snap) => {
           if (!snap.empty || firestoreSeeded) {
             const list = snap.docs.map(d => d.data() as MemberNotification);
-            list.sort((a, b) => b.date.localeCompare(a.date));
+            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             setNotifications(list);
           }
         },
@@ -1665,7 +1665,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       (snap) => {
         if (!snap.empty || firestoreSeeded) {
           const list = snap.docs.map(d => d.data() as JoinRequest);
-          list.sort((a, b) => b.date.localeCompare(a.date));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setJoinRequests(list);
         }
       },
@@ -1677,7 +1677,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       (snap) => {
         if (!snap.empty || firestoreSeeded) {
           const list = snap.docs.map(d => d.data() as ContactMessage);
-          list.sort((a, b) => b.date.localeCompare(a.date));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           setMessages(list);
         }
       },
@@ -2138,6 +2138,24 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     })();
   };
 
+  const logFirestoreFailure = (err: unknown, op: OperationType, path: string | null) => {
+    try {
+      handleFirestoreError(err, op, path);
+    } catch {
+      // Structured FirestoreErrorInfo was already logged to console.error
+    }
+  };
+
+  const notifyCloudSyncFailure = () => {
+    showToast(
+      t(
+        'Could not sync change with cloud database. Please check your connection or permissions.',
+        'ক্লাউড ডেটাবেসে তথ্য সংরক্ষণ করা যায়নি। ইন্টারনেট সংযোগ বা অনুমতি পরীক্ষা করুন।'
+      ),
+      'warning'
+    );
+  };
+
   // Village Public Records (Confidential to Members & Admin; Add/Edit by Admin & Data Collector)
   const addVillageResident = (data: Omit<VillageResident, 'id' | 'residentNo' | 'collectedDate'>): boolean => {
     if (!canCollectDataPermission()) {
@@ -2161,13 +2179,19 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         : 'Data Collector',
       collectedByUid: uid,
     };
+    const prevResidents = villageResidents;
     setVillageResidents(prev => [newResident, ...prev]);
     void (async () => {
-      const rId = sanitizeId(newResident.id);
-      await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(newResident, uid), OperationType.CREATE);
-      await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(newResident, uid), OperationType.CREATE);
+      try {
+        const rId = sanitizeId(newResident.id);
+        await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(newResident, uid), OperationType.CREATE);
+        await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(newResident, uid), OperationType.CREATE);
+        showToast(t(`Resident ${newResident.name} recorded into registry!`, `নাগরিক ${newResident.name}-এর তথ্য সফলভাবে সংরক্ষিত হয়েছে!`), 'success');
+      } catch {
+        setVillageResidents(prevResidents);
+        notifyCloudSyncFailure();
+      }
     })();
-    showToast(t(`Resident ${newResident.name} recorded into registry!`, `নাগরিক ${newResident.name}-এর তথ্য সফলভাবে সংরক্ষিত হয়েছে!`), 'success');
     return true;
   };
 
@@ -2181,6 +2205,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     const existingRes = villageResidents.find(r => r.id === id);
     if (!existingRes) return false;
+    const prevResidents = villageResidents;
     const merged: VillageResident = {
       ...existingRes,
       ...updated,
@@ -2188,11 +2213,16 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
     setVillageResidents(prev => prev.map(r => (r.id === id ? merged : r)));
     void (async () => {
-      const rId = sanitizeId(id);
-      await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(merged), OperationType.UPDATE);
-      await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(merged), OperationType.UPDATE);
+      try {
+        const rId = sanitizeId(id);
+        await fsSet(`villageResidents/${rId}`, toResidentPublicPayload(merged), OperationType.UPDATE);
+        await fsSet(`villageResidents/${rId}/private/info`, toResidentPrivatePayload(merged), OperationType.UPDATE);
+        showToast(t('Resident record updated successfully', 'নাগরিক তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
+      } catch {
+        setVillageResidents(prevResidents);
+        notifyCloudSyncFailure();
+      }
     })();
-    showToast(t('Resident record updated successfully', 'নাগরিক তথ্য সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
     return true;
   };
 
@@ -2204,13 +2234,19 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       return false;
     }
+    const prevResidents = villageResidents;
     setVillageResidents(prev => prev.filter(r => r.id !== id));
     void (async () => {
-      const rId = sanitizeId(id);
-      await fsDelete(`villageResidents/${rId}/private/info`);
-      await fsDelete(`villageResidents/${rId}`);
+      try {
+        const rId = sanitizeId(id);
+        await fsDelete(`villageResidents/${rId}/private/info`);
+        await fsDelete(`villageResidents/${rId}`);
+        showToast(t('Resident record deleted', 'তথ্যটি মুছে ফেলা হয়েছে'), 'info');
+      } catch {
+        setVillageResidents(prevResidents);
+        notifyCloudSyncFailure();
+      }
     })();
-    showToast(t('Resident record deleted', 'তথ্যটি মুছে ফেলা হয়েছে'), 'info');
     return true;
   };
 
@@ -2245,9 +2281,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fsSet(`funds/${sanitizeId(newTxn.id)}`, toFundPayload(newTxn, uid), OperationType.CREATE);
         showToast(t(`Voucher ${voucherNo} for ৳${txn.amount.toLocaleString()} recorded!`, `৳${txn.amount.toLocaleString()} টাকার ভাউচার ${voucherNo} সফলভাবে যুক্ত হয়েছে!`), 'success');
-      } catch (err) {
+      } catch {
         setFunds(prevFunds);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
     return true;
@@ -2267,9 +2303,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fsDelete(`funds/${sanitizeId(id)}`);
         showToast(t('Transaction voucher deleted from ledger', 'ভাউচারটি সফলভাবে বাতিল করা হয়েছে'), 'info');
-      } catch (err) {
+      } catch {
         setFunds(prevFunds);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
     return true;
@@ -2292,9 +2328,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fsSet(`funds/${sanitizeId(id)}`, toFundPayload(merged), OperationType.UPDATE);
         showToast(t('Transaction record updated', 'লেনদেনের বিবরণ সফলভাবে হালনাগাদ করা হয়েছে'), 'success');
-      } catch (err) {
+      } catch {
         setFunds(prevFunds);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
     return true;
@@ -2336,20 +2372,26 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       bio: data.bio || 'Registered youth member of Salmikkhang community.',
       ownerEmail: emailLower,
     };
+    const prevMembers = members;
     setMembers(prev => [newMember, ...prev]);
     void (async () => {
-      const mId = sanitizeId(newMember.id);
-      await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
-      await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
-      await syncMemberRoleGrant(newMember);
+      try {
+        const mId = sanitizeId(newMember.id);
+        await fsSet(`members/${mId}`, toMemberPublicPayload(newMember), OperationType.CREATE);
+        await fsSet(`members/${mId}/private/contact`, toMemberPrivatePayload(newMember), OperationType.CREATE);
+        await syncMemberRoleGrant(newMember);
+        showToast(
+          t(
+            `Member ${newMember.name} registered! ID: ${newMember.memberNo}. They can sign in with Google (${emailLower}).`,
+            `সদস্য ${newMember.name} নিবন্ধিত হয়েছেন! আইডি: ${newMember.memberNo}। Google (${emailLower}) দিয়ে লগইন করতে পারবেন।`
+          ),
+          'success'
+        );
+      } catch {
+        setMembers(prevMembers);
+        notifyCloudSyncFailure();
+      }
     })();
-    showToast(
-      t(
-        `Member ${newMember.name} registered! ID: ${newMember.memberNo}. They can sign in with Google (${emailLower}).`,
-        `সদস্য ${newMember.name} নিবন্ধিত হয়েছেন! আইডি: ${newMember.memberNo}। Google (${emailLower}) দিয়ে লগইন করতে পারবেন।`
-      ),
-      'success'
-    );
   };
 
   // CRUD Actions
@@ -2360,12 +2402,20 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'Pending',
       date: new Date().toISOString().split('T')[0],
     };
+    const prevRequests = joinRequests;
     setJoinRequests(prev => [newReq, ...prev]);
-    void fsSet(`joinRequests/${sanitizeId(newReq.id)}`, toJoinRequestPayload(newReq), OperationType.CREATE);
-    showToast(
-      t('Application sent to Admin! The council will verify your information and register you.', 'আবেদনটি অ্যাডমিনের নিকট পাঠানো হয়েছে! তথ্যাদি যাচাই করে অ্যাডমিন আপনাকে নিবন্ধন করবেন।'),
-      'success'
-    );
+    void (async () => {
+      try {
+        await fsSet(`joinRequests/${sanitizeId(newReq.id)}`, toJoinRequestPayload(newReq), OperationType.CREATE);
+        showToast(
+          t('Application sent to Admin! The council will verify your information and register you.', 'আবেদনটি অ্যাডমিনের নিকট পাঠানো হয়েছে! তথ্যাদি যাচাই করে অ্যাডমিন আপনাকে নিবন্ধন করবেন।'),
+          'success'
+        );
+      } catch {
+        setJoinRequests(prevRequests);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const approveJoinRequest = (requestId: string, role: Member['role'] = 'Member') => {
@@ -2408,10 +2458,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           t(`${req.name} has been enrolled as an active member!`, `${req.name}-কে সদস্য হিসেবে নিবন্ধন করা হয়েছে!`),
           'success'
         );
-      } catch (err) {
+      } catch {
         setMembers(prevMembers);
         setJoinRequests(prevJoinRequests);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
   };
@@ -2427,9 +2477,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
         showToast(t('Join request status updated to Rejected', 'আবেদনটি বাতিল হিসেবে চিহ্নিত হয়েছে'), 'info');
-      } catch (err) {
+      } catch {
         setJoinRequests(prevJoinRequests);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
   };
@@ -2566,7 +2616,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } catch (err) {
           setMembers(prevMembers);
           setCurrentMember(prevCurrentMember);
-          handleFirestoreError(err, OperationType.UPDATE, `members/${mId}`);
+          logFirestoreFailure(err, OperationType.UPDATE, `members/${mId}`);
+          notifyCloudSyncFailure();
         }
       })();
     }
@@ -2575,17 +2626,25 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteMember = (id: string) => {
     if (!isAdminLoggedIn) return;
     const target = members.find(m => m.id === id);
+    const prevMembers = members;
+    const prevCurrent = currentMember;
     setMembers(prev => prev.filter(m => m.id !== id));
     if (currentMember?.id === id) {
       setCurrentMember(null);
     }
     void (async () => {
-      const mId = sanitizeId(id);
-      await fsDelete(`members/${mId}/private/contact`);
-      await fsDelete(`members/${mId}`);
-      if (target?.email) await removeMemberRoleGrant(target.email);
+      try {
+        const mId = sanitizeId(id);
+        await fsDelete(`members/${mId}/private/contact`);
+        await fsDelete(`members/${mId}`);
+        if (target?.email) await removeMemberRoleGrant(target.email);
+        showToast(t('Member removed from directory', 'সদস্য তালিকা থেকে অপসারিত হয়েছে'), 'info');
+      } catch {
+        setMembers(prevMembers);
+        setCurrentMember(prevCurrent);
+        notifyCloudSyncFailure();
+      }
     })();
-    showToast(t('Member removed from directory', 'সদস্য তালিকা থেকে অপসারিত হয়েছে'), 'info');
   };
 
   const submitContactMessage = (msg: Omit<ContactMessage, 'id' | 'date' | 'status'>) => {
@@ -2595,12 +2654,20 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       date: new Date().toISOString().split('T')[0],
       status: 'Unread',
     };
+    const prevMessages = messages;
     setMessages(prev => [newMsg, ...prev]);
-    void fsSet(`messages/${sanitizeId(newMsg.id)}`, toMessagePayload(newMsg), OperationType.CREATE);
-    showToast(
-      t('Your message has been sent to Salmikkhang organizers!', 'আপনার বার্তা সফলভাবে সালমিকখাং আয়োজকদের কাছে পাঠানো হয়েছে!'),
-      'success'
-    );
+    void (async () => {
+      try {
+        await fsSet(`messages/${sanitizeId(newMsg.id)}`, toMessagePayload(newMsg), OperationType.CREATE);
+        showToast(
+          t('Your message has been sent to Salmikkhang organizers!', 'আপনার বার্তা সফলভাবে সালমিকখাং আয়োজকদের কাছে পাঠানো হয়েছে!'),
+          'success'
+        );
+      } catch {
+        setMessages(prevMessages);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const markMessageStatus = (id: string, status: ContactMessage['status']) => {
@@ -2613,9 +2680,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     void (async () => {
       try {
         await fsSet(`messages/${sanitizeId(id)}`, toMessagePayload(merged), OperationType.UPDATE);
-      } catch (err) {
+      } catch {
         setMessages(prevMessages);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
   };
@@ -2628,9 +2695,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fsDelete(`messages/${sanitizeId(id)}`);
         showToast(t('Message deleted', 'বার্তা মুছে ফেলা হয়েছে'), 'info');
-      } catch (err) {
+      } catch {
         setMessages(prevMessages);
-        throw err;
+        notifyCloudSyncFailure();
       }
     })();
   };
@@ -2652,6 +2719,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const exists = ev.rsvps.includes(identifier);
     const updatedRsvps = exists ? ev.rsvps.filter(u => u !== identifier) : [...ev.rsvps, identifier];
 
+    const prevEvents = events;
     setEvents(prev => prev.map(item => (item.id === eventId ? { ...item, rsvps: updatedRsvps } : item)));
 
     void (async () => {
@@ -2659,17 +2727,18 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await updateDoc(doc(db, 'events', sanitizeId(eventId)), {
           rsvps: updatedRsvps.slice(0, 500),
         });
+        showToast(
+          exists
+            ? t('You canceled your RSVP for this event.', 'আপনি এই ইভেন্টের অংশগ্রহণ বাতিল করেছেন।')
+            : t('RSVP confirmed! See you at the event.', 'আপনার অংশগ্রহণ নিশ্চিত হয়েছে! অনুষ্ঠানে দেখা হবে।'),
+          exists ? 'info' : 'success'
+        );
       } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `events/${eventId}`);
+        setEvents(prevEvents);
+        logFirestoreFailure(err, OperationType.UPDATE, `events/${eventId}`);
+        notifyCloudSyncFailure();
       }
     })();
-
-    showToast(
-      exists
-        ? t('You canceled your RSVP for this event.', 'আপনি এই ইভেন্টের অংশগ্রহণ বাতিল করেছেন।')
-        : t('RSVP confirmed! See you at the event.', 'আপনার অংশগ্রহণ নিশ্চিত হয়েছে! অনুষ্ঠানে দেখা হবে।'),
-      exists ? 'info' : 'success'
-    );
   };
 
   const addEvent = (event: Omit<CommunityEvent, 'id' | 'rsvps'>) => {
@@ -2679,6 +2748,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: `ev-${Date.now()}`,
       rsvps: [],
     };
+    const prevEvents = events;
+    const prevNotifications = notifications;
     setEvents(prev => [newEvent, ...prev]);
 
     const notif: MemberNotification = {
@@ -2694,31 +2765,52 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setNotifications(prev => [notif, ...prev]);
 
     void (async () => {
-      await fsSet(`events/${sanitizeId(newEvent.id)}`, toEventPayload(newEvent), OperationType.CREATE);
-      await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+      try {
+        await fsSet(`events/${sanitizeId(newEvent.id)}`, toEventPayload(newEvent), OperationType.CREATE);
+        await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+        showToast(
+          t('Event announced and notification sent to members', 'নতুন অনুষ্ঠান যুক্ত হয়েছে এবং সদস্যদের নোটিফিকেশন পাঠানো হয়েছে'),
+          'success'
+        );
+      } catch {
+        setEvents(prevEvents);
+        setNotifications(prevNotifications);
+        notifyCloudSyncFailure();
+      }
     })();
-
-    showToast(
-      t('Event announced and notification sent to members', 'নতুন অনুষ্ঠান যুক্ত হয়েছে এবং সদস্যদের নোটিফিকেশন পাঠানো হয়েছে'),
-      'success'
-    );
   };
 
   const updateEvent = (id: string, event: Partial<CommunityEvent>) => {
     if (!canManageEventsPermission()) return;
     const existingEv = events.find(e => e.id === id);
     if (!existingEv) return;
+    const prevEvents = events;
     const merged = { ...existingEv, ...event };
     setEvents(prev => prev.map(e => (e.id === id ? merged : e)));
-    void fsSet(`events/${sanitizeId(id)}`, toEventPayload(merged), OperationType.UPDATE);
-    showToast(t('Event updated successfully', 'ইভেন্ট সফলভাবে হালনাগাদ হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`events/${sanitizeId(id)}`, toEventPayload(merged), OperationType.UPDATE);
+        showToast(t('Event updated successfully', 'ইভেন্ট সফলভাবে হালনাগাদ হয়েছে'), 'success');
+      } catch {
+        setEvents(prevEvents);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const deleteEvent = (id: string) => {
     if (!canManageEventsPermission()) return;
+    const prevEvents = events;
     setEvents(prev => prev.filter(e => e.id !== id));
-    void fsDelete(`events/${sanitizeId(id)}`);
-    showToast(t('Event removed', 'অনুষ্ঠানটি মুছে ফেলা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`events/${sanitizeId(id)}`);
+        showToast(t('Event removed', 'অনুষ্ঠানটি মুছে ফেলা হয়েছে'), 'info');
+      } catch {
+        setEvents(prevEvents);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   // Add Notice with PDF & Notification dispatch
@@ -2729,6 +2821,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       visibility: item.visibility || 'public',
       id: `n-${Date.now()}`,
     };
+    const prevNews = news;
+    const prevNotifications = notifications;
     setNews(prev => [newItem, ...prev]);
 
     const notif: MemberNotification = {
@@ -2745,45 +2839,68 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setNotifications(prev => [notif, ...prev]);
 
     void (async () => {
-      await fsSet(`news/${sanitizeId(newItem.id)}`, toNewsPayload(newItem), OperationType.CREATE);
-      await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+      try {
+        await fsSet(`news/${sanitizeId(newItem.id)}`, toNewsPayload(newItem), OperationType.CREATE);
+        await fsSet(`notifications/${sanitizeId(notif.id)}`, toNotificationPayload(notif), OperationType.CREATE);
+        showToast(
+          item.visibility === 'members_only'
+            ? t('Private Notice published for Members Only!', 'শুধুমাত্র সদস্যদের জন্য অভ্যন্তরীণ নোটিশ প্রকাশিত হয়েছে!')
+            : item.pdfAttachment
+            ? t('Public Notice & PDF document published! Notification dispatched to all members.', 'পাবলিক নোটিশ ও PDF প্রকাশিত হয়েছে! সকল সদস্যদের নোটিফিকেশন পাঠানো হয়েছে।')
+            : t('Notice / News published!', 'খবর বা নোটিশ প্রকাশিত হয়েছে!'),
+          'success'
+        );
+      } catch {
+        setNews(prevNews);
+        setNotifications(prevNotifications);
+        notifyCloudSyncFailure();
+      }
     })();
-
-    showToast(
-      item.visibility === 'members_only'
-        ? t('Private Notice published for Members Only!', 'শুধুমাত্র সদস্যদের জন্য অভ্যন্তরীণ নোটিশ প্রকাশিত হয়েছে!')
-        : item.pdfAttachment
-        ? t('Public Notice & PDF document published! Notification dispatched to all members.', 'পাবলিক নোটিশ ও PDF প্রকাশিত হয়েছে! সকল সদস্যদের নোটিফিকেশন পাঠানো হয়েছে।')
-        : t('Notice / News published!', 'খবর বা নোটিশ প্রকাশিত হয়েছে!'),
-      'success'
-    );
   };
 
   const updateNewsItem = (id: string, item: Partial<NewsItem>) => {
     if (!canManageNoticesPermission()) return;
     const existingNews = news.find(n => n.id === id);
     if (!existingNews) return;
+    const prevNews = news;
     const merged = { ...existingNews, ...item };
     setNews(prev => prev.map(n => (n.id === id ? merged : n)));
-    void fsSet(`news/${sanitizeId(id)}`, toNewsPayload(merged), OperationType.UPDATE);
-    showToast(t('News item updated', 'সংবাদটি হালনাগাদ করা হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`news/${sanitizeId(id)}`, toNewsPayload(merged), OperationType.UPDATE);
+        showToast(t('News item updated', 'সংবাদটি হালনাগাদ করা হয়েছে'), 'success');
+      } catch {
+        setNews(prevNews);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const deleteNewsItem = (id: string) => {
     if (!canManageNoticesPermission()) return;
+    const prevNews = news;
     setNews(prev => prev.filter(n => n.id !== id));
-    void fsDelete(`news/${sanitizeId(id)}`);
-    showToast(t('News item deleted', 'সংবাদটি মুছে ফেলা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`news/${sanitizeId(id)}`);
+        showToast(t('News item deleted', 'সংবাদটি মুছে ফেলা হয়েছে'), 'info');
+      } catch {
+        setNews(prevNews);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const markNotificationAsRead = (id: string) => {
+    const prevNotifications = notifications;
     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
     if (auth.currentUser?.emailVerified) {
       void (async () => {
         try {
           await updateDoc(doc(db, 'notifications', sanitizeId(id)), { read: true });
         } catch (err) {
-          handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`);
+          setNotifications(prevNotifications);
+          logFirestoreFailure(err, OperationType.UPDATE, `notifications/${id}`);
         }
       })();
     }
@@ -2795,7 +2912,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (auth.currentUser?.emailVerified) {
       ids.forEach((id) => {
         void updateDoc(doc(db, 'notifications', sanitizeId(id)), { read: true }).catch((err) =>
-          handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`)
+          logFirestoreFailure(err, OperationType.UPDATE, `notifications/${id}`)
         );
       });
     }
@@ -2808,26 +2925,50 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...proj,
       id: `p-${Date.now()}`,
     };
+    const prevProjects = projects;
     setProjects(prev => [newProj, ...prev]);
-    void fsSet(`projects/${sanitizeId(newProj.id)}`, toProjectPayload(newProj), OperationType.CREATE);
-    showToast(t('Project added', 'নতুন উদ্যোগ যুক্ত হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`projects/${sanitizeId(newProj.id)}`, toProjectPayload(newProj), OperationType.CREATE);
+        showToast(t('Project added', 'নতুন উদ্যোগ যুক্ত হয়েছে'), 'success');
+      } catch {
+        setProjects(prevProjects);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const updateProject = (id: string, proj: Partial<Project>) => {
     if (!canManageProjectsPermission()) return;
     const existingProj = projects.find(p => p.id === id);
     if (!existingProj) return;
+    const prevProjects = projects;
     const merged = { ...existingProj, ...proj };
     setProjects(prev => prev.map(p => (p.id === id ? merged : p)));
-    void fsSet(`projects/${sanitizeId(id)}`, toProjectPayload(merged), OperationType.UPDATE);
-    showToast(t('Project updated', 'প্রকল্প হালনাগাদ হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`projects/${sanitizeId(id)}`, toProjectPayload(merged), OperationType.UPDATE);
+        showToast(t('Project updated', 'প্রকল্প হালনাগাদ হয়েছে'), 'success');
+      } catch {
+        setProjects(prevProjects);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const deleteProject = (id: string) => {
     if (!canManageProjectsPermission()) return;
+    const prevProjects = projects;
     setProjects(prev => prev.filter(p => p.id !== id));
-    void fsDelete(`projects/${sanitizeId(id)}`);
-    showToast(t('Project removed', 'উদ্যোগটি অপসারণ করা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`projects/${sanitizeId(id)}`);
+        showToast(t('Project removed', 'উদ্যোগটি অপসারণ করা হয়েছে'), 'info');
+      } catch {
+        setProjects(prevProjects);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
@@ -2837,15 +2978,24 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: `g-${Date.now()}`,
       visibility: 'public',
     };
+    const prevGallery = gallery;
     setGallery(prev => [newItem, ...prev]);
-    void fsSet(`gallery/${sanitizeId(newItem.id)}`, toGalleryPayload(newItem), OperationType.CREATE);
-    showToast(t('Photo album item added', 'গ্যালারিতে নতুন ছবি যুক্ত হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`gallery/${sanitizeId(newItem.id)}`, toGalleryPayload(newItem), OperationType.CREATE);
+        showToast(t('Photo album item added', 'গ্যালারিতে নতুন ছবি যুক্ত হয়েছে'), 'success');
+      } catch {
+        setGallery(prevGallery);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
     if (!canManageGalleryPermission()) return;
     const existingItem = gallery.find(g => g.id === id);
     if (!existingItem) return;
+    const prevGallery = gallery;
     const merged: GalleryItem = {
       ...existingItem,
       ...item,
@@ -2853,15 +3003,30 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       visibility: 'public',
     };
     setGallery(prev => prev.map(g => (g.id === id ? merged : g)));
-    void fsSet(`gallery/${sanitizeId(id)}`, toGalleryPayload(merged), OperationType.UPDATE);
-    showToast(t('Gallery photo updated', 'গ্যালারির ছবি হালনাগাদ হয়েছে'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`gallery/${sanitizeId(id)}`, toGalleryPayload(merged), OperationType.UPDATE);
+        showToast(t('Gallery photo updated', 'গ্যালারির ছবি হালনাগাদ হয়েছে'), 'success');
+      } catch {
+        setGallery(prevGallery);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const deleteGalleryItem = (id: string) => {
     if (!canManageGalleryPermission()) return;
+    const prevGallery = gallery;
     setGallery(prev => prev.filter(g => g.id !== id));
-    void fsDelete(`gallery/${sanitizeId(id)}`);
-    showToast(t('Gallery photo deleted', 'ছবিটি মুছে ফেলা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`gallery/${sanitizeId(id)}`);
+        showToast(t('Gallery photo deleted', 'ছবিটি মুছে ফেলা হয়েছে'), 'info');
+      } catch {
+        setGallery(prevGallery);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const addDiscussionPost = (text: string, category: DiscussionPost['category']) => {
@@ -2887,9 +3052,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       likedByUids: [],
       replies: [],
     };
+    const prevDiscussions = discussions;
     setDiscussions(prev => [newPost, ...prev]);
-    void fsSet(`discussions/${sanitizeId(newPost.id)}`, toDiscussionPayload(newPost, uid), OperationType.CREATE);
-    showToast(t('Your thought has been posted on the Youth Wall!', 'আপনার বার্তাটি যুব ফোরামে যুক্ত হয়েছে!'), 'success');
+    void (async () => {
+      try {
+        await fsSet(`discussions/${sanitizeId(newPost.id)}`, toDiscussionPayload(newPost, uid), OperationType.CREATE);
+        showToast(t('Your thought has been posted on the Youth Wall!', 'আপনার বার্তাটি যুব ফোরামে যুক্ত হয়েছে!'), 'success');
+      } catch {
+        setDiscussions(prevDiscussions);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const likeDiscussionPost = (id: string) => {
@@ -2903,6 +3076,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updatedUids = alreadyLiked ? uids.filter(u => u !== uid) : [...uids, uid];
     const updatedLikes = alreadyLiked ? Math.max(0, target.likes - 1) : target.likes + 1;
 
+    const prevDiscussions = discussions;
     setDiscussions(prev =>
       prev.map(p => (p.id === id ? { ...p, likedByMe: !alreadyLiked, likedByUids: updatedUids, likes: updatedLikes } : p))
     );
@@ -2914,7 +3088,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           likedByUids: updatedUids.slice(0, 500),
         });
       } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `discussions/${id}`);
+        setDiscussions(prevDiscussions);
+        logFirestoreFailure(err, OperationType.UPDATE, `discussions/${id}`);
+        notifyCloudSyncFailure();
       }
     })();
   };
@@ -2935,6 +3111,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
     const updatedReplies = [...target.replies, replyItem].slice(0, 200);
 
+    const prevDiscussions = discussions;
     setDiscussions(prev =>
       prev.map(p => (p.id === postId ? { ...p, replies: updatedReplies } : p))
     );
@@ -2944,11 +3121,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await updateDoc(doc(db, 'discussions', sanitizeId(postId)), {
           replies: updatedReplies,
         });
+        showToast(t('Reply added to discussion', 'মন্তব্য সফলভাবে যুক্ত হয়েছে'), 'success');
       } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `discussions/${postId}`);
+        setDiscussions(prevDiscussions);
+        logFirestoreFailure(err, OperationType.UPDATE, `discussions/${postId}`);
+        notifyCloudSyncFailure();
       }
     })();
-    showToast(t('Reply added to discussion', 'মন্তব্য সফলভাবে যুক্ত হয়েছে'), 'success');
   };
 
   const deleteDiscussionPost = (id: string) => {
@@ -2962,9 +3141,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       return;
     }
+    const prevDiscussions = discussions;
     setDiscussions(prev => prev.filter(p => p.id !== id));
-    void fsDelete(`discussions/${sanitizeId(id)}`);
-    showToast(t('Discussion post removed', 'ফোরাম পোস্টটি মুছে ফেলা হয়েছে'), 'info');
+    void (async () => {
+      try {
+        await fsDelete(`discussions/${sanitizeId(id)}`);
+        showToast(t('Discussion post removed', 'ফোরাম পোস্টটি মুছে ফেলা হয়েছে'), 'info');
+      } catch {
+        setDiscussions(prevDiscussions);
+        notifyCloudSyncFailure();
+      }
+    })();
   };
 
   const updateSettings = async (newSettings: Partial<CommunitySettings>) => {
@@ -3041,12 +3228,15 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSiteBgAsset(undefined);
 
     void (async () => {
-      await fsSet('settings/main', toSettingsMainPayload(initialSettings), OperationType.WRITE);
-      await fsDelete('settings/heroBackground');
-      await fsDelete('settings/siteBackground');
+      try {
+        await fsSet('settings/main', toSettingsMainPayload(initialSettings), OperationType.WRITE);
+        await fsDelete('settings/heroBackground');
+        await fsDelete('settings/siteBackground');
+        showToast(t('Settings reset to initial values', 'সেটিংস প্রাথমিক অবস্থায় ফিরিয়ে নেওয়া হয়েছে'), 'info');
+      } catch {
+        notifyCloudSyncFailure();
+      }
     })();
-
-    showToast(t('Settings reset to initial values', 'সেটিংস প্রাথমিক অবস্থায় ফিরিয়ে নেওয়া হয়েছে'), 'info');
   };
 
   const exportDataJSON = () => {

@@ -219,9 +219,9 @@ export const Header: React.FC<HeaderProps> = ({
         ),
         members: members.filter(
           m =>
-            m.name.toLowerCase().includes(q) ||
-            m.village.toLowerCase().includes(q) ||
-            m.skills.some(s => s.toLowerCase().includes(q))
+            (m.name || '').toLowerCase().includes(q) ||
+            (m.village || '').toLowerCase().includes(q) ||
+            (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(q))
         ),
       }
     : null;
