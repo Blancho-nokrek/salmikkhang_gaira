@@ -71,6 +71,8 @@ export interface RoleDetail {
   badgeColor: string;
 }
 
+export type MemberStatus = 'Active' | 'On-Leave' | 'Inactive';
+
 export interface Member {
   id: string;
   memberNo: string; // e.g. "SMK-2026-001"
@@ -79,7 +81,7 @@ export interface Member {
   phone: string;
   password?: string; // Member portal login password
   role: Role;
-  status: 'Active' | 'Inactive';
+  status: MemberStatus;
   village: string;
   bloodGroup: string; // "A+", "B+", "O+", "AB+", etc.
   skills: string[];

@@ -32,18 +32,52 @@ export function isBootstrapAdminEmail(email?: string | null): boolean {
   return BOOTSTRAP_ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
 
+const PRIMARY_FIRESTORE_CONFIG = {
+  projectId: 'fifth-chassis-zct7q',
+  appId: '1:103678617019:web:986e8f1a5292b03596509e',
+  apiKey: 'AIzaSyDzOjxt2T2Di3UOGm5gcN0bsdIM3fnb4Ns',
+  authDomain: 'fifth-chassis-zct7q.firebaseapp.com',
+  firestoreDatabaseId: 'ai-studio-salmikkhanggaira-553f112d-8a98-4028-ba5f-1cdd71bd2af9',
+  storageBucket: 'fifth-chassis-zct7q.firebasestorage.app',
+  messagingSenderId: '103678617019',
+  measurementId: '',
+  oAuthClientId: '103678617019-fq2egsf7jpsndut50g12epesu1d0klr0.apps.googleusercontent.com',
+  recaptchaSiteKey: '',
+};
+
+interface FirebaseClientConfig {
+  projectId: string;
+  appId: string;
+  apiKey: string;
+  authDomain: string;
+  firestoreDatabaseId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  measurementId?: string;
+  oAuthClientId?: string;
+  recaptchaSiteKey?: string;
+}
+
 const env = (import.meta as any).env || {};
-const firebaseConfig = {
-  ...rawFirebaseConfig,
+const appletConfig = rawFirebaseConfig as FirebaseClientConfig;
+const baseFirestoreConfig: FirebaseClientConfig = appletConfig.firestoreDatabaseId
+  ? appletConfig
+  : PRIMARY_FIRESTORE_CONFIG;
+
+const firebaseConfig: FirebaseClientConfig = {
+  ...baseFirestoreConfig,
   ...(env.VITE_FIREBASE_API_KEY ? { apiKey: env.VITE_FIREBASE_API_KEY } : {}),
   ...(env.VITE_FIREBASE_AUTH_DOMAIN ? { authDomain: env.VITE_FIREBASE_AUTH_DOMAIN } : {}),
   ...(env.VITE_FIREBASE_PROJECT_ID ? { projectId: env.VITE_FIREBASE_PROJECT_ID } : {}),
   ...(env.VITE_FIREBASE_APP_ID ? { appId: env.VITE_FIREBASE_APP_ID } : {}),
 };
 
-const app = initializeApp(firebaseConfig);
+export const firebaseApp = initializeApp(firebaseConfig);
+export const workspaceOAuthConfig = rawFirebaseConfig;
+const app = firebaseApp;
 
 function createFirestoreInstance(): Firestore {
+  const databaseId = firebaseConfig.firestoreDatabaseId || PRIMARY_FIRESTORE_CONFIG.firestoreDatabaseId;
   const transportSettings = getFirestoreTransportSettings();
   const usePersistent = shouldUsePersistentCache({
     isEmbeddedIframe: detectEmbeddedIframe(),
@@ -60,7 +94,7 @@ function createFirestoreInstance(): Firestore {
             tabManager: persistentMultipleTabManager(),
           }),
         },
-        firebaseConfig.firestoreDatabaseId
+        databaseId
       );
     } catch {
       // Fall through to memory cache if persistent IndexedDB cache is unavailable or already locked
@@ -74,10 +108,10 @@ function createFirestoreInstance(): Firestore {
         ...transportSettings,
         localCache: memoryLocalCache(),
       },
-      firebaseConfig.firestoreDatabaseId
+      databaseId
     );
   } catch {
-    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    return getFirestore(app, databaseId);
   }
 }
 

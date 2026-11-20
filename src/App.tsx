@@ -6,6 +6,7 @@ import { MemberPortal } from './components/MemberPortal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Modals } from './components/Modals';
 import { PWAInstallModal, OfflineIndicator } from './components/PWAInstallBanner';
+import { GmailNotifyConfirmModal } from './components/GmailNotifyConfirmModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import natureBgImg from './assets/images/nature_glass_bg_1794467445710.jpg';
@@ -125,6 +126,9 @@ const MainApp: React.FC = () => {
           isOpen={installModalOpen}
           onClose={() => setInstallModalOpen(false)}
         />
+
+        {/* Mandatory Gmail Notification Confirmation Modal */}
+        <GmailNotifyConfirmModal />
 
         {/* Offline Connectivity Indicator */}
         <OfflineIndicator />

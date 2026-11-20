@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { ORGANIZATION_ROLES } from '../data/organizationRoles';
+import { MemberStatusBadge } from './MemberStatusBadge';
 import { Role, RoleDetail } from '../types';
 import {
   Award,
@@ -271,7 +272,10 @@ export const OrganizationStructure: React.FC<OrganizationStructureProps> = ({ is
                           {m.name[0]}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-extrabold text-slate-950 dark:text-slate-100 truncate">{m.name}</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-extrabold text-slate-950 dark:text-slate-100 truncate">{m.name}</span>
+                            <MemberStatusBadge status={m.status} t={t} size="sm" />
+                          </div>
                           <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono truncate">{m.memberNo} · {m.phone} · {m.village}</div>
                         </div>
                       </div>

@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
-import { Member, Project, Role, WebsiteFontStyle } from '../types';
+import { Member, MemberStatus, Project, Role, WebsiteFontStyle } from '../types';
 import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
 import { DiscussionForum } from './DiscussionForum';
+import { AdminGmailSettingsCard } from './GmailAlertsPanel';
+import { MemberStatusBadge } from './MemberStatusBadge';
+import { getMemberStatusMeta, MEMBER_STATUS_OPTIONS } from '../lib/memberStatus';
+import {
+  buildDraftFromEvent,
+  buildDraftFromNews,
+  buildDraftFromProject,
+} from '../lib/gmailNotifications';
 import { compressImage } from '../lib/imageUpload';
 import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
@@ -92,6 +100,7 @@ export const AdminDashboard: React.FC = () => {
     clearAuthError,
     adminAccessWarning,
     clearAdminAccessWarning,
+    requestGmailNotification,
     showToast
   } = useCommunity();
 
@@ -271,6 +280,7 @@ export const AdminDashboard: React.FC = () => {
         email: '',
         phone: '',
         role: 'Member',
+        status: 'Active',
         village: 'Gaira',
         bloodGroup: 'O+',
         skills: 'Community Volunteering, Youth Mentorship',
@@ -335,6 +345,7 @@ export const AdminDashboard: React.FC = () => {
           email: formData.email,
           phone: formData.phone,
           role: formData.role || 'Member',
+          status: (formData.status || 'Active') as MemberStatus,
           village: formData.village || 'Gaira',
           bloodGroup: formData.bloodGroup || 'O+',
           skills: skillsArray,
@@ -347,6 +358,7 @@ export const AdminDashboard: React.FC = () => {
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
+          status: (formData.status || 'Active') as MemberStatus,
           village: formData.village,
           bloodGroup: formData.bloodGroup,
           skills: skillsArray,
@@ -906,15 +918,19 @@ export const AdminDashboard: React.FC = () => {
                             <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono">{m.memberNo} · {m.phone}</div>
                           </div>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 font-black text-[11px] shrink-0">
-                          {m.bloodGroup}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <MemberStatusBadge status={m.status} t={t} size="sm" />
+                          <span className="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 font-black text-[11px] shrink-0">
+                            {m.bloodGroup}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
+                      <div className="grid grid-cols-1 gap-1.5">
                         <select
                           value={m.role}
                           disabled={!isAdminLoggedIn}
+                          aria-label={t(`Role for ${m.name}`, `${m.name}-এর পদবি`)}
                           onChange={e => updateMember(m.id, { role: e.target.value as Role })}
                           className="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
                         >
@@ -936,6 +952,22 @@ export const AdminDashboard: React.FC = () => {
                           <option value="Advisor">Advisor (উপদেষ্টা)</option>
                           <option value="Volunteer">Volunteer (স্বেচ্ছাসেবক)</option>
                           <option value="Member">Member (সাধারণ সদস্য)</option>
+                        </select>
+                        <select
+                          value={m.status || 'Active'}
+                          disabled={!isAdminLoggedIn}
+                          aria-label={t(`Status for ${m.name}`, `${m.name}-এর অবস্থা`)}
+                          onChange={e => updateMember(m.id, { status: e.target.value as MemberStatus })}
+                          className="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                        >
+                          {MEMBER_STATUS_OPTIONS.map(st => {
+                            const meta = getMemberStatusMeta(st);
+                            return (
+                              <option key={st} value={st}>
+                                {meta.labelEn} ({meta.labelBn})
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
 
@@ -971,6 +1003,7 @@ export const AdminDashboard: React.FC = () => {
                   <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-400 uppercase tracking-wider font-bold border-y border-slate-200 dark:border-slate-700">
                     <tr>
                       <th className="py-3 px-4">Member</th>
+                      <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">Role</th>
                       <th className="py-3 px-4">Village</th>
                       <th className="py-3 px-4">Blood</th>
@@ -997,6 +1030,27 @@ export const AdminDashboard: React.FC = () => {
                                 <div className="text-[10px] text-slate-700 dark:text-slate-400 font-normal font-mono">{m.memberNo} · {m.phone}</div>
                               </div>
                             </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {isAdminLoggedIn ? (
+                              <select
+                                value={m.status || 'Active'}
+                                aria-label={t(`Status for ${m.name}`, `${m.name}-এর অবস্থা`)}
+                                onChange={e => updateMember(m.id, { status: e.target.value as MemberStatus })}
+                                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100"
+                              >
+                                {MEMBER_STATUS_OPTIONS.map(st => {
+                                  const meta = getMemberStatusMeta(st);
+                                  return (
+                                    <option key={st} value={st}>
+                                      {meta.labelEn} ({meta.labelBn})
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            ) : (
+                              <MemberStatusBadge status={m.status} t={t} size="sm" />
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <select
@@ -1138,6 +1192,22 @@ export const AdminDashboard: React.FC = () => {
                       {isAdminLoggedIn && (
                         <>
                           <button
+                            type="button"
+                            onClick={() =>
+                              requestGmailNotification(
+                                buildDraftFromNews(
+                                  item,
+                                  typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+                                )
+                              )
+                            }
+                            className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors cursor-pointer"
+                            title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{t('Gmail', 'Gmail')}</span>
+                          </button>
+                          <button
                             onClick={() => openEditModal('news', item)}
                             className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
                             title="Edit News"
@@ -1221,6 +1291,22 @@ export const AdminDashboard: React.FC = () => {
 
                     {isAdminLoggedIn && (
                       <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            requestGmailNotification(
+                              buildDraftFromEvent(
+                                ev,
+                                typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+                              )
+                            )
+                          }
+                          className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                          title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>{t('Gmail', 'Gmail')}</span>
+                        </button>
                         <button
                           onClick={() => openEditModal('event', ev)}
                           className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors"
@@ -1378,6 +1464,22 @@ export const AdminDashboard: React.FC = () => {
                     {isAdminLoggedIn && (
                       <div className="flex items-center gap-2 shrink-0">
                         <button
+                          type="button"
+                          onClick={() =>
+                            requestGmailNotification(
+                              buildDraftFromProject(
+                                proj,
+                                typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+                              )
+                            )
+                          }
+                          className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                          title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>{t('Gmail', 'Gmail')}</span>
+                        </button>
+                        <button
                           onClick={() => openEditModal('project', proj)}
                           className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-950 dark:text-slate-200 rounded-lg text-xs font-bold"
                         >
@@ -1487,28 +1589,44 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                {messages.map(msg => (
-                  <div key={msg.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
-                        <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{msg.name}</span>
-                        <span className="text-xs text-slate-700 dark:text-slate-400 break-all">({msg.contact})</span>
+                {messages.map(msg => {
+                  const isGmailSub = msg.message.startsWith('[GMAIL_SUBSCRIBER]');
+                  return (
+                    <div key={msg.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{msg.name}</span>
+                          <span className="text-xs text-slate-700 dark:text-slate-400 break-all">({msg.contact})</span>
+                          {isGmailSub && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                              {t('Gmail Alert Subscriber', 'Gmail সাবস্ক্রাইবার')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-slate-700 dark:text-slate-400">{msg.date}</span>
+                          {isAdminLoggedIn && (
+                            <button
+                              onClick={() => deleteMessage(msg.id)}
+                              className="text-slate-700 dark:text-slate-400 hover:text-rose-600 p-1"
+                              aria-label={`Delete message from ${msg.name}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-slate-700 dark:text-slate-400">{msg.date}</span>
-                        {isAdminLoggedIn && (
-                          <button
-                            onClick={() => deleteMessage(msg.id)}
-                            className="text-slate-700 dark:text-slate-400 hover:text-rose-600 p-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-xs text-slate-900 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">
+                        {isGmailSub
+                          ? t(
+                              'Subscribed for automatic Gmail alerts (Notice, News, Event & Project).',
+                              'নতুন নোটিশ, নিউজ, ইভেন্ট ও প্রজেক্টের Gmail নোটিফিকেশনের জন্য সাবস্ক্রাইব করেছেন।'
+                            )
+                          : msg.message}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-900 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">{msg.message}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1741,6 +1859,8 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              <AdminGmailSettingsCard readOnly={isPresidentViewOnly} />
+
               <BackgroundSettings readOnly={isPresidentViewOnly} />
             </div>
           )}
@@ -1919,7 +2039,26 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t('Member Status *', 'সদস্যের অবস্থা *')}
+                      </label>
+                      <select
+                        value={formData.status || 'Active'}
+                        onChange={e => setFormData({ ...formData, status: e.target.value as MemberStatus })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold"
+                      >
+                        {MEMBER_STATUS_OPTIONS.map(st => {
+                          const meta = getMemberStatusMeta(st);
+                          return (
+                            <option key={st} value={st}>
+                              {meta.labelEn} ({meta.labelBn})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
                     <div>
                       <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                         {t('Village *', 'গ্রাম *')}

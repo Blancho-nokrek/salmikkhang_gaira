@@ -7,6 +7,7 @@ import {
   WifiOff,
   ExternalLink,
   CheckCircle2,
+  BellRing,
 } from 'lucide-react';
 import { useCommunity } from '../context/CommunityContext';
 import { usePWAInstall, useOnlineStatus } from '../hooks/usePWAInstall';
@@ -18,7 +19,14 @@ interface PWAInstallModalProps {
 }
 
 export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClose }) => {
-  const { t, showToast } = useCommunity();
+  const {
+    t,
+    showToast,
+    deviceAlertsEnabled,
+    deviceNotificationPermission,
+    enableDeviceAlerts,
+    disableDeviceAlerts,
+  } = useCommunity();
   const { isInstallable, isInstalled, inIframe, install } = usePWAInstall();
   const [copied, setCopied] = useState(false);
 
@@ -136,6 +144,29 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
               <span>{t('Open in Browser Tab to Install', 'ইনস্টল করতে নতুন ট্যাবে খুলুন')}</span>
             </a>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (deviceAlertsEnabled && deviceNotificationPermission === 'granted') {
+                disableDeviceAlerts();
+              } else {
+                void enableDeviceAlerts();
+              }
+            }}
+            className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border ${
+              deviceAlertsEnabled && deviceNotificationPermission === 'granted'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700'
+                : 'bg-slate-900 dark:bg-emerald-800 hover:bg-slate-800 dark:hover:bg-emerald-700 text-white border-transparent'
+            }`}
+          >
+            <BellRing className="w-3.5 h-3.5" />
+            <span>
+              {deviceAlertsEnabled && deviceNotificationPermission === 'granted'
+                ? t('Phone Background Alerts Active', 'ফোন ব্যাকগ্রাউন্ড নোটিফিকেশন চালু আছে')
+                : t('Enable Phone Background Alerts', 'ফোন ব্যাকগ্রাউন্ড নোটিফিকেশন চালু করুন')}
+            </span>
+          </button>
 
           <button
             type="button"

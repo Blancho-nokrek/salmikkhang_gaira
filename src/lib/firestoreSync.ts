@@ -14,6 +14,7 @@ import {
   isFirestoreConnectivityOrQuotaError,
   BOOTSTRAP_ADMIN_EMAIL,
 } from './firebase';
+import { encodeMemberStatusForFirestore } from './memberStatus';
 import {
   LEGACY_DEMO_DISCUSSION_IDS,
   LEGACY_DEMO_EVENT_IDS,
@@ -84,16 +85,20 @@ export function toSettingsMainPayload(s: CommunitySettings) {
 }
 
 export function toMemberPublicPayload(m: Member) {
+  const { firestoreStatus, encodedInterests } = encodeMemberStatusForFirestore(
+    m.status,
+    m.interests
+  );
   return cleanObj({
     id: sanitizeId(m.id),
     memberNo: clampStr(m.memberNo, 40, 'SMK-2026-001'),
     name: clampStr(m.name, 120, 'Member'),
     role: clampStr(m.role, 80, 'Member'),
-    status: m.status === 'Inactive' ? 'Inactive' : 'Active',
+    status: firestoreStatus,
     village: clampStr(m.village, 100, 'Gaira'),
     bloodGroup: clampStr(m.bloodGroup, 10, 'O+'),
     skills: Array.isArray(m.skills) ? m.skills.slice(0, 20).map(s => clampStr(s, 80)) : [],
-    interests: Array.isArray(m.interests) ? m.interests.slice(0, 20).map(s => clampStr(s, 80)) : [],
+    interests: encodedInterests.slice(0, 20).map(s => clampStr(s, 80)),
     joinDate: clampStr(m.joinDate, 40, new Date().toISOString().split('T')[0]),
     avatar: m.avatar ? clampStr(m.avatar, 450000) : '',
     bio: clampStr(m.bio, 1000),

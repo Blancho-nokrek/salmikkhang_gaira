@@ -4,7 +4,15 @@ import { VillageResidentsManager } from './VillageResidentsManager';
 import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { DiscussionForum } from './DiscussionForum';
+import { MemberStatusBadge } from './MemberStatusBadge';
 import { compressImage } from '../lib/imageUpload';
+import {
+  filterMembersDirectory,
+  getMemberStatusMeta,
+  MEMBER_STATUS_OPTIONS,
+  summarizeMemberStatuses,
+} from '../lib/memberStatus';
+import { MemberStatus } from '../types';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
 import { NEWS_CATEGORIES, getNewsCategoryBn, isPresetNewsCategory } from '../data/newsCategories';
 import logoImg from '../assets/images/logo.png';
@@ -75,6 +83,10 @@ export const MemberPortal: React.FC = () => {
     updateNewsItem,
     addEvent,
     updateEvent,
+    deviceAlertsEnabled,
+    deviceNotificationPermission,
+    enableDeviceAlerts,
+    disableDeviceAlerts,
     showToast
   } = useCommunity();
 
@@ -84,10 +96,11 @@ export const MemberPortal: React.FC = () => {
   // Notification center popup state
   const [notificationOpen, setNotificationOpen] = useState(false);
 
-  // Directory search & blood group filter
+  // Directory search, blood group, village & status filters
   const [directorySearch, setDirectorySearch] = useState('');
   const [bloodFilter, setBloodFilter] = useState('All');
   const [villageFilter, setVillageFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | MemberStatus>('All');
 
   // Notices search & audience filter
   const [noticeSearch, setNoticeSearch] = useState('');
@@ -473,18 +486,14 @@ export const MemberPortal: React.FC = () => {
     setPortalEditingId(null);
   };
 
-  // Filter directory
-  const filteredMembers = members.filter(m => {
-    const matchesSearch =
-      (m.name || '').toLowerCase().includes(directorySearch.toLowerCase()) ||
-      (m.village || '').toLowerCase().includes(directorySearch.toLowerCase()) ||
-      (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(directorySearch.toLowerCase()));
-
-    const matchesBlood = bloodFilter === 'All' || m.bloodGroup === bloodFilter;
-    const matchesVillage = villageFilter === 'All' || m.village === villageFilter;
-
-    return matchesSearch && matchesBlood && matchesVillage;
+  // Filter directory & compute status counts
+  const filteredMembers = filterMembersDirectory(members, {
+    search: directorySearch,
+    bloodGroup: bloodFilter,
+    village: villageFilter,
+    status: statusFilter,
   });
+  const memberStatusSummary = summarizeMemberStatuses(members);
 
   // Filter notices (search + audience)
   const filteredNotices = news.filter(n => {
@@ -515,11 +524,33 @@ export const MemberPortal: React.FC = () => {
               <span>{t('SALMIKKHANG MEMBER PORTAL', 'সালমিকখাং সদস্য প্যানেল')}</span>
             </span>
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Phone Background Alerts Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (deviceAlertsEnabled && deviceNotificationPermission === 'granted') {
+                    disableDeviceAlerts();
+                  } else {
+                    void enableDeviceAlerts();
+                  }
+                }}
+                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  deviceAlertsEnabled && deviceNotificationPermission === 'granted'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                {deviceAlertsEnabled && deviceNotificationPermission === 'granted'
+                  ? t('Phone Alerts On', 'অ্যালার্ট চালু')
+                  : t('Enable Phone Alerts', 'ফোন অ্যালার্ট')}
+              </button>
+
               {/* Notification Bell Button */}
               <button
                 onClick={() => setNotificationOpen(!notificationOpen)}
                 className="relative p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-700 transition-colors"
                 title="Member Notifications & PDF Circulars"
+                aria-label="Member Notifications"
               >
                 <Bell className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
                 {unreadNotifsCount > 0 && (
@@ -627,11 +658,14 @@ export const MemberPortal: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-emerald-700/60 flex items-center justify-between text-[11px] text-emerald-200/90">
-              <span>{t('Status: Verified Active', 'অবস্থা: সক্রিয় সদস্য')}</span>
+            <div className="mt-4 pt-4 border-t border-emerald-700/60 flex items-center justify-between gap-2 text-[11px] text-emerald-200/90">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-emerald-200/80">{t('Status:', 'অবস্থা:')}</span>
+                <MemberStatusBadge status={currentMember.status} t={t} variant="onDark" />
+              </div>
               <button
                 onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="text-xs font-bold text-white hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-white hover:underline flex items-center gap-1 shrink-0"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>{isEditingProfile ? t('Close Editor', 'বন্ধ করুন') : t('Edit My Details', 'তথ্য এডিট')}</span>
@@ -1021,33 +1055,74 @@ export const MemberPortal: React.FC = () => {
       {/* TAB C: Member Directory & Blood Donor Finder */}
       {activeTab === 'directory' && (
         <div className="space-y-6">
-          <div className="glass-surface p-5 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                {t('Salmikkhang Member Directory', 'সালমিকখাং সদস্য ও রক্তদাতা তালিকা')}
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                {t('Browse verified youth members and emergency blood volunteers.', 'যাচাইকৃত সক্রিয় সদস্য ও জরুরি রক্তদাতাদের তালিকা।')}
-              </p>
+          <div className="glass-surface p-5 rounded-3xl border border-white/30 dark:border-white/10 shadow-lg backdrop-blur-2xl flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                  {t('Salmikkhang Member Directory', 'সালমিকখাং সদস্য ও রক্তদাতা তালিকা')}
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  {t('Browse verified youth members, current status, and emergency blood volunteers.', 'যাচাইকৃত সদস্য, বর্তমান অবস্থা এবং জরুরি রক্তদাতাদের তালিকা।')}
+                </p>
+              </div>
+
+              {/* Quiet tabular status summary */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300">
+                <span className="text-emerald-800 dark:text-emerald-400">
+                  {memberStatusSummary.active} {t('Active', 'সক্রিয়')}
+                </span>
+                <span aria-hidden="true" className="text-slate-400">·</span>
+                <span className="text-amber-800 dark:text-amber-300">
+                  {memberStatusSummary.onLeave} {t('On-Leave', 'ছুটিতে')}
+                </span>
+                {memberStatusSummary.inactive > 0 && (
+                  <>
+                    <span aria-hidden="true" className="text-slate-400">·</span>
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {memberStatusSummary.inactive} {t('Inactive', 'নিষ্ক্রিয়')}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Filter controls */}
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-auto">
-                <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 top-3" />
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={directorySearch}
                   onChange={e => setDirectorySearch(e.target.value)}
-                  placeholder={t('Search name, village...', 'নাম বা এলাকা খুঁজুন...')}
-                  className="w-full sm:w-auto pl-8 pr-3 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
+                  placeholder={t('Search name, role, village, status...', 'নাম, পদবি, গ্রাম বা অবস্থা খুঁজুন...')}
+                  aria-label={t('Search members', 'সদস্য খুঁজুন')}
+                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 backdrop-blur-md"
                 />
               </div>
+
+              {/* Status filter */}
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value as 'All' | MemberStatus)}
+                aria-label={t('Filter by member status', 'সদস্যের অবস্থা অনুযায়ী ফিল্টার')}
+                className="flex-1 sm:flex-initial min-w-0 px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-300 backdrop-blur-md"
+              >
+                <option value="All">{t('All Statuses', 'সকল অবস্থা')}</option>
+                {MEMBER_STATUS_OPTIONS.map(st => {
+                  const meta = getMemberStatusMeta(st);
+                  return (
+                    <option key={st} value={st}>
+                      {t(meta.labelEn, meta.labelBn)}
+                    </option>
+                  );
+                })}
+              </select>
 
               {/* Blood group selector */}
               <select
                 value={bloodFilter}
                 onChange={e => setBloodFilter(e.target.value)}
+                aria-label={t('Filter by blood group', 'রক্তের গ্রুপ অনুযায়ী ফিল্টার')}
                 className="flex-1 sm:flex-initial min-w-0 px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-300 backdrop-blur-md"
               >
                 <option value="All">{t('All Blood Groups', 'সকল রক্তের গ্রুপ')}</option>
@@ -1060,6 +1135,7 @@ export const MemberPortal: React.FC = () => {
               <select
                 value={villageFilter}
                 onChange={e => setVillageFilter(e.target.value)}
+                aria-label={t('Filter by village', 'গ্রাম অনুযায়ী ফিল্টার')}
                 className="flex-1 sm:flex-initial min-w-0 px-3 py-2 text-xs font-semibold rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 text-slate-950 dark:text-slate-300 backdrop-blur-md"
               >
                 <option value="All">{t('All Villages', 'সকল গ্রাম')}</option>
@@ -1070,76 +1146,104 @@ export const MemberPortal: React.FC = () => {
             </div>
           </div>
 
-          {/* Members Card Grid (Reflected from reference image_c1acad42.png) */}
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredMembers.map(member => (
-              <div
-                key={member.id}
-                className="glass-card p-5 rounded-3xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] hover:border-emerald-500/40 space-y-4 backdrop-blur-2xl transition-all"
+          {/* Members Card Grid */}
+          {filteredMembers.length === 0 ? (
+            <div className="glass-card p-8 rounded-3xl border border-white/40 dark:border-white/10 text-center space-y-3">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {t('No members match the selected filters.', 'নির্বাচিত ফিল্টার অনুযায়ী কোনো সদস্য পাওয়া যায়নি।')}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setDirectorySearch('');
+                  setStatusFilter('All');
+                  setBloodFilter('All');
+                  setVillageFilter('All');
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-950/80 dark:bg-emerald-950/80 border border-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg overflow-hidden shrink-0 shadow-inner">
-                      {member.avatar ? (
-                        <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                      ) : (
-                        member.name?.[0] || 'M'
-                      )}
+                {t('Reset Filters', 'ফিল্টার রিসেট করুন')}
+              </button>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredMembers.map(member => (
+                <div
+                  key={member.id}
+                  data-testid="member-directory-card"
+                  className={`glass-card p-5 rounded-3xl border shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] hover:border-emerald-500/40 space-y-4 backdrop-blur-2xl transition-all ${
+                    member.status === 'Inactive'
+                      ? 'border-slate-300/60 dark:border-slate-700/60 opacity-90'
+                      : 'border-white/40 dark:border-white/10'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-950/80 dark:bg-emerald-950/80 border border-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg overflow-hidden shrink-0 shadow-inner">
+                        {member.avatar ? (
+                          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                          member.name?.[0] || 'M'
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-slate-950 dark:text-slate-100 tracking-tight leading-tight truncate">
+                          {member.name}
+                        </div>
+                        <div className="text-xs text-emerald-900 dark:text-emerald-400 font-semibold mt-0.5 truncate">
+                          {member.role}
+                        </div>
+                        <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono mt-0.5">
+                          {member.memberNo}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-sm text-slate-950 dark:text-slate-100 tracking-tight leading-tight truncate">
-                        {member.name}
-                      </div>
-                      <div className="text-xs text-emerald-900 dark:text-emerald-400 font-semibold mt-0.5 truncate">
-                        {member.role}
-                      </div>
-                      <div className="text-[11px] text-slate-700 dark:text-slate-400 font-mono mt-0.5">
-                        {member.memberNo}
+
+                    {/* Top-right Scannable Status & Blood Group Cluster */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <MemberStatusBadge status={member.status} t={t} size="sm" />
+                      <div className="px-2.5 py-0.5 rounded-lg bg-rose-950/75 border border-rose-500/30 text-rose-200 font-black text-[11px] flex items-center gap-1 shadow-inner whitespace-nowrap">
+                        <Droplet className="w-3 h-3 fill-rose-500 text-rose-500 shrink-0" aria-hidden="true" />
+                        <span>{member.bloodGroup}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Blood Group Badge (exact frosted dark pill with red droplet from reference) */}
-                  <div className="px-2.5 py-1 rounded-full bg-rose-950/70 border border-rose-500/30 text-rose-300 font-black text-xs flex items-center gap-1 shadow-inner shrink-0">
-                    <Droplet className="w-3 h-3 fill-rose-500 text-rose-500" />
-                    <span>{member.bloodGroup}</span>
+                  <div className="space-y-1.5 text-xs text-slate-800 dark:text-slate-300 pt-1">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
+                      <span>{member.village}, Madhupur</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
+                      <span className="font-mono">
+                        {member.phone || t('Private (Owner/Admin only)', 'গোপনীয় (শুধু অ্যাডমিন/নিজ)')}
+                      </span>
+                    </div>
+                    {(member.email || member.ownerEmail) && (
+                      <div className="flex items-center gap-2 truncate">
+                        <Mail className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
+                        <span className="truncate">{member.email || member.ownerEmail}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                <div className="space-y-1.5 text-xs text-slate-800 dark:text-slate-300 pt-1">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
-                    <span>{member.village}, Madhupur</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
-                    <span className="font-mono">
-                      {member.phone || t('Private (Owner/Admin only)', 'গোপনীয় (শুধু অ্যাডমিন/নিজ)')}
-                    </span>
-                  </div>
-                  {(member.email || member.ownerEmail) && (
-                    <div className="flex items-center gap-2 truncate">
-                      <Mail className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400/80 shrink-0" />
-                      <span className="truncate">{member.email || member.ownerEmail}</span>
+                  {member.skills && member.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/20 dark:border-white/10">
+                      {member.skills.map((skill, i) => (
+                        <span
+                          key={i}
+                          className="text-xs font-medium px-3 py-1 bg-slate-100/80 dark:bg-[#131f33]/85 border border-slate-200/60 dark:border-white/5 text-slate-900 dark:text-slate-300 rounded-xl"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {member.skills && member.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/20 dark:border-white/10">
-                    {member.skills.map((skill, i) => (
-                      <span
-                        key={i}
-                        className="text-xs font-medium px-3 py-1 bg-slate-100/80 dark:bg-[#131f33]/85 border border-slate-200/60 dark:border-white/5 text-slate-900 dark:text-slate-300 rounded-xl"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
