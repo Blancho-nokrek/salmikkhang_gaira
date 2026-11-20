@@ -3,13 +3,23 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
+  memoryLocalCache,
   persistentLocalCache,
   persistentMultipleTabManager,
+  enableNetwork,
   doc,
   getDocFromServer,
   type Firestore,
 } from 'firebase/firestore';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
+import {
+  detectEmbeddedIframe,
+  getFirestoreTransportSettings,
+  isFirestoreConnectivityOrQuotaError,
+  shouldUsePersistentCache,
+} from './firebaseTransport';
+
+export { isFirestoreConnectivityOrQuotaError };
 
 export const BOOTSTRAP_ADMIN_EMAIL = 'salmikkhang@gmail.com';
 export const BOOTSTRAP_ADMIN_EMAILS = [
@@ -34,13 +44,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 function createFirestoreInstance(): Firestore {
+  const transportSettings = getFirestoreTransportSettings();
+  const usePersistent = shouldUsePersistentCache({
+    isEmbeddedIframe: detectEmbeddedIframe(),
+    hasIndexedDb: typeof indexedDB !== 'undefined',
+  });
+
+  if (usePersistent) {
+    try {
+      return initializeFirestore(
+        app,
+        {
+          ...transportSettings,
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          }),
+        },
+        firebaseConfig.firestoreDatabaseId
+      );
+    } catch {
+      // Fall through to memory cache if persistent IndexedDB cache is unavailable or already locked
+    }
+  }
+
   try {
     return initializeFirestore(
       app,
       {
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
+        ...transportSettings,
+        localCache: memoryLocalCache(),
       },
       firebaseConfig.firestoreDatabaseId
     );
@@ -53,6 +85,14 @@ export const db = createFirestoreInstance();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    void enableNetwork(db).catch(() => {
+      // Ignore reconnect errors when network is still stabilizing
+    });
+  });
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -78,27 +118,6 @@ export interface FirestoreErrorInfo {
       email?: string | null;
     }[];
   };
-}
-
-export function isFirestoreConnectivityOrQuotaError(error: unknown): boolean {
-  const code = typeof (error as any)?.code === 'string' ? ((error as any).code as string).toLowerCase() : '';
-  const msg = (error instanceof Error ? error.message : String(error || '')).toLowerCase();
-  if (
-    code === 'resource-exhausted' ||
-    code === 'unavailable' ||
-    code === 'failed-precondition' ||
-    code === 'aborted' ||
-    code === 'deadline-exceeded'
-  ) {
-    return true;
-  }
-  return (
-    msg.includes('quota limit exceeded') ||
-    msg.includes('resource-exhausted') ||
-    msg.includes('the client is offline') ||
-    msg.includes('could not reach cloud firestore backend') ||
-    msg.includes("backend didn't respond")
-  );
 }
 
 export function handleFirestoreError(
@@ -128,6 +147,9 @@ export function handleFirestoreError(
 }
 
 async function testConnection() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
