@@ -14,6 +14,20 @@ import {
   isFirestoreConnectivityOrQuotaError,
   BOOTSTRAP_ADMIN_EMAIL,
 } from './firebase';
+import {
+  LEGACY_DEMO_DISCUSSION_IDS,
+  LEGACY_DEMO_EVENT_IDS,
+  LEGACY_DEMO_FUND_IDS,
+  LEGACY_DEMO_GALLERY_IDS,
+  LEGACY_DEMO_JOIN_REQUEST_IDS,
+  LEGACY_DEMO_MEMBER_ENTRIES,
+  LEGACY_DEMO_MESSAGE_IDS,
+  LEGACY_DEMO_NEWS_IDS,
+  LEGACY_DEMO_NOTIFICATION_IDS,
+  LEGACY_DEMO_PROJECT_IDS,
+  LEGACY_DEMO_RESIDENT_IDS,
+  isLegacyDemoMemberDoc,
+} from './legacyDemoData';
 import type {
   Member,
   VillageResident,
@@ -329,17 +343,6 @@ export async function fsDelete(path: string) {
 
 export async function seedInitialFirestoreIfEmpty(seed: {
   settings: CommunitySettings;
-  members: Member[];
-  joinRequests: JoinRequest[];
-  events: CommunityEvent[];
-  news: NewsItem[];
-  notifications: MemberNotification[];
-  projects: Project[];
-  gallery: GalleryItem[];
-  messages: ContactMessage[];
-  discussions: DiscussionPost[];
-  funds: FundTransaction[];
-  villageResidents: VillageResident[];
 }): Promise<boolean> {
   const uid = auth.currentUser?.uid;
   if (!uid) return false;
@@ -355,64 +358,88 @@ export async function seedInitialFirestoreIfEmpty(seed: {
       grantedBy: 'bootstrap',
     });
 
-    for (const m of seed.members) {
-      const mId = sanitizeId(m.id);
-      batch.set(doc(db, 'members', mId), toMemberPublicPayload(m));
-      batch.set(doc(db, 'members', mId, 'private', 'contact'), toMemberPrivatePayload(m));
-      if (m.email) {
-        const emailKey = m.email.toLowerCase();
-        batch.set(doc(db, 'roleGrants', emailKey), {
-          email: emailKey,
-          role: m.role,
-          memberId: mId,
-          memberName: clampStr(m.name, 120),
-          status: m.status === 'Inactive' ? 'Inactive' : 'Active',
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    for (const ev of seed.events) {
-      batch.set(doc(db, 'events', sanitizeId(ev.id)), toEventPayload(ev));
-    }
-    for (const n of seed.news) {
-      batch.set(doc(db, 'news', sanitizeId(n.id)), toNewsPayload(n));
-    }
-    for (const notif of seed.notifications) {
-      batch.set(doc(db, 'notifications', sanitizeId(notif.id)), toNotificationPayload(notif));
-    }
-    for (const p of seed.projects) {
-      batch.set(doc(db, 'projects', sanitizeId(p.id)), toProjectPayload(p));
-    }
-    for (const g of seed.gallery) {
-      batch.set(doc(db, 'gallery', sanitizeId(g.id)), toGalleryPayload(g));
-    }
-    for (const jr of seed.joinRequests) {
-      batch.set(doc(db, 'joinRequests', sanitizeId(jr.id)), toJoinRequestPayload(jr));
-    }
-    for (const msg of seed.messages) {
-      batch.set(doc(db, 'messages', sanitizeId(msg.id)), toMessagePayload(msg));
-    }
-    for (const d of seed.discussions) {
-      batch.set(doc(db, 'discussions', sanitizeId(d.id)), toDiscussionPayload(d, uid));
-    }
-    for (const f of seed.funds) {
-      batch.set(doc(db, 'funds', sanitizeId(f.id)), toFundPayload(f, uid));
-    }
-    for (const r of seed.villageResidents) {
-      const rId = sanitizeId(r.id);
-      batch.set(doc(db, 'villageResidents', rId), toResidentPublicPayload(r, uid));
-      batch.set(doc(db, 'villageResidents', rId, 'private', 'info'), toResidentPrivatePayload(r, uid));
-    }
-
     await batch.commit();
     return true;
   } catch (err) {
     if (isFirestoreConnectivityOrQuotaError(err)) {
-      console.warn('Skipped initial Firestore seeding (client offline or daily quota reached).');
+      console.warn('Skipped initial Firestore bootstrap (client offline or daily quota reached).');
       return false;
     }
     handleFirestoreError(err, OperationType.WRITE, 'seedInitialFirestoreIfEmpty');
+  }
+}
+
+/**
+ * Deletes any leftover legacy starter/demo documents from Firestore while
+ * preserving 100% of real user-uploaded records. Must only be called by an Admin.
+ */
+export async function purgeLegacyDemoFirestoreData(): Promise<{ deleted: boolean }> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return { deleted: false };
+
+  try {
+    const batch = writeBatch(db);
+
+    for (const id of LEGACY_DEMO_EVENT_IDS) {
+      batch.delete(doc(db, 'events', id));
+    }
+    for (const id of LEGACY_DEMO_NEWS_IDS) {
+      batch.delete(doc(db, 'news', id));
+    }
+    for (const id of LEGACY_DEMO_NOTIFICATION_IDS) {
+      batch.delete(doc(db, 'notifications', id));
+    }
+    for (const id of LEGACY_DEMO_PROJECT_IDS) {
+      batch.delete(doc(db, 'projects', id));
+    }
+    for (const id of LEGACY_DEMO_GALLERY_IDS) {
+      batch.delete(doc(db, 'gallery', id));
+    }
+    for (const id of LEGACY_DEMO_JOIN_REQUEST_IDS) {
+      batch.delete(doc(db, 'joinRequests', id));
+    }
+    for (const id of LEGACY_DEMO_MESSAGE_IDS) {
+      batch.delete(doc(db, 'messages', id));
+    }
+    for (const id of LEGACY_DEMO_DISCUSSION_IDS) {
+      batch.delete(doc(db, 'discussions', id));
+    }
+    for (const id of LEGACY_DEMO_FUND_IDS) {
+      batch.delete(doc(db, 'funds', id));
+    }
+    for (const id of LEGACY_DEMO_RESIDENT_IDS) {
+      batch.delete(doc(db, 'villageResidents', id));
+      batch.delete(doc(db, 'villageResidents', id, 'private', 'info'));
+    }
+
+    // Verify each legacy member doc before removing so real member accounts are never touched
+    for (const entry of LEGACY_DEMO_MEMBER_ENTRIES) {
+      try {
+        const snap = await getDoc(doc(db, 'members', entry.id));
+        if (snap.exists()) {
+          const ownerEmail = (snap.data()?.ownerEmail as string | undefined) || entry.email;
+          if (isLegacyDemoMemberDoc(entry.id, ownerEmail)) {
+            batch.delete(doc(db, 'members', entry.id));
+            batch.delete(doc(db, 'members', entry.id, 'private', 'contact'));
+            batch.delete(doc(db, 'roleGrants', entry.email.toLowerCase()));
+          }
+        } else {
+          // Still clean up any orphaned fake @example.com roleGrant
+          batch.delete(doc(db, 'roleGrants', entry.email.toLowerCase()));
+        }
+      } catch {
+        // Skip unreadable member check and continue cleaning other legacy records
+      }
+    }
+
+    await batch.commit();
+    return { deleted: true };
+  } catch (err) {
+    if (isFirestoreConnectivityOrQuotaError(err)) {
+      console.warn('Skipped legacy demo cleanup (client offline or daily quota reached).');
+      return { deleted: false };
+    }
+    handleFirestoreError(err, OperationType.DELETE, 'purgeLegacyDemoFirestoreData');
   }
 }
 

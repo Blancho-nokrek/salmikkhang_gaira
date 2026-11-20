@@ -347,7 +347,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </div>
 
             <div className="space-y-4">
-              {events.filter(e => e.visibility !== 'members_only').map((event) => {
+              {events.filter(e => e.visibility !== 'members_only').length === 0 ? (
+                <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
+                  {t('No public events published yet.', 'এখনো কোনো প্রকাশ্য অনুষ্ঠান যুক্ত হয়নি।')}
+                </div>
+              ) : events.filter(e => e.visibility !== 'members_only').map((event) => {
                 const userIdentifier = currentMember?.name || firebaseUser?.displayName || 'Guest Volunteer';
                 const isRsvpd = event.rsvps.includes(userIdentifier);
                 return (
@@ -452,7 +456,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </div>
 
             <div className="space-y-4">
-              {news.filter(item => item.visibility !== 'members_only').map((item) => (
+              {news.filter(item => item.visibility !== 'members_only').length === 0 ? (
+                <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
+                  {t('No public notices or news published yet.', 'এখনো কোনো প্রকাশ্য খবর বা নোটিশ যুক্ত হয়নি।')}
+                </div>
+              ) : news.filter(item => item.visibility !== 'members_only').map((item) => (
                 <article
                   key={item.id}
                   onClick={() => onSelectNews(item.id)}
@@ -542,6 +550,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </p>
           </div>
 
+          {projects.length === 0 ? (
+            <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
+              {t('No community projects published yet.', 'এখনো কোনো প্রকল্প যুক্ত হয়নি।')}
+            </div>
+          ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {projects.map((proj) => (
               <div
@@ -600,6 +613,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
               </div>
             ))}
           </div>
+          )}
 
         </div>
       </section>

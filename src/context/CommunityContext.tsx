@@ -48,9 +48,14 @@ import {
   fsSet,
   fsDelete,
   seedInitialFirestoreIfEmpty,
+  purgeLegacyDemoFirestoreData,
   syncMemberRoleGrant,
   removeMemberRoleGrant,
 } from '../lib/firestoreSync';
+import {
+  filterOutLegacyDemoItems,
+  filterOutLegacyDemoMembers,
+} from '../lib/legacyDemoData';
 import {
   Member,
   Role,
@@ -69,8 +74,6 @@ import {
   MemberNotification,
 } from '../types';
 import {
-  initialVillageResidents,
-  initialDetailedFunds,
   canManageFunds as checkCanManageFunds,
   canCollectData as checkCanCollectData,
   canManageNotices as checkCanManageNotices,
@@ -79,13 +82,6 @@ import {
   canManageMembers as checkCanManageMembers,
   canManageGallery as checkCanManageGallery,
 } from '../data/organizationRoles';
-
-// Asset references
-import heroLandscapeImg from '../assets/images/hero_community_landscape_1794424784970.jpg';
-import learningImg from '../assets/images/community_learning_youth_1794424785641.jpg';
-import plantationImg from '../assets/images/village_tree_plantation_1794424786374.jpg';
-import culturalImg from '../assets/images/youth_cultural_heritage_1794424787606.jpg';
-import sportsImg from '../assets/images/village_sports_youth_1794424787423.jpg';
 
 export interface ToastInfo {
   message: string;
@@ -254,14 +250,15 @@ const safeStorage = {
 };
 
 const STORAGE_KEY = 'salmikkhang_youth_community_v3';
+const LEGACY_DEMO_PURGED_KEY = 'salmikkhang_legacy_demo_purged_v1';
 
 const initialSettings: CommunitySettings = {
   name: 'Salmikkhang Village Youth Community',
   nameBn: 'সালমিকখাং গ্রাম যুব কমিউনিটি',
   village: 'Gaira, Jolchotro',
   address: 'Gaira, Jolchotro, Madhupur, Tangail, Bangladesh',
-  phone: '+880 1712-345678',
-  email: 'salmikkhang.community@gmail.com',
+  phone: '',
+  email: '',
   facebookUrl: '',
   whatsapp: '',
   fontStyle: 'editorial',
@@ -270,585 +267,6 @@ const initialSettings: CommunitySettings = {
   about: 'Salmikkhang is a non-political, grassroots youth organization rooted in Gaira and Jolchotro, Madhupur. We bring young minds together for education, environmental preservation, sports, and community solidarity.',
   aboutBn: 'সালমিকখাং একটি অরাজনৈতিক, তৃণমূল যুব সংগঠন যা গাইরা ও জলছত্র, মধুপুরকে কেন্দ্র করে গঠিত। শিক্ষা, পরিবেশ সংরক্ষণ, খেলাধুলা ও সামাজিক সংহতিতে তরুণদের একত্র করাই আমাদের ব্রত।'
 };
-
-const initialMembers: Member[] = [
-  {
-    id: 'm-0',
-    memberNo: 'SMK-ADMIN',
-    name: 'Salmikkhang Admin',
-    email: 'salmikkhang@gmail.com',
-    phone: '+880 1712-345678',
-    role: 'Admin',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: ['System Administration', 'Community Governance', 'Registry Oversight'],
-    interests: ['Community Development', 'Transparency'],
-    joinDate: '2025-01-01',
-    bio: 'Primary System & Community Administrator of Salmikkhang Youth Council.',
-    ownerEmail: 'salmikkhang@gmail.com'
-  },
-  {
-    id: 'm-1',
-    memberNo: 'SMK-2026-001',
-    name: 'Blancho Nokrek',
-    email: 'blancho.261071027@smuct.ac.bd',
-    phone: '+880 1712-889900',
-    role: 'General Secretary',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: ['Community Leadership', 'Web & Tech', 'Youth Mentorship'],
-    interests: ['Environmental Conservation', 'Digital Literacy', 'Achik Culture'],
-    joinDate: '2025-01-15',
-    bio: 'Dedicated to empowering rural youth, administrative notices, fostering education, and protecting our ancestral natural surroundings in Madhupur.'
-  },
-  {
-    id: 'm-2',
-    memberNo: 'SMK-2026-002',
-    name: 'Subrata Marak',
-    email: 'subrata.cashier@example.com',
-    phone: '+880 1715-443322',
-    role: 'Cashier',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'B+',
-    skills: ['Treasury Accounts', 'Fund Audit', 'Budgeting', 'Banking'],
-    interests: ['Financial Transparency', 'Community Savings'],
-    joinDate: '2025-01-20',
-    bio: 'Treasurer & Cashier of Salmikkhang. Authorized to maintain cash books, approve expense vouchers, and calculate fund balances.'
-  },
-  {
-    id: 'm-3',
-    memberNo: 'SMK-2026-003',
-    name: 'Riton Chisim',
-    email: 'riton.assis@example.com',
-    phone: '+880 1819-778899',
-    role: 'Assistant Cashier',
-    status: 'Active',
-    village: 'Jolchotro',
-    bloodGroup: 'A+',
-    skills: ['Cash Collection', 'Receipt Book', 'Field Accounts', 'Spreadsheets'],
-    interests: ['Youth Sports Fund', 'Emergency Patient Aid'],
-    joinDate: '2025-02-01',
-    bio: 'Assistant Cashier working alongside Treasurer. Authorized to receive monthly dues, issue money receipts, and record daily transactions.'
-  },
-  {
-    id: 'm-4',
-    memberNo: 'SMK-2026-004',
-    name: 'Pritom Sangma',
-    email: 'pritom.data@example.com',
-    phone: '+880 1912-334455',
-    role: 'Data Collector',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'AB+',
-    skills: ['Field Survey', 'Census Data Collection', 'Interviewing', 'Documentation'],
-    interests: ['Village Demographics', 'Winter Relief Mapping'],
-    joinDate: '2025-02-15',
-    bio: 'Official Field Data Collector authorized by Admin to record and update villager household information, relief needs, and emergency citizen profiles.'
-  },
-  {
-    id: 'm-5',
-    memberNo: 'SMK-2026-005',
-    name: 'Bipul Rema',
-    email: 'bipul.president@example.com',
-    phone: '+880 1711-998877',
-    role: 'President',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: ['Strategic Governance', 'Community Moderation', 'Public Dialogue'],
-    interests: ['Social Harmony', 'Forest Protection'],
-    joinDate: '2025-01-10',
-    bio: 'President of Salmikkhang Youth Council. Presiding over executive meetings and steering overall community growth.'
-  },
-  {
-    id: 'm-6',
-    memberNo: 'SMK-2026-006',
-    name: 'Suman Mankhin',
-    email: 'suman.org@example.com',
-    phone: '+880 1822-114477',
-    role: 'Organizing Secretary',
-    status: 'Active',
-    village: 'Jolchotro',
-    bloodGroup: 'B+',
-    skills: ['Member Mobilization', 'Para Unit Coordination', 'Discipline'],
-    interests: ['Youth Volunteer Brigade', 'Anti-Addiction Campaigns'],
-    joinDate: '2025-03-01',
-    bio: 'Organizing Secretary managing member registrations, volunteer deployments, and neighborhood youth units.'
-  },
-  {
-    id: 'm-7',
-    memberNo: 'SMK-2026-007',
-    name: 'Nabila Rahman',
-    email: 'nabila.media@example.com',
-    phone: '+880 1799-556677',
-    role: 'Publicity Secretary',
-    status: 'Active',
-    village: 'Jolchotro',
-    bloodGroup: 'A+',
-    skills: ['Press Releases', 'Social Media', 'Photography', 'Graphic Design'],
-    interests: ['Community Bulletins', 'Event Media'],
-    joinDate: '2025-03-15',
-    bio: 'Publicity & Communication Secretary responsible for publishing announcements, news bulletins, and managing photo galleries.'
-  },
-  {
-    id: 'm-8',
-    memberNo: 'SMK-2026-008',
-    name: 'Rakib Hasan',
-    email: 'rakib.sports@example.com',
-    phone: '+880 1819-445566',
-    role: 'Sports & Cultural Secretary',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'A+',
-    skills: ['Football Coaching', 'Tournament Logistics', 'Cultural Arts'],
-    interests: ['Youth Sports', 'Traditional Achik Dances'],
-    joinDate: '2025-03-01',
-    bio: 'Captain of youth football team and coordinator for sports tournaments and indigenous cultural programs.'
-  },
-  {
-    id: 'm-9',
-    memberNo: 'SMK-2026-009',
-    name: 'Ayesha Akter',
-    email: 'ayesha.welfare@example.com',
-    phone: '+880 1711-223344',
-    role: 'Social Welfare Secretary',
-    status: 'Active',
-    village: 'Jolchotro',
-    bloodGroup: 'B+',
-    skills: ['Relief Coordination', 'Environmental Planting', 'First Aid'],
-    interests: ['Tree Plantation', 'Winter Cloth Distribution', 'Maternal Health'],
-    joinDate: '2025-02-10',
-    bio: 'Social Welfare & Relief Secretary leading green village projects and aid for low-income families.'
-  },
-  {
-    id: 'm-10',
-    memberNo: 'SMK-2026-010',
-    name: 'Subir Rema',
-    email: 'subir.advisor@example.com',
-    phone: '+880 1723-556677',
-    role: 'Advisor',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: ['Garo Cultural Heritage', 'Conflict Resolution', 'Counseling'],
-    interests: ['Traditional Music & Arts', 'Indigenous Rights'],
-    joinDate: '2025-01-10',
-    bio: 'Senior advisor guiding youth leaders on cultural preservation, ethical conduct, and village harmony.'
-  },
-  {
-    id: 'm-11',
-    memberNo: 'SMK-2026-011',
-    name: 'Nusrat Jahan',
-    email: 'nusrat.j@example.com',
-    phone: '+880 1912-778899',
-    role: 'Executive Member',
-    status: 'Active',
-    village: 'Jolchotro',
-    bloodGroup: 'AB+',
-    skills: ['Tree Nursery Care', 'Social Media', 'Creative Writing'],
-    interests: ['Green Madhupur', 'Recycling', 'Plantation'],
-    joinDate: '2025-04-18',
-    bio: 'Active member participating in executive resolutions and tree sapling nurturing.'
-  },
-  {
-    id: 'm-12',
-    memberNo: 'SMK-2026-012',
-    name: 'Joyanto Marak',
-    email: 'joyanto.m@example.com',
-    phone: '+880 1733-882211',
-    role: 'Member',
-    status: 'Active',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: ['Volunteering', 'Gardening'],
-    interests: ['Youth Development', 'Village Cleanliness'],
-    joinDate: '2025-05-01',
-    bio: 'General active member participating in community assemblies, forums, and events.'
-  }
-];
-
-const initialJoinRequests: JoinRequest[] = [
-  {
-    id: 'jr-1',
-    name: 'Mim Akter',
-    email: 'mim.akter@example.com',
-    phone: '+880 1755-123456',
-    village: 'Gaira',
-    bloodGroup: 'O+',
-    skills: 'Graphic design & posters',
-    interests: 'Environment & Tree Plantation',
-    reason: 'I want to help with creative posters and participate in tree planting drives in Gaira.',
-    status: 'Pending',
-    date: '2026-10-15'
-  },
-  {
-    id: 'jr-2',
-    name: 'Tanvir Islam',
-    email: 'tanvir.isl@example.com',
-    phone: '+880 1833-654321',
-    village: 'Jolchotro',
-    bloodGroup: 'B+',
-    skills: 'Photography & video clips',
-    interests: 'Youth Events & Sports',
-    reason: 'Passionate about documenting youth football tournaments and community gatherings on social media.',
-    status: 'Pending',
-    date: '2026-10-14'
-  }
-];
-
-const initialEvents: CommunityEvent[] = [
-  {
-    id: 'ev-1',
-    title: 'Gaira Village Clean-Up & Sanitation Drive',
-    titleBn: 'গাইরা গ্রাম পরিচ্ছন্নতা ও স্যানিটেশন অভিযান',
-    date: '2026-11-20',
-    time: '8:00 AM - 12:30 PM',
-    timeBn: 'সকাল ৮:০০ - দুপুর ১২:৩০',
-    location: 'Gaira Village Center & Main Road',
-    locationBn: 'গাইরা গ্রাম কেন্দ্র ও প্রধান সড়ক',
-    category: 'Environment',
-    categoryBn: 'পরিবেশ',
-    description: 'Youth volunteers will sweep village lanes, clear roadside plastics, and install eco-friendly bamboo waste receptacles.',
-    descriptionBn: 'তরুণ স্বেচ্ছাসেবকরা গ্রামের রাস্তাঘাট পরিষ্কার করবেন, প্লাস্টিক বর্জ্য অপসারণ করবেন এবং বাঁশের তৈরি পরিচ্ছন্নতা ঝুড়ি স্থাপন করবেন।',
-    image: plantationImg,
-    status: 'Upcoming',
-    visibility: 'public',
-    rsvps: ['blancho.261071027@smuct.ac.bd', 'ayesha.akter@example.com', 'rakib.sports@example.com', 'nusrat.j@example.com']
-  },
-  {
-    id: 'ev-2',
-    title: 'Wangala Indigenous Youth Cultural Gathering',
-    titleBn: 'ওয়ানগালা আদিবাসী যুব সাংস্কৃতিক সম্মেলন',
-    date: '2026-11-28',
-    time: '2:30 PM - 7:00 PM',
-    timeBn: 'দুপুর ২:৩০ - সন্ধ্যা ৭:০০',
-    location: 'Salmikkhang Cultural Grounds, Gaira',
-    locationBn: 'সালমিকখাং সাংস্কৃতিক প্রাঙ্গণ, গাইরা',
-    category: 'Culture',
-    categoryBn: 'সংস্কৃতি',
-    description: 'Celebrating Garo/Achik folk heritage, traditional songs, Dama drum rhythms, Dokmanda handloom showcases, and community feast.',
-    descriptionBn: 'গারো আচিক লোক ঐতিহ্য, লোকগান, ঐতিহ্যবাহী দামা ড্রামের ছন্দ, দকমান্দা বস্ত্র প্রদর্শনী এবং সম্প্রীতির ঐতিহ্যবাহী উৎসব।',
-    image: culturalImg,
-    status: 'Upcoming',
-    visibility: 'public',
-    rsvps: ['blancho.261071027@smuct.ac.bd', 'subir.rema@example.com', 'probal.chisim@example.com']
-  },
-  {
-    id: 'ev-3',
-    title: 'Winter Inter-Village Youth Football Cup',
-    titleBn: 'শীতকালীন আন্তঃগ্রাম যুব ফুটবল কাপ',
-    date: '2026-12-05',
-    time: '3:00 PM - 5:30 PM',
-    timeBn: 'বিকাল ৩:০০ - ৫:৩০',
-    location: 'Jolchotro High School Ground',
-    locationBn: 'জলছত্র উচ্চ বিদ্যালয় মাঠ',
-    category: 'Sports',
-    categoryBn: 'খেলাধুলা',
-    description: 'Friendly 7-a-side football tournament between Gaira, Jolchotro, and neighboring village youth teams promoting health and friendship.',
-    descriptionBn: 'গাইরা, জলছত্র ও পার্শ্ববর্তী গ্রামের যুব দলগুলোর মধ্যে সৌহার্দ্যপূর্ণ ৭-সাইড ফুটবল টুর্নামেন্ট।',
-    image: sportsImg,
-    status: 'Upcoming',
-    visibility: 'public',
-    rsvps: ['rakib.sports@example.com', 'blancho.261071027@smuct.ac.bd']
-  },
-  {
-    id: 'ev-4',
-    title: 'Youth Council Internal Strategy & Budget Planning',
-    titleBn: 'যুব কাউন্সিলের অভ্যন্তরীণ কর্মপরিকল্পনা ও বাজেট সভা',
-    date: '2026-12-12',
-    time: '10:00 AM - 1:00 PM',
-    timeBn: 'সকাল ১০:০০ - দুপুর ১:০০',
-    location: 'Salmikkhang Community Room, Gaira',
-    locationBn: 'সালমিকখাং কমিউনিটি কক্ষ, গাইরা',
-    category: 'Meeting',
-    categoryBn: 'সভা',
-    description: 'Confidential strategic meeting for registered youth members to allocate community funds for winter initiatives and volunteer assignments.',
-    descriptionBn: 'নিবন্ধিত সদস্যদের অভ্যন্তরীণ বিশেষ সভা, যেখানে শীতকালীন উন্নয়ন কর্মকাণ্ডের বাজেট ও দায়িত্ব বণ্টন করা হবে।',
-    image: learningImg,
-    status: 'Upcoming',
-    visibility: 'members_only',
-    rsvps: ['blancho.261071027@smuct.ac.bd', 'ayesha.akter@example.com']
-  }
-];
-
-const initialNews: NewsItem[] = [
-  {
-    id: 'n-1',
-    title: 'Official Resolution: Monthly Executive Meeting Minutes (PDF Attached)',
-    titleBn: 'অফিসিয়াল নোটিশ: মাসিক কার্যনির্বাহী সভার রেজোলিউশন (PDF সংযুক্ত)',
-    category: 'Notice',
-    categoryBn: 'নোটিশ',
-    date: '2026-11-10',
-    summary: 'The executive committee met in Gaira to approve the winter budget and project roadmap.',
-    summaryBn: 'গাইরায় কার্যনির্বাহী কমিটির সভায় শীতকালীন কর্মপরিকল্পনা ও বাজেট অনুমোদন করা হয়েছে।',
-    content: 'All registered members are requested to review the attached resolution PDF document regarding the upcoming tree plantation phase and winter emergency blood bank roster. Your cooperation is appreciated.',
-    contentBn: 'আসন্ন বৃক্ষরোপণ কর্মসূচি ও জরুরি রক্তের রোস্টার সম্পর্কিত সভার সিদ্ধান্তসমূহ বিস্তারিতভাবে সংযুক্ত PDF ডকুমেন্টে উল্লেখ করা হয়েছে। সকল সদস্যকে এটি পাঠ করার অনুরোধ জানানো হচ্ছে।',
-    image: plantationImg,
-    tagColor: 'green',
-    status: 'Published',
-    visibility: 'members_only',
-    pdfAttachment: {
-      fileName: 'Salmikkhang_Council_Resolution_Nov_2026.pdf',
-      fileSize: '184 KB',
-      dataUrl: 'data:application/pdf;base64,JVBERi0xLjMKJcfsj6IKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDcwCj4+CnN0cmVhbQpCVAovRjEgMTggVGYKNTAgODAwIFRECiAoU2FsbWlra2hhbmcgWW91dGggQ29tbXVuaXR5IC0gT2ZmaWNpYWwgTm90aWNlKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCg=='
-    }
-  },
-  {
-    id: 'n-2',
-    title: 'Salmikkhang Clean-Up Campaign & Eco-Bins Installed',
-    titleBn: 'সালমিকখাং পরিচ্ছন্নতা অভিযান ও পরিবেশবান্ধব ডাস্টবিন স্থাপন',
-    category: 'Environment',
-    categoryBn: 'পরিবেশ',
-    date: '2026-10-20',
-    summary: 'Over 40 youth assembled to clean the primary village paths and install waste baskets.',
-    summaryBn: '৪০ জনেরও বেশি তরুণ একত্রিত হয়ে গ্রামের প্রধান পথগুলো পরিষ্কার করেন ও বর্জ্য ফেলার ঝুড়ি স্থাপন করেন।',
-    content: 'On Friday morning, local youth from Gaira gathered with brooms, gloves, and bamboo baskets. The initiative succeeded in removing plastic debris from a 2-kilometer stretch along Jolchotro road, fostering community responsibility for clean surroundings.',
-    contentBn: 'শুক্রবার সকালে গাইরার স্থানীয় তরুণরা ঝাড়ু, গ্লাভস এবং বাঁশের ঝুড়ি নিয়ে সমবেত হন। জলছত্র সড়ক বরাবর ২ কিলোমিটার এলাকায় প্লাস্টিক বর্জ্য অপসারণ করে স্বাস্থ্যসম্মত গ্রাম গড়ে তোলার অঙ্গীকার ব্যক্ত করা হয়।',
-    image: plantationImg,
-    tagColor: 'green',
-    status: 'Published',
-    visibility: 'public'
-  },
-  {
-    id: 'n-3',
-    title: 'Tree Plantation Drive Volunteer Route Map (PDF Attached)',
-    titleBn: 'বৃক্ষরোপণ অভিযানের নির্দেশিকা ও রুট ম্যাপ (PDF সংযুক্ত)',
-    category: 'Notice',
-    categoryBn: 'নোটিশ',
-    date: '2026-10-18',
-    summary: 'Detailed route guidelines and sapling distribution list for team coordinators.',
-    summaryBn: 'দলীয় সমন্বয়কারীদের জন্য চারা বিতরণ ও রোপণ এলাকার নির্দেশিকা।',
-    content: 'Attached PDF includes the exact distribution of 500 indigenous fruit and timber trees along Gaira school road and community fields.',
-    contentBn: 'সংযুক্ত PDF ফাইলে গাইরা বিদ্যালয়ের সড়ক ও উন্মুক্ত প্রান্তরে ৫০০টি ফলদ ও বনজ চারা বিতরণের বিস্তারিত রুট দেওয়া হয়েছে।',
-    image: learningImg,
-    tagColor: 'blue',
-    status: 'Published',
-    visibility: 'members_only',
-    pdfAttachment: {
-      fileName: 'Tree_Plantation_Route_and_Guidelines.pdf',
-      fileSize: '120 KB',
-      dataUrl: 'data:application/pdf;base64,JVBERi0xLjMKJcfsj6IKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDcwCj4+CnN0cmVhbQpCVAovRjEgMTggVGYKNTAgODAwIFRECiAoU2FsbWlra2hhbmcgWW91dGggQ29tbXVuaXR5IC0gUGxhbnRhdGlvbiBHdWlkZWxpbmVzKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCg=='
-    }
-  }
-];
-
-const initialNotifications: MemberNotification[] = [
-  {
-    id: 'notif-1',
-    title: 'Monthly Council Meeting Minutes & Budget Allocation (PDF)',
-    titleBn: 'মাসিক যুব কাউন্সিল সভার সিদ্ধান্ত ও বাজেট বিবরণী (PDF)',
-    message: 'Official resolution of the executive committee meeting held in Gaira. Please read the attached document.',
-    messageBn: 'গাইরায় অনুষ্ঠিত কার্যনির্বাহী কমিটির সভার রেজোলিউশন ও সিদ্ধান্ত। সংযুক্ত PDF ফাইলটি দেখুন।',
-    date: '2026-11-10',
-    type: 'notice',
-    pdfAttachment: {
-      fileName: 'Salmikkhang_Council_Resolution_Nov_2026.pdf',
-      fileSize: '184 KB',
-      dataUrl: 'data:application/pdf;base64,JVBERi0xLjMKJcfsj6IKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDcwCj4+CnN0cmVhbQpCVAovRjEgMTggVGYKNTAgODAwIFRECiAoU2FsbWlra2hhbmcgWW91dGggQ29tbXVuaXR5IC0gT2ZmaWNpYWwgTm90aWNlKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCg=='
-    },
-    read: false
-  },
-  {
-    id: 'notif-2',
-    title: 'Upcoming Tree Plantation Volunteer Guidelines (PDF)',
-    titleBn: 'আসন্ন বৃক্ষরোপণ অভিযানের স্বেচ্ছাসেবক নির্দেশিকা (PDF)',
-    message: 'Guidance and roadside route map for the upcoming Gaira saplings drive.',
-    messageBn: 'গাইরা গ্রামের রাস্তা বরাবর বৃক্ষরোপণ কাজের রুট ম্যাপ ও দায়িত্ব বণ্টন।',
-    date: '2026-11-05',
-    type: 'notice',
-    pdfAttachment: {
-      fileName: 'Tree_Plantation_Route_and_Guidelines.pdf',
-      fileSize: '120 KB',
-      dataUrl: 'data:application/pdf;base64,JVBERi0xLjMKJcfsj6IKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDcwCj4+CnN0cmVhbQpCVAovRjEgMTggVGYKNTAgODAwIFRECiAoU2FsbWlra2hhbmcgWW91dGggQ29tbXVuaXR5IC0gUGxhbnRhdGlvbiBHdWlkZWxpbmVzKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCg=='
-    },
-    read: true
-  }
-];
-
-const initialProjects: Project[] = [
-  {
-    id: 'p-1',
-    title: 'Greener Gaira: Sal Forest & Roadside Plantation',
-    titleBn: 'সবুজ গাইরা: শালবন ও সড়কপার্শ্ব বৃক্ষরোপণ',
-    category: 'Environment',
-    categoryBn: 'পরিবেশ',
-    status: 'Ongoing',
-    statusBn: 'চলমান',
-    progress: 75,
-    description: 'Planting 1,000 indigenous fruit and timber trees along village pathways to restore greenery and promote biodiversity.',
-    descriptionBn: 'গ্রামের সড়ক ও উন্মুক্ত স্থানে ১,০০০টি ফলদ ও বনজ বৃক্ষরোপণ এবং লালন-পালনের উদ্যোগ।',
-    image: plantationImg,
-    volunteersNeeded: 25,
-    volunteersEnrolled: 19
-  },
-  {
-    id: 'p-2',
-    title: 'Youth Learning & Digital Skills Circle',
-    titleBn: 'যুব শিক্ষা ও ডিজিটাল দক্ষতা বৃত্ত',
-    category: 'Education',
-    categoryBn: 'শিক্ষা',
-    status: 'Ongoing',
-    statusBn: 'চলমান',
-    progress: 50,
-    description: 'Equipping village students with smartphone literacy, computer fundamentals, and academic mentoring.',
-    descriptionBn: 'গ্রামের ছাত্রছাত্রীদের কম্পিউটার ও ডিজিটাল সাক্ষরতা প্রদান এবং উচ্চশিক্ষার পরামর্শ।',
-    image: learningImg,
-    volunteersNeeded: 12,
-    volunteersEnrolled: 8
-  },
-  {
-    id: 'p-3',
-    title: 'Village Sports Ground & Youth Fitness Club',
-    titleBn: 'গ্রামের খেলার মাঠ সংস্কার ও যুব ফিটনেস',
-    category: 'Sports',
-    categoryBn: 'খেলাধুলা',
-    status: 'Planning',
-    statusBn: 'পরিকল্পনাধীন',
-    progress: 30,
-    description: 'Leveling the football field, setting up goalposts, and procuring volleyball nets for daily active play.',
-    descriptionBn: 'ফুটবল মাঠ সমতল করা, নতুন গোলপোস্ট স্থাপন এবং যুবকদের নিয়মিত খেলাধুলার সুযোগ তৈরি।',
-    image: sportsImg,
-    volunteersNeeded: 15,
-    volunteersEnrolled: 6
-  },
-  {
-    id: 'p-4',
-    title: 'Achik Cultural Center & Musical Archive',
-    titleBn: 'আচিক সাংস্কৃতিক কর্নার ও বাদ্যযন্ত্র সংরক্ষণ',
-    category: 'Culture',
-    categoryBn: 'সংস্কৃতি',
-    status: 'Ongoing',
-    statusBn: 'চলমান',
-    progress: 60,
-    description: 'Procuring traditional Garo instruments (Dama, Kram, Rang) and teaching indigenous folk songs to children.',
-    descriptionBn: 'ঐতিহ্যবাহী বাদ্যযন্ত্র সংগ্রহ এবং শিশুদের লোকগান ও নৃত্যের প্রাথমিক তালিম প্রদান।',
-    image: culturalImg,
-    volunteersNeeded: 10,
-    volunteersEnrolled: 9
-  }
-];
-
-const initialGallery: GalleryItem[] = [
-  {
-    id: 'g-1',
-    title: 'Sal Forest Road at Dawn, Gaira',
-    titleBn: 'ভোরের আলোয় গাইরা শালবনের মেঠোপথ',
-    category: 'Landscape',
-    categoryBn: 'প্রকৃতি',
-    image: heroLandscapeImg,
-    date: '2026-10-15'
-  },
-  {
-    id: 'g-2',
-    title: 'Village Youth Learning Circle',
-    titleBn: 'উন্মুক্ত আঙিনায় পাঠচক্র ও মতবিনিময়',
-    category: 'Education',
-    categoryBn: 'শিক্ষা',
-    image: learningImg,
-    date: '2026-10-10'
-  },
-  {
-    id: 'g-3',
-    title: 'Green Saplings Plantation Team',
-    titleBn: 'বৃক্ষরোপণ অভিযানের তরুণ দল',
-    category: 'Environment',
-    categoryBn: 'পরিবেশ',
-    image: plantationImg,
-    date: '2026-10-05'
-  },
-  {
-    id: 'g-4',
-    title: 'Wangala Indigenous Cultural Celebration',
-    titleBn: 'ঐতিহ্যবাহী পোশাকে সংস্কৃতি উদযাপন',
-    category: 'Culture',
-    categoryBn: 'সংস্কৃতি',
-    image: culturalImg,
-    date: '2026-09-22'
-  },
-  {
-    id: 'g-5',
-    title: 'Afternoon Football on Village Green',
-    titleBn: 'সবুজ মাঠে বিকেলের ফুটবল ম্যাচ',
-    category: 'Sports',
-    categoryBn: 'খেলাধুলা',
-    image: sportsImg,
-    date: '2026-09-15'
-  }
-];
-
-const initialMessages: ContactMessage[] = [
-  {
-    id: 'msg-1',
-    name: 'Father Lawrence',
-    contact: 'lawrence.mission@example.com',
-    message: 'Appreciating the village cleanup work done by Salmikkhang youth. The church ground can be made available for your next education workshop.',
-    date: '2026-10-16',
-    status: 'Read'
-  },
-  {
-    id: 'msg-2',
-    name: 'Robin Marak',
-    contact: '+880 1711-998877',
-    message: 'I am currently working in Dhaka but would like to donate 20 fruit saplings for the next tree planting drive in Gaira.',
-    date: '2026-10-17',
-    status: 'Unread'
-  }
-];
-
-const initialDiscussions: DiscussionPost[] = [
-  {
-    id: 'd-1',
-    authorName: 'Blancho Nokrek',
-    authorRole: 'General Secretary',
-    date: '2026-10-19',
-    text: 'Hello everyone! We are finalizing the logistics for the upcoming Clean-Up & Sapling care drive this Friday. Please check the official PDF notice on the notice board.',
-    category: 'Event Prep',
-    likes: 12,
-    likedByMe: true,
-    replies: [
-      {
-        id: 'dr-1',
-        author: 'Rakib Hasan',
-        role: 'Executive Member',
-        text: 'I have arranged 5 shovels and 10 bamboo baskets from the southern neighborhood.',
-        date: '2026-10-19 14:20'
-      },
-      {
-        id: 'dr-2',
-        author: 'Ayesha Akter',
-        role: 'Youth Coordinator',
-        text: 'Girls volunteer team will meet at 7:45 AM at the community pavilion.',
-        date: '2026-10-19 16:05'
-      }
-    ]
-  }
-];
-
-const initialFunds: FundTransaction[] = [
-  {
-    id: 'f-1',
-    date: '2026-10-01',
-    type: 'Inflow',
-    amount: 3200,
-    title: 'Monthly Member Subscriptions (32 members)',
-    titleBn: 'মাসিক সদস্য চাঁদা (৩২ জন)',
-    donorOrBeneficiary: 'Active Members',
-    category: 'Membership Dues'
-  },
-  {
-    id: 'f-2',
-    date: '2026-10-05',
-    type: 'Outflow',
-    amount: 1450,
-    title: 'Purchase of 60 Native Neem & Mahogany Saplings',
-    titleBn: '৬০টি নিম ও মেহগনি চারা ক্রয়',
-    donorOrBeneficiary: 'Madhupur Forest Nursery',
-    category: 'Tree Saplings'
-  }
-];
 
 const CommunityContext = createContext<CommunityContextType | undefined>(undefined);
 
@@ -909,21 +327,25 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const clearMemberAccessNotice = () => setMemberAccessNotice(null);
   const clearAdminAccessWarning = () => setAdminAccessWarning(null);
 
-  // Live Community Data (starts with initial defaults until Firestore snapshot arrives)
-  const [members, setMembers] = useState<Member[]>(initialMembers);
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(initialJoinRequests);
-  const [events, setEvents] = useState<CommunityEvent[]>(initialEvents);
-  const [news, setNews] = useState<NewsItem[]>(initialNews);
-  const [notifications, setNotifications] = useState<MemberNotification[]>(initialNotifications);
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [gallery, setGallery] = useState<GalleryItem[]>(initialGallery);
-  const [messages, setMessages] = useState<ContactMessage[]>(initialMessages);
-  const [discussions, setDiscussions] = useState<DiscussionPost[]>(initialDiscussions);
-  const [funds, setFunds] = useState<FundTransaction[]>(initialDetailedFunds);
-  const [villageResidents, setVillageResidents] = useState<VillageResident[]>(initialVillageResidents);
+  // Live Community Data (exclusively populated from uploaded Firestore records; never prefilled with demo items)
+  const [members, setMembers] = useState<Member[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [notifications, setNotifications] = useState<MemberNotification[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [discussions, setDiscussions] = useState<DiscussionPost[]>([]);
+  const [funds, setFunds] = useState<FundTransaction[]>([]);
+  const [villageResidents, setVillageResidents] = useState<VillageResident[]>([]);
   const [settingsMain, setSettingsMain] = useState<CommunitySettings>(initialSettings);
   const [heroBgAsset, setHeroBgAsset] = useState<string | undefined>(undefined);
   const [siteBgAsset, setSiteBgAsset] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    safeStorage.remove(STORAGE_KEY);
+  }, []);
 
   const settings: CommunitySettings = {
     ...settingsMain,
@@ -939,7 +361,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);
   const seededOnceRef = useRef(false);
-  const membersRef = useRef<Member[]>(initialMembers);
+  const legacyPurgeOnceRef = useRef(false);
+  const membersRef = useRef<Member[]>([]);
   const linkingUidRef = useRef<Set<string>>(new Set());
   const authFlowInProgressRef = useRef(false);
 
@@ -1414,26 +837,29 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           try {
             const didSeed = await seedInitialFirestoreIfEmpty({
               settings: initialSettings,
-              members: initialMembers,
-              joinRequests: initialJoinRequests,
-              events: initialEvents,
-              news: initialNews,
-              notifications: initialNotifications,
-              projects: initialProjects,
-              gallery: initialGallery,
-              messages: initialMessages,
-              discussions: initialDiscussions,
-              funds: initialDetailedFunds,
-              villageResidents: initialVillageResidents,
             });
             if (didSeed) {
               showToast(
-                t('Cloud database initialized with community records!', 'ক্লাউড ডেটাবেস সফলভাবে সেটআপ হয়েছে!'),
+                t('Cloud database initialized!', 'ক্লাউড ডেটাবেস সফলভাবে প্রস্তুত হয়েছে!'),
                 'success'
               );
             }
           } catch (err) {
             console.error(err);
+          }
+        })();
+      }
+
+      if (access.isAdmin && !legacyPurgeOnceRef.current && !safeStorage.get(LEGACY_DEMO_PURGED_KEY)) {
+        legacyPurgeOnceRef.current = true;
+        void (async () => {
+          try {
+            const res = await purgeLegacyDemoFirestoreData();
+            if (res.deleted) {
+              safeStorage.set(LEGACY_DEMO_PURGED_KEY, '1');
+            }
+          } catch (err) {
+            console.warn('Legacy demo cleanup skipped:', err);
           }
         })();
       }
@@ -1561,9 +987,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'projects'), where('status', 'in', ['Ongoing', 'Planning', 'Completed'])),
         (snap) => {
-          if (!snap.empty || firestoreSeededRef.current) {
-            setProjects(snap.docs.map(d => d.data() as Project));
-          }
+          const list = filterOutLegacyDemoItems('projects', snap.docs.map(d => d.data() as Project));
+          setProjects(list);
         },
         (error) => handleListenerError(error, OperationType.LIST, 'projects')
       )
@@ -1573,11 +998,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'gallery'), where('visibility', '==', 'public')),
         (snap) => {
-          if (!snap.empty || firestoreSeededRef.current) {
-            const list = snap.docs.map(d => d.data() as GalleryItem);
-            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-            setGallery(list);
-          }
+          const list = filterOutLegacyDemoItems('gallery', snap.docs.map(d => d.data() as GalleryItem));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          setGallery(list);
         },
         (error) => handleListenerError(error, OperationType.LIST, 'gallery')
       )
@@ -1599,11 +1022,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubNews = onSnapshot(
       newsQuery,
       (snap) => {
-        if (!snap.empty || firestoreSeededRef.current) {
-          const items = snap.docs.map(d => d.data() as NewsItem);
-          items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          setNews(items);
-        }
+        const items = filterOutLegacyDemoItems('news', snap.docs.map(d => d.data() as NewsItem));
+        items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setNews(items);
       },
       (error) => handleListenerError(error, OperationType.LIST, 'news')
     );
@@ -1611,11 +1032,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubEvents = onSnapshot(
       eventsQuery,
       (snap) => {
-        if (!snap.empty || firestoreSeededRef.current) {
-          const items = snap.docs.map(d => d.data() as CommunityEvent);
-          items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-          setEvents(items);
-        }
+        const items = filterOutLegacyDemoItems('events', snap.docs.map(d => d.data() as CommunityEvent));
+        items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        setEvents(items);
       },
       (error) => handleListenerError(error, OperationType.LIST, 'events')
     );
@@ -1629,6 +1048,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 4. Member & Authenticated Listeners (only attached when user is a verified member in the database)
   useEffect(() => {
     if (!isAuthorizedMember || !verifiedUid || !verifiedEmail) {
+      setMembers([]);
+      setFunds([]);
+      setDiscussions([]);
+      setNotifications([]);
       setVillageResidents([]);
       return;
     }
@@ -1646,7 +1069,6 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'members'), where('status', 'in', ['Active', 'Inactive'])),
         async (snap) => {
-          if (snap.empty && !firestoreSeededRef.current) return;
           const changedMemberIds = new Set<string>();
           for (const change of snap.docChanges()) {
             if (change.type === 'removed') {
@@ -1656,11 +1078,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
           }
 
-          const baseMembers = snap.docs.map(d => ({
-            ...(d.data() as Member),
-            email: (d.data() as Member).ownerEmail || '',
-            phone: '',
-          }));
+          const baseMembers = filterOutLegacyDemoMembers(
+            snap.docs.map(d => ({
+              ...(d.data() as Member),
+              email: (d.data() as Member).ownerEmail || '',
+              phone: '',
+            }))
+          );
 
           // Hydrate private contact info for Admin, President (view-only), or the member owner (cached across updates)
           const hydrated = await Promise.all(
@@ -1728,8 +1152,10 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         for (const r of [...groupARows, ...groupBRows]) {
           combinedMap.set(r.id, r);
         }
-        const baseResidents = Array.from(combinedMap.values());
-        if (baseResidents.length === 0 && !firestoreSeededRef.current) return;
+        const baseResidents = filterOutLegacyDemoItems(
+          'villageResidents',
+          Array.from(combinedMap.values())
+        );
 
         const hydrated = await Promise.all(
           baseResidents.map(async (r) => {
@@ -1832,11 +1258,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'funds'), where('type', 'in', ['Inflow', 'Outflow'])),
         (snap) => {
-          if (!snap.empty || firestoreSeededRef.current) {
-            const list = snap.docs.map(d => d.data() as FundTransaction);
-            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-            setFunds(list);
-          }
+          const list = filterOutLegacyDemoItems('funds', snap.docs.map(d => d.data() as FundTransaction));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          setFunds(list);
         },
         (error) => handleListenerError(error, OperationType.LIST, 'funds')
       )
@@ -1849,17 +1273,18 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           where('category', 'in', ['General', 'Project Idea', 'Question', 'Event Prep'])
         ),
         (snap) => {
-          if (!snap.empty || firestoreSeededRef.current) {
-            const list = snap.docs.map(d => {
+          const list = filterOutLegacyDemoItems(
+            'discussions',
+            snap.docs.map(d => {
               const data = d.data() as DiscussionPost;
               return {
                 ...data,
                 likedByMe: Array.isArray(data.likedByUids) ? data.likedByUids.includes(uid) : false,
               };
-            });
-            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-            setDiscussions(list);
-          }
+            })
+          );
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          setDiscussions(list);
         },
         (error) => handleListenerError(error, OperationType.LIST, 'discussions')
       )
@@ -1869,11 +1294,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       onSnapshot(
         query(collection(db, 'notifications'), where('type', 'in', ['notice', 'event', 'system'])),
         (snap) => {
-          if (!snap.empty || firestoreSeededRef.current) {
-            const list = snap.docs.map(d => d.data() as MemberNotification);
-            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-            setNotifications(list);
-          }
+          const list = filterOutLegacyDemoItems('notifications', snap.docs.map(d => d.data() as MemberNotification));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          setNotifications(list);
         },
         (error) => handleListenerError(error, OperationType.LIST, 'notifications')
       )
@@ -1885,17 +1308,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 5. Admin & President (View-Only) Listeners (Join Requests & Contact Inbox)
   useEffect(() => {
     if (!canViewAdminInbox) {
+      setJoinRequests([]);
+      setMessages([]);
       return;
     }
 
     const unsubRequests = onSnapshot(
       collection(db, 'joinRequests'),
       (snap) => {
-        if (!snap.empty || firestoreSeededRef.current) {
-          const list = snap.docs.map(d => d.data() as JoinRequest);
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          setJoinRequests(list);
-        }
+        const list = filterOutLegacyDemoItems('joinRequests', snap.docs.map(d => d.data() as JoinRequest));
+        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setJoinRequests(list);
       },
       (error) => handleListenerError(error, OperationType.LIST, 'joinRequests')
     );
@@ -1903,11 +1326,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubMessages = onSnapshot(
       collection(db, 'messages'),
       (snap) => {
-        if (!snap.empty || firestoreSeededRef.current) {
-          const list = snap.docs.map(d => d.data() as ContactMessage);
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          setMessages(list);
-        }
+        const list = filterOutLegacyDemoItems('messages', snap.docs.map(d => d.data() as ContactMessage));
+        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setMessages(list);
       },
       (error) => handleListenerError(error, OperationType.LIST, 'messages')
     );
@@ -3537,27 +2958,21 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const resetAllData = () => {
     if (!isAdminLoggedIn) return;
-    setMembers(initialMembers);
-    setJoinRequests(initialJoinRequests);
-    setEvents(initialEvents);
-    setNews(initialNews);
-    setNotifications(initialNotifications);
-    setProjects(initialProjects);
-    setGallery(initialGallery);
-    setMessages(initialMessages);
-    setDiscussions(initialDiscussions);
-    setFunds(initialDetailedFunds);
-    setVillageResidents(initialVillageResidents);
-    setSettingsMain(initialSettings);
-    setHeroBgAsset(undefined);
-    setSiteBgAsset(undefined);
-
     void (async () => {
       try {
-        await fsSet('settings/main', toSettingsMainPayload(initialSettings), OperationType.WRITE);
-        await fsDelete('settings/heroBackground');
-        await fsDelete('settings/siteBackground');
-        showToast(t('Settings reset to initial values', 'সেটিংস প্রাথমিক অবস্থায় ফিরিয়ে নেওয়া হয়েছে'), 'info');
+        const res = await purgeLegacyDemoFirestoreData();
+        if (res.deleted) {
+          safeStorage.set(LEGACY_DEMO_PURGED_KEY, '1');
+          showToast(
+            t(
+              'All old demo data deleted. Only your uploaded records remain.',
+              'পুরনো সব ডেমো ডাটা মুছে ফেলা হয়েছে। এখন শুধু আপনার আপলোড করা তথ্যই রয়েছে।'
+            ),
+            'success'
+          );
+        } else {
+          notifyCloudSyncFailure();
+        }
       } catch {
         notifyCloudSyncFailure();
       }

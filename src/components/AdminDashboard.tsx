@@ -1664,7 +1664,7 @@ export const AdminDashboard: React.FC = () => {
                       onClick={resetAllData}
                       className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-xs font-bold rounded-xl"
                     >
-                      {t('Reset Demo Database', 'ডেমো ডাটা রিসেট')}
+                      {t('Delete Old Demo Data', 'পুরনো ডেমো ডাটা মুছুন')}
                     </button>
                     <button
                       type="submit"
