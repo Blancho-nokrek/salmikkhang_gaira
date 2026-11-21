@@ -4,10 +4,11 @@ export interface FirestoreCacheEnvironment {
 }
 
 export interface FirestoreTransportOptions {
-  experimentalForceLongPolling: true;
+  experimentalAutoDetectLongPolling: true;
   experimentalLongPollingOptions: {
     timeoutSeconds: number;
   };
+  ignoreUndefinedProperties: true;
 }
 
 /**
@@ -29,16 +30,18 @@ export function shouldUsePersistentCache(env: FirestoreCacheEnvironment): boolea
 }
 
 /**
- * Forces WebChannel long-polling with a 25s hanging-GET timeout so proxies,
- * mobile networks, antivirus shields, and preview iframes do not buffer
- * chunked streaming responses and trigger the 10-second offline timeout.
+ * Uses auto-detected long-polling so modern browsers and high-latency mobile
+ * connections stream over fast HTTP/2 Fetch channels (avoiding multi-roundtrip
+ * XHR stalls that trigger the 10-second offline timeout), while automatically
+ * falling back to 20s long-polling behind restrictive proxies or firewalls.
  */
 export function getFirestoreTransportSettings(): FirestoreTransportOptions {
   return {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
     experimentalLongPollingOptions: {
-      timeoutSeconds: 25,
+      timeoutSeconds: 20,
     },
+    ignoreUndefinedProperties: true,
   };
 }
 

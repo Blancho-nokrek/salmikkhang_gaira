@@ -29,6 +29,14 @@ import {
 } from '../lib/firebase';
 import { hydrateMemberStatus, normalizeMemberStatus } from '../lib/memberStatus';
 import {
+  nextSequentialCode,
+  parseTagList,
+  resolvePortalAccessOutcome,
+  translateWithFallback,
+  type MemberAccessNoticeStatus,
+} from '../lib/memberAccess';
+import { ensureOptionalFontLoaded } from '../lib/scrollSmooth';
+import {
   cleanObj,
   clampStr,
   sanitizeId,
@@ -124,7 +132,7 @@ export interface ToastInfo {
 
 export interface MemberAccessNotice {
   email: string;
-  status: 'sent' | 'pending' | 'rejected' | 'inactive' | 'failed';
+  status: MemberAccessNoticeStatus;
 }
 
 export interface AdminAccessWarning {
@@ -139,7 +147,7 @@ interface CommunityContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
-  t: (en: string, bn: string) => string;
+  t: (en: string, bn?: string) => string;
 
   // Theme (Light, Dark, System)
   theme: Theme;
@@ -430,7 +438,14 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     const activeFont = settingsMain.fontStyle || 'editorial';
     document.documentElement.dataset.font = activeFont;
+    ensureOptionalFontLoaded(activeFont);
   }, [settingsMain.fontStyle]);
+
+  useEffect(() => {
+    if (currentView === 'admin') {
+      ensureOptionalFontLoaded('all');
+    }
+  }, [currentView]);
 
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [previewMemberId, setPreviewMemberId] = useState<string | null>(null);
@@ -479,12 +494,18 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLanguage(language === 'en' ? 'bn' : 'en');
   };
 
-  const t = (en: string, bn: string) => (language === 'bn' ? bn : en);
+  const t = (en: string, bn?: string) => translateWithFallback(language, en, bn);
+
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
       setToast(prev => (prev?.message === message ? null : prev));
+      toastTimerRef.current = null;
     }, 3400);
   };
 
@@ -692,51 +713,6 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const ensureAutoJoinRequestForUser = async (
-    user: User
-  ): Promise<'sent' | 'pending' | 'rejected' | 'failed'> => {
-    const emailLower = (user.email || '').trim().toLowerCase();
-    const reqId = sanitizeId(`req-${user.uid}`);
-
-    try {
-      const existingSnap = await getDoc(doc(db, 'joinRequests', reqId));
-      if (existingSnap.exists()) {
-        const st = existingSnap.data()?.status;
-        if (st === 'Rejected') return 'rejected';
-        return 'pending';
-      }
-    } catch {
-      // Proceed to create if unreadable/missing
-    }
-
-    const fallbackName = emailLower.split('@')[0] || 'Google User';
-    const newReq: JoinRequest = {
-      id: reqId,
-      name: clampStr(user.displayName || fallbackName, 120),
-      email: emailLower,
-      phone: 'Google Sign-In',
-      village: 'Pending Verification',
-      bloodGroup: 'O+',
-      skills: '',
-      interests: '',
-      reason: `Member Portal access requested via Google Sign-In (${emailLower}).`,
-      status: 'Pending',
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    try {
-      await fsSet(`joinRequests/${reqId}`, toJoinRequestPayload(newReq), OperationType.CREATE);
-      return 'sent';
-    } catch (err) {
-      if (isFirestoreConnectivityOrQuotaError(err)) {
-        console.warn('Could not create automatic join request (offline/quota):', err);
-      } else {
-        console.error('Could not create automatic join request:', err);
-      }
-      return 'failed';
-    }
-  };
-
   // 1. Complete any pending redirect sign-in and listen to Firebase Auth State
   useEffect(() => {
     void (async () => {
@@ -769,8 +745,8 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               );
             } else {
               const msg = t(
-                `RESTRICTED ACCESS WARNING: "${res.user.email}" is not authorized for Admin & President Panel. No request is sent here.`,
-                `সতর্কতা — সংরক্ষিত প্রবেশাধিকার: "${res.user.email}" অ্যাডমিন বা সভাপতি প্যানেলের জন্য অনুমোদিত নয়। এখানে কোনো রিকোয়েস্ট গ্রহণ করা হয় না।`
+                `ACCESS DECLINED: "${res.user.email}" is not authorized for Admin & President Panel. No request was sent to Admin.`,
+                `প্রবেশাধিকার বাতিল (Access Declined): "${res.user.email}" অ্যাডমিন বা সভাপতি প্যানেলের জন্য অনুমোদিত নয়। অ্যাডমিনের কাছে কোনো রিকোয়েস্ট পাঠানো হয়নি।`
               );
               setIsAdminSessionUnlocked(false);
               setAdminAccessWarning({ email: emailLower, role: access.role });
@@ -781,7 +757,16 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           } else if (pendingPortal === 'member') {
             setIsAdminSessionUnlocked(false);
             setAdminAccessWarning(null);
-            if (access.allowed) {
+            const outcome = resolvePortalAccessOutcome('member', {
+              allowed: access.allowed,
+              isAdmin: access.isAdmin,
+              role: access.role,
+              reason:
+                access.reason === 'offline'
+                  ? 'firestore_unavailable'
+                  : access.reason || 'ok',
+            });
+            if (outcome.unlocked) {
               setIsMemberSessionUnlocked(true);
               setMemberAccessNotice(null);
               setCurrentViewState('member');
@@ -792,17 +777,17 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 ),
                 'success'
               );
-            } else if (access.reason === 'inactive') {
+            } else if (outcome.noticeStatus === 'inactive') {
               setIsMemberSessionUnlocked(false);
               setMemberAccessNotice({ email: emailLower, status: 'inactive' });
               const msg = t(
-                `Access Denied! "${emailLower}" is marked Inactive in the member database.`,
-                `প্রবেশাধিকার নেই! "${emailLower}" সদস্য ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে।`
+                `Access Declined! "${emailLower}" is marked Inactive in the member database.`,
+                `প্রবেশাধিকার বাতিল! "${emailLower}" সদস্য ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে।`
               );
               setAuthError(msg);
               showToast(msg, 'warning');
               setCurrentViewState('member');
-            } else if (access.reason === 'offline') {
+            } else if (outcome.noticeStatus === 'failed') {
               setIsMemberSessionUnlocked(false);
               setMemberAccessNotice({ email: emailLower, status: 'failed' });
               const msg = t(
@@ -814,28 +799,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               setCurrentViewState('member');
             } else {
               setIsMemberSessionUnlocked(false);
-              const reqStatus = await ensureAutoJoinRequestForUser(res.user);
-              setMemberAccessNotice({ email: emailLower, status: reqStatus });
-              const msg =
-                reqStatus === 'rejected'
-                  ? t(
-                      `Access Denied! "${emailLower}" was declined by Admin and cannot enter the Member Portal.`,
-                      `প্রবেশাধিকার নেই! "${emailLower}" আবেদনটি অ্যাডমিন কর্তৃক প্রত্যাখ্যাত হয়েছে।`
-                    )
-                  : reqStatus === 'pending'
-                  ? t(
-                      `"${emailLower}" is not in the member database yet. Your request is already pending Admin approval.`,
-                      `"${emailLower}" এখনো সদস্য ডেটাবেসে যুক্ত হয়নি। আপনার রিকোয়েস্ট অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে।`
-                    )
-                  : reqStatus === 'failed'
-                  ? t(
-                      `Signed in as "${emailLower}", but could not reach the cloud database to send an access request right now.`,
-                      `"${emailLower}" হিসেবে লগইন হয়েছে, কিন্তু এই মুহূর্তে ডেটাবেসে অ্যাক্সেস রিকোয়েস্ট পাঠানো যায়নি।`
-                    )
-                  : t(
-                      `Access Denied! "${emailLower}" is not in the database. An access request has been sent to the Admin.`,
-                      `প্রবেশাধিকার নেই! "${emailLower}" ডেটাবেসে নেই। অ্যাডমিনের কাছে অনুমোদনের জন্য রিকোয়েস্ট পাঠানো হয়েছে।`
-                    );
+              setMemberAccessNotice({ email: emailLower, status: 'declined' });
+              const msg = t(
+                `Access Declined! "${emailLower}" is not registered in our database. No request was sent to Admin — please submit a Membership Application to join.`,
+                `অ্যাক্সেস বাতিল (Access Declined)! "${emailLower}" আমাদের ডেটাবেসে নিবন্ধিত নয়। অ্যাডমিনের কাছে কোনো রিকোয়েস্ট পাঠানো হয়নি — যুক্ত হতে হলে অনুগ্রহ করে সদস্যপদের আবেদন ফর্ম পূরণ করুন।`
+              );
               setAuthError(msg);
               showToast(msg, 'warning');
               setCurrentViewState('member');
@@ -1017,9 +985,50 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [verifiedUid, verifiedEmail]);
 
-  // 2. Public Firestore Listeners (always active for all website visitors)
+  // 2. Public Firestore Listeners (stagger heavy image collections so the initial Watch handshake settles fast)
   useEffect(() => {
     const unsubs: (() => void)[] = [];
+    let mediaListenersAttached = false;
+    let disposed = false;
+
+    const attachMediaListeners = () => {
+      if (mediaListenersAttached || disposed) return;
+      mediaListenersAttached = true;
+
+      unsubs.push(
+        onSnapshot(
+          doc(db, 'settings', 'heroBackground'),
+          (snap) => {
+            setHeroBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
+          },
+          (error) => handleListenerError(error, OperationType.GET, 'settings/heroBackground')
+        )
+      );
+
+      unsubs.push(
+        onSnapshot(
+          doc(db, 'settings', 'siteBackground'),
+          (snap) => {
+            setSiteBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
+          },
+          (error) => handleListenerError(error, OperationType.GET, 'settings/siteBackground')
+        )
+      );
+
+      unsubs.push(
+        onSnapshot(
+          query(collection(db, 'gallery'), where('visibility', '==', 'public')),
+          (snap) => {
+            const list = filterOutLegacyDemoItems('gallery', snap.docs.map(d => d.data() as GalleryItem));
+            list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            setGallery(list);
+          },
+          (error) => handleListenerError(error, OperationType.LIST, 'gallery')
+        )
+      );
+    };
+
+    const mediaFallbackTimer = window.setTimeout(attachMediaListeners, 350);
 
     unsubs.push(
       onSnapshot(
@@ -1032,28 +1041,12 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           } else {
             firestoreSeededRef.current = false;
           }
+          attachMediaListeners();
         },
-        (error) => handleListenerError(error, OperationType.GET, 'settings/main')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'settings', 'heroBackground'),
-        (snap) => {
-          setHeroBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
-        },
-        (error) => handleListenerError(error, OperationType.GET, 'settings/heroBackground')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'settings', 'siteBackground'),
-        (snap) => {
-          setSiteBgAsset(snap.exists() ? (snap.data().dataUrl as string) : undefined);
-        },
-        (error) => handleListenerError(error, OperationType.GET, 'settings/siteBackground')
+        (error) => {
+          attachMediaListeners();
+          handleListenerError(error, OperationType.GET, 'settings/main');
+        }
       )
     );
 
@@ -1068,19 +1061,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       )
     );
 
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'gallery'), where('visibility', '==', 'public')),
-        (snap) => {
-          const list = filterOutLegacyDemoItems('gallery', snap.docs.map(d => d.data() as GalleryItem));
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          setGallery(list);
-        },
-        (error) => handleListenerError(error, OperationType.LIST, 'gallery')
-      )
-    );
-
-    return () => unsubs.forEach(u => u());
+    return () => {
+      disposed = true;
+      window.clearTimeout(mediaFallbackTimer);
+      unsubs.forEach(u => u());
+    };
   }, []);
 
   // 3. News & Events Listeners (public-only for guests & unregistered users; full list only for verified database members)
@@ -1686,20 +1671,30 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return true;
     }
 
-    // Member portal verification & linking
-    if (!access.allowed) {
+    // Member portal verification & linking (NEVER auto-create a join request)
+    const memberOutcome = resolvePortalAccessOutcome('member', {
+      allowed: access.allowed,
+      isAdmin: access.isAdmin,
+      role: access.role,
+      reason:
+        access.reason === 'offline'
+          ? 'firestore_unavailable'
+          : access.reason || 'ok',
+    });
+
+    if (!memberOutcome.unlocked) {
       setIsMemberSessionUnlocked(false);
-      if (access.reason === 'inactive') {
+      if (memberOutcome.noticeStatus === 'inactive') {
         setMemberAccessNotice({ email: emailLower, status: 'inactive' });
         const msg = t(
-          `Access Denied! "${emailLower}" is marked Inactive in the database and cannot enter the Member Portal.`,
-          `প্রবেশাধিকার নেই! "${emailLower}" ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে—তাই সদস্য পোর্টালে প্রবেশ করা যাবে না।`
+          `Access Declined! "${emailLower}" is marked Inactive in the database and cannot enter the Member Portal.`,
+          `অ্যাক্সেস বাতিল! "${emailLower}" ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে—তাই সদস্য পোর্টালে প্রবেশ করা যাবে না।`
         );
         setAuthError(msg);
         showToast(msg, 'warning');
         return false;
       }
-      if (access.reason === 'offline') {
+      if (memberOutcome.noticeStatus === 'failed') {
         setMemberAccessNotice({ email: emailLower, status: 'failed' });
         const msg = t(
           `Signed in as "${emailLower}", but could not reach the cloud database right now. Please check your connection or try again later.`,
@@ -1710,28 +1705,11 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return false;
       }
 
-      const reqStatus = await ensureAutoJoinRequestForUser(user);
-      setMemberAccessNotice({ email: emailLower, status: reqStatus });
-      const msg =
-        reqStatus === 'rejected'
-          ? t(
-              `Access Denied! "${emailLower}" was declined by Admin and cannot enter the Member Portal.`,
-              `প্রবেশাধিকার নেই! "${emailLower}" আবেদনটি অ্যাডমিন কর্তৃক প্রত্যাখ্যাত হয়েছে।`
-            )
-          : reqStatus === 'pending'
-          ? t(
-              `Not Registered Yet! "${emailLower}" is not in the database. Your access request is already pending Admin approval.`,
-              `নিবন্ধিত নয়! "${emailLower}" ডেটাবেসে নেই। আপনার রিকোয়েস্ট অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে।`
-            )
-          : reqStatus === 'failed'
-          ? t(
-              `"${emailLower}" is not in the local directory and the cloud database could not be reached to submit a join request.`,
-              `"${emailLower}" তালিকায় নেই এবং ক্লাউড ডেটাবেসে রিকোয়েস্ট পাঠানো যায়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।`
-            )
-          : t(
-              `Access Denied! "${emailLower}" is not in the database. An access request has been sent to the Admin.`,
-              `প্রবেশাধিকার নেই! "${emailLower}" ডেটাবেসে নেই। অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে।`
-            );
+      setMemberAccessNotice({ email: emailLower, status: 'declined' });
+      const msg = t(
+        `Access Declined! "${emailLower}" is not registered in our database. No request was sent to Admin — please submit a Membership Application to join.`,
+        `অ্যাক্সেস বাতিল (Access Declined)! "${emailLower}" আমাদের ডেটাবেসে নিবন্ধিত নয়। অ্যাডমিনের কাছে কোনো রিকোয়েস্ট পাঠানো হয়নি — যুক্ত হতে হলে অনুগ্রহ করে সদস্যপদের আবেদন ফর্ম পূরণ করুন।`
+      );
       setAuthError(msg);
       showToast(msg, 'warning');
       return false;
@@ -1988,7 +1966,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       return false;
     }
-    const newNo = `RES-2026-${String(villageResidents.length + 1).padStart(3, '0')}`;
+    const newNo = nextSequentialCode('RES', villageResidents.map(r => r.residentNo));
     const uid = auth.currentUser?.uid || 'admin';
     const newResident: VillageResident = {
       ...data,
@@ -2083,7 +2061,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
     const uid = auth.currentUser?.uid || 'admin';
-    const voucherNo = txn.voucherNo || `VCH-2026-${String(funds.length + 1).padStart(3, '0')}`;
+    const voucherNo = txn.voucherNo || nextSequentialCode('VCH', funds.map(f => f.voucherNo));
     const recordedBy =
       txn.recordedBy ||
       (currentMember?.name
@@ -2179,18 +2157,31 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
     const emailLower = data.email.trim().toLowerCase();
+    const existingMember = members.find(
+      m => (m.ownerEmail || m.email || '').trim().toLowerCase() === emailLower
+    );
+    if (emailLower && existingMember) {
+      showToast(
+        t(
+          `"${emailLower}" is already registered as ${existingMember.name} (${existingMember.memberNo}).`,
+          `"${emailLower}" ইতিমধ্যেই ${existingMember.name} (${existingMember.memberNo}) নামে নিবন্ধিত রয়েছে।`
+        ),
+        'warning'
+      );
+      return;
+    }
     const newMember: Member = {
       id: `m-${Date.now()}`,
-      memberNo: `SMK-2026-00${members.length + 1}`,
-      name: data.name,
+      memberNo: nextSequentialCode('SMK', members.map(m => m.memberNo)),
+      name: data.name.trim(),
       email: emailLower,
-      phone: data.phone,
+      phone: data.phone.trim(),
       role: data.role || 'Member',
       status: normalizeMemberStatus(data.status),
       village: data.village || 'Gaira',
       bloodGroup: data.bloodGroup || 'O+',
-      skills: data.skills || ['Volunteering'],
-      interests: data.interests || ['Community Care'],
+      skills: data.skills && data.skills.length > 0 ? data.skills : ['Volunteering'],
+      interests: data.interests && data.interests.length > 0 ? data.interests : ['Community Care'],
       joinDate: new Date().toISOString().split('T')[0],
       avatar: data.avatar || '',
       bio: data.bio || 'Registered youth member of Salmikkhang community.',
@@ -2245,31 +2236,57 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const approveJoinRequest = (requestId: string, role: Member['role'] = 'Member') => {
     if (!isAdminLoggedIn) return;
     const req = joinRequests.find(r => r.id === requestId);
-    if (!req) return;
+    if (!req || req.status === 'Approved') return;
 
     const emailLower = (req.email || '').trim().toLowerCase();
+    const existingMember = emailLower
+      ? members.find(m => (m.ownerEmail || m.email || '').trim().toLowerCase() === emailLower)
+      : undefined;
+
+    const prevMembers = members;
+    const prevJoinRequests = joinRequests;
+    const updatedReq: JoinRequest = { ...req, status: 'Approved' };
+    setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+
+    if (existingMember) {
+      void (async () => {
+        try {
+          await fsSet(`joinRequests/${sanitizeId(requestId)}`, toJoinRequestPayload(updatedReq), OperationType.UPDATE);
+          showToast(
+            t(
+              `${existingMember.name} is already registered (${existingMember.memberNo}). Application marked Approved.`,
+              `${existingMember.name} ইতিমধ্যেই নিবন্ধিত (${existingMember.memberNo})। আবেদনটি অনুমোদিত হিসেবে চিহ্নিত হয়েছে।`
+            ),
+            'info'
+          );
+        } catch {
+          setJoinRequests(prevJoinRequests);
+          notifyCloudSyncFailure();
+        }
+      })();
+      return;
+    }
+
+    const parsedSkills = parseTagList(req.skills);
+    const parsedInterests = parseTagList(req.interests);
     const newMember: Member = {
       id: `m-${Date.now()}`,
-      memberNo: `SMK-2026-00${members.length + 1}`,
-      name: req.name,
+      memberNo: nextSequentialCode('SMK', members.map(m => m.memberNo)),
+      name: (req.name || '').trim(),
       email: emailLower,
-      phone: req.phone,
+      phone: (req.phone || '').trim(),
       role,
       status: 'Active',
-      village: req.village,
+      village: req.village || 'Gaira',
       bloodGroup: req.bloodGroup || 'O+',
-      skills: req.skills ? req.skills.split(',').map(s => s.trim()) : ['Volunteering'],
-      interests: req.interests ? req.interests.split(',').map(s => s.trim()) : ['Community Development'],
+      skills: parsedSkills.length > 0 ? parsedSkills : ['Volunteering'],
+      interests: parsedInterests.length > 0 ? parsedInterests : ['Community Development'],
       joinDate: new Date().toISOString().split('T')[0],
       bio: req.reason || 'Active member of Salmikkhang Youth Community.',
       ownerEmail: emailLower,
     };
 
-    const prevMembers = members;
-    const prevJoinRequests = joinRequests;
-    const updatedReq: JoinRequest = { ...req, status: 'Approved' };
     setMembers(prev => [newMember, ...prev]);
-    setJoinRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
 
     void (async () => {
       try {
@@ -2540,8 +2557,9 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!ev) return;
 
     const identifier = currentMember?.name || auth.currentUser.displayName || userNameOrEmail;
-    const exists = ev.rsvps.includes(identifier);
-    const updatedRsvps = exists ? ev.rsvps.filter(u => u !== identifier) : [...ev.rsvps, identifier];
+    const currentRsvps = Array.isArray(ev.rsvps) ? ev.rsvps : [];
+    const exists = currentRsvps.includes(identifier);
+    const updatedRsvps = exists ? currentRsvps.filter(u => u !== identifier) : [...currentRsvps, identifier];
 
     const prevEvents = events;
     setEvents(prev => prev.map(item => (item.id === eventId ? { ...item, rsvps: updatedRsvps } : item)));

@@ -9,6 +9,7 @@ import { DiscussionForum } from './DiscussionForum';
 import { AdminGmailSettingsCard } from './GmailAlertsPanel';
 import { MemberStatusBadge } from './MemberStatusBadge';
 import { getMemberStatusMeta, MEMBER_STATUS_OPTIONS } from '../lib/memberStatus';
+import { safeLower } from '../lib/memberAccess';
 import {
   buildDraftFromEvent,
   buildDraftFromNews,
@@ -759,11 +760,15 @@ export const AdminDashboard: React.FC = () => {
                     )}
                   </div>
                   <div className="space-y-2.5">
-                    {news.slice(0, 3).map(n => (
+                    {news.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                        {t('No notices or news published yet.', 'এখনো কোনো নোটিশ বা খবর প্রকাশিত হয়নি।')}
+                      </div>
+                    ) : news.slice(0, 3).map(n => (
                       <div key={n.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl flex items-center justify-between text-xs">
                         <div className="space-y-0.5 truncate pr-2">
                           <div className="font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
-                            <span>{n.title}</span>
+                            <span>{t(n.title, n.titleBn)}</span>
                             {n.visibility === 'members_only' ? (
                               <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 rounded shrink-0">
                                 🔒 Members
@@ -780,7 +785,7 @@ export const AdminDashboard: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400">{n.date} · {n.category}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">{n.date} · {t(n.category, n.categoryBn)}</div>
                         </div>
                         {isAdminLoggedIn && (
                           <button
@@ -811,11 +816,15 @@ export const AdminDashboard: React.FC = () => {
                     )}
                   </div>
                   <div className="space-y-2.5">
-                    {events.slice(0, 3).map(ev => (
+                    {events.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                        {t('No upcoming events scheduled yet.', 'এখনো কোনো আসন্ন অনুষ্ঠান নির্ধারিত হয়নি।')}
+                      </div>
+                    ) : events.slice(0, 3).map(ev => (
                       <div key={ev.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl flex items-center justify-between text-xs">
                         <div>
                           <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                            <span>{ev.title}</span>
+                            <span>{t(ev.title, ev.titleBn)}</span>
                             {ev.visibility === 'members_only' ? (
                               <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 rounded">
                                 🔒 Members
@@ -826,10 +835,10 @@ export const AdminDashboard: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-slate-500 dark:text-slate-400 text-[11px]">{ev.date} · {ev.location}</div>
+                          <div className="text-slate-500 dark:text-slate-400 text-[11px]">{ev.date} · {t(ev.location, ev.locationBn)}</div>
                         </div>
                         <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-md font-bold text-[10px]">
-                          {ev.rsvps.length} RSVPs
+                          {(Array.isArray(ev.rsvps) ? ev.rsvps : []).length} RSVPs
                         </span>
                       </div>
                     ))}
@@ -900,9 +909,23 @@ export const AdminDashboard: React.FC = () => {
 
               {/* Mobile Member Cards */}
               <div className="md:hidden space-y-3">
-                {members
-                  .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || (m.email || m.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map(m => (
+                {(() => {
+                  const memberQ = safeLower(searchTerm).trim();
+                  const filteredMembersList = members.filter(
+                    m =>
+                      !memberQ ||
+                      safeLower(m.name).includes(memberQ) ||
+                      safeLower(m.email || m.ownerEmail).includes(memberQ) ||
+                      safeLower(m.memberNo).includes(memberQ)
+                  );
+                  if (filteredMembersList.length === 0) {
+                    return (
+                      <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                        {t('No registered members match your search.', 'আপনার খোঁজা অনুযায়ী কোনো সদস্য পাওয়া যায়নি।')}
+                      </div>
+                    );
+                  }
+                  return filteredMembersList.map(m => (
                     <div key={m.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 space-y-3 text-xs">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -910,7 +933,7 @@ export const AdminDashboard: React.FC = () => {
                             <img src={m.avatar} alt={m.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
-                              {m.name[0]}
+                              {(m.name || 'M')[0]}
                             </div>
                           )}
                           <div className="min-w-0">
@@ -995,7 +1018,8 @@ export const AdminDashboard: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  ))}
+                  ));
+                })()}
               </div>
 
               <div className="hidden md:block overflow-x-auto">
@@ -1012,9 +1036,25 @@ export const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {members
-                      .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || (m.email || m.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(m => (
+                    {(() => {
+                      const memberQ = safeLower(searchTerm).trim();
+                      const filteredMembersList = members.filter(
+                        m =>
+                          !memberQ ||
+                          safeLower(m.name).includes(memberQ) ||
+                          safeLower(m.email || m.ownerEmail).includes(memberQ) ||
+                          safeLower(m.memberNo).includes(memberQ)
+                      );
+                      if (filteredMembersList.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={7} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                              {t('No registered members match your search.', 'আপনার খোঁজা অনুযায়ী কোনো সদস্য পাওয়া যায়নি।')}
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return filteredMembersList.map(m => (
                         <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                           <td className="py-3 px-4 font-bold text-slate-950 dark:text-slate-100">
                             <div className="flex items-center gap-2.5">
@@ -1022,7 +1062,7 @@ export const AdminDashboard: React.FC = () => {
                                 <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
-                                  {m.name[0]}
+                                  {(m.name || 'M')[0]}
                                 </div>
                               )}
                               <div>
@@ -1109,7 +1149,8 @@ export const AdminDashboard: React.FC = () => {
                             )}
                           </td>
                         </tr>
-                      ))}
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -1389,7 +1430,7 @@ export const AdminDashboard: React.FC = () => {
                         {isAdminLoggedIn && req.status === 'Pending' && (
                           <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
                             <button
-                              onClick={() => approveJoinRequest(req.id, 'Volunteer')}
+                              onClick={() => approveJoinRequest(req.id, 'Member')}
                               className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <Check className="w-3.5 h-3.5" />
@@ -1451,7 +1492,11 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                {projects.map(proj => (
+                {projects.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                    {t('No community projects added yet. Click "New Project" to launch one.', 'এখনো কোনো প্রকল্প যুক্ত হয়নি। নতুন প্রকল্প যোগ করতে "নতুন উদ্যোগ" বোতামে ক্লিক করুন।')}
+                  </div>
+                ) : projects.map(proj => (
                   <div key={proj.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1522,6 +1567,11 @@ export const AdminDashboard: React.FC = () => {
                 )}
               </div>
 
+              {gallery.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                  {t('No photos uploaded yet. Click "Upload Photo" to add community memories.', 'এখনো কোনো ছবি আপলোড করা হয়নি। ছবি যুক্ত করতে "ফটো আপলোড" বোতামে ক্লিক করুন।')}
+                </div>
+              ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {gallery.map(img => (
                   <div
@@ -1568,6 +1618,7 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 
@@ -1589,8 +1640,12 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                {messages.map(msg => {
-                  const isGmailSub = msg.message.startsWith('[GMAIL_SUBSCRIBER]');
+                {messages.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                    {t('No messages or inquiries received yet.', 'এখনো কোনো বার্তা বা যোগাযোগ আসেনি।')}
+                  </div>
+                ) : messages.map(msg => {
+                  const isGmailSub = typeof msg.message === 'string' && msg.message.startsWith('[GMAIL_SUBSCRIBER]');
                   return (
                     <div key={msg.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">

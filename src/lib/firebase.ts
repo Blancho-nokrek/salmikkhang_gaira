@@ -7,6 +7,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   enableNetwork,
+  setLogLevel,
   doc,
   getDocFromServer,
   type Firestore,
@@ -115,16 +116,26 @@ function createFirestoreInstance(): Firestore {
   }
 }
 
+// Keep internal SDK transient offline retries quiet; structured app errors still log via handleFirestoreError.
+setLogLevel('silent');
+
 export const db = createFirestoreInstance();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
+  const reconnectFirestore = () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     void enableNetwork(db).catch(() => {
       // Ignore reconnect errors when network is still stabilizing
     });
+  };
+  window.addEventListener('online', reconnectFirestore);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      reconnectFirestore();
+    }
   });
 }
 
@@ -188,12 +199,16 @@ async function testConnection() {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (isFirestoreConnectivityOrQuotaError(error)) {
-      console.warn(
-        'Firestore running in cached/local mode (connection unavailable or quota exceeded):',
-        error instanceof Error ? error.message : String(error)
-      );
+      // Operating in local/cached mode until network recovers
+      return;
     }
   }
 }
 
-testConnection();
+if (typeof window !== 'undefined') {
+  window.setTimeout(() => {
+    void testConnection();
+  }, 1500);
+} else {
+  void testConnection();
+}

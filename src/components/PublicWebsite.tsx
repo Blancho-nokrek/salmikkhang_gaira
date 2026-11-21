@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { GALLERY_CATEGORIES } from '../data/galleryCategories';
+import { parseLocalIsoDate } from '../lib/memberAccess';
 import {
   Calendar,
   Clock,
@@ -30,7 +31,7 @@ interface PublicWebsiteProps {
   onSelectGallery: (item: any) => void;
 }
 
-export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSelectGallery }) => {
+export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelectNews, onSelectGallery }) => {
   const {
     t,
     language,
@@ -79,6 +80,16 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
     toggleEventRsvp(eventId, userIdentifier);
   };
 
+  const publicEvents = useMemo(
+    () => events.filter(e => e.visibility !== 'members_only'),
+    [events]
+  );
+
+  const publicNews = useMemo(
+    () => news.filter(item => item.visibility !== 'members_only'),
+    [news]
+  );
+
   const galleryCategories = useMemo(() => {
     const base = [
       { value: 'All', labelEn: 'All', labelBn: 'সবগুলো' },
@@ -93,9 +104,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
     return base;
   }, [gallery]);
 
-  const filteredGallery = galleryFilter === 'All'
-    ? gallery
-    : gallery.filter(g => (g.category || '').trim().toLowerCase() === galleryFilter.toLowerCase());
+  const filteredGallery = useMemo(
+    () =>
+      galleryFilter === 'All'
+        ? gallery
+        : gallery.filter(g => (g.category || '').trim().toLowerCase() === galleryFilter.toLowerCase()),
+    [gallery, galleryFilter]
+  );
 
   const formatFacebookHref = (raw?: string): string | null => {
     const val = (raw || '').trim();
@@ -181,12 +196,12 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             <div className="pt-2 sm:pt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-emerald-100/85">
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Gaira, Jolchotro, Madhupur</span>
+                <span>{t('Gaira, Jolchotro, Madhupur', 'গাইরা, জলছত্র, মধুপুর')}</span>
               </div>
               <span className="hidden xs:inline">·</span>
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>50+ Active Youth Volunteers</span>
+                <span>{t('50+ Active Youth Volunteers', '৫০+ সক্রিয় তরুণ স্বেচ্ছাসেবক')}</span>
               </div>
             </div>
 
@@ -210,7 +225,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="glass-card hover:border-emerald-500/40 p-3.5 sm:p-4 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg backdrop-blur-xl transition-all group flex flex-col justify-between"
+              className="glass-card hover:border-emerald-500/40 p-3.5 sm:p-4 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg transition-[transform,border-color,box-shadow] group flex flex-col justify-between"
             >
               <div className="text-lg sm:text-xl text-emerald-800 dark:text-emerald-400 font-bold mb-1.5 sm:mb-2 group-hover:scale-110 transition-transform">
                 {item.icon}
@@ -243,8 +258,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
               </h2>
               <p className="text-slate-900 dark:text-slate-300 text-sm leading-relaxed">
                 {t(
-                  'Salmikkhang was formed by local young residents of Gaira and Jolchotro to address educational needs, environmental restoration in the Madhupur forest tract, and social unity. We believe young villagers hold the keys to a prosperous future.',
-                  'গাইরা ও জলছত্রের তরুণদের উদ্যোগে সালমিকখাং গঠিত। শিক্ষা সহায়তা, মধুপুর শালবনের পরিবেশ রক্ষা এবং সামাজিক ঐক্য গঠনে তৃণমূল পর্যায়ের এই সংগঠন নিরলস কাজ করে যাচ্ছে।'
+                  settings.about ||
+                    'Salmikkhang was formed by local young residents of Gaira and Jolchotro to address educational needs, environmental restoration in the Madhupur forest tract, and social unity. We believe young villagers hold the keys to a prosperous future.',
+                  settings.aboutBn ||
+                    'গাইরা ও জলছত্রের তরুণদের উদ্যোগে সালমিকখাং গঠিত। শিক্ষা সহায়তা, মধুপুর শালবনের পরিবেশ রক্ষা এবং সামাজিক ঐক্য গঠনে তৃণমূল পর্যায়ের এই সংগঠন নিরলস কাজ করে যাচ্ছে।'
                 )}
               </p>
               <div className="pt-2">
@@ -347,23 +364,24 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </div>
 
             <div className="space-y-4">
-              {events.filter(e => e.visibility !== 'members_only').length === 0 ? (
+              {publicEvents.length === 0 ? (
                 <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
                   {t('No public events published yet.', 'এখনো কোনো প্রকাশ্য অনুষ্ঠান যুক্ত হয়নি।')}
                 </div>
-              ) : events.filter(e => e.visibility !== 'members_only').map((event) => {
+              ) : publicEvents.map((event) => {
                 const userIdentifier = currentMember?.name || firebaseUser?.displayName || 'Guest Volunteer';
-                const isRsvpd = event.rsvps.includes(userIdentifier);
+                const rsvpList = Array.isArray(event.rsvps) ? event.rsvps : [];
+                const isRsvpd = rsvpList.includes(userIdentifier);
                 return (
                   <div
                     key={event.id}
-                    className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-4 sm:p-5 hover:border-emerald-500/40 shadow-lg backdrop-blur-2xl transition-all flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center"
+                    className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-4 sm:p-5 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center"
                   >
                     <div className="flex items-start gap-3.5 sm:contents w-full">
                       {/* Date Badge */}
                       {(() => {
-                        const parsed = event.date ? new Date(event.date) : null;
-                        const isValidDate = parsed !== null && !Number.isNaN(parsed.getTime());
+                        const parsed = parseLocalIsoDate(event.date);
+                        const isValidDate = parsed !== null;
                         return (
                           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-slate-950 dark:text-emerald-300 flex flex-col items-center justify-center shrink-0">
                             <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400">
@@ -407,7 +425,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
-                            <span>{event.rsvps.length} {t('attending', 'অংশগ্রহণকারী')}</span>
+                            <span>{rsvpList.length} {t('attending', 'অংশগ্রহণকারী')}</span>
                           </div>
                         </div>
                       </div>
@@ -456,26 +474,36 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             </div>
 
             <div className="space-y-4">
-              {news.filter(item => item.visibility !== 'members_only').length === 0 ? (
+              {publicNews.length === 0 ? (
                 <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
                   {t('No public notices or news published yet.', 'এখনো কোনো প্রকাশ্য খবর বা নোটিশ যুক্ত হয়নি।')}
                 </div>
-              ) : news.filter(item => item.visibility !== 'members_only').map((item) => (
+              ) : publicNews.map((item) => (
                 <article
                   key={item.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSelectNews(item.id)}
-                  className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-3.5 sm:p-4 hover:border-emerald-500/40 shadow-lg backdrop-blur-2xl transition-all cursor-pointer group"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectNews(item.id);
+                    }
+                  }}
+                  className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-3.5 sm:p-4 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] cursor-pointer group focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <div className="flex items-start gap-3 sm:gap-4">
                     {item.image ? (
                       <img
                         src={item.image}
                         alt={item.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-slate-100 dark:bg-slate-800 group-hover:opacity-90 transition-opacity"
                       />
                     ) : (
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 p-1.5 flex items-center justify-center shrink-0">
-                        <img src={logoImg} alt="Salmikkhang Logo" className="w-full h-full object-contain rounded-lg" />
+                        <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-full h-full object-contain rounded-lg" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0 space-y-1">
@@ -532,7 +560,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
       </section>
 
       {/* 5. Village Projects Section with Progress */}
-      <section id="projects" className="py-12 sm:py-16 bg-slate-50/70 dark:bg-slate-950 border-y border-slate-200/60 dark:border-slate-800">
+      <section id="projects" className="cv-auto py-12 sm:py-16 bg-slate-50/70 dark:bg-slate-950 border-y border-slate-200/60 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
           
           <div className="max-w-2xl">
@@ -559,15 +587,23 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             {projects.map((proj) => (
               <div
                 key={proj.id}
-                className="glass-card rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl hover:border-emerald-500/40 backdrop-blur-2xl transition-all flex flex-col"
+                className="glass-card rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl hover:border-emerald-500/40 transition-[transform,border-color,box-shadow] flex flex-col"
               >
-                <div className="relative h-44 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img
-                    src={proj.image}
-                    alt={proj.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-3 left-3 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                <div className="relative h-44 overflow-hidden bg-emerald-50 dark:bg-slate-800">
+                  {proj.image ? (
+                    <img
+                      src={proj.image}
+                      alt={t(proj.title, proj.titleBn)}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100/80 to-teal-100/80 dark:from-emerald-950/60 dark:to-slate-800">
+                      <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-16 h-16 object-contain opacity-80" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 bg-white/95 dark:bg-slate-900/90 px-2.5 py-1 rounded-md text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
                     {t(proj.status, proj.statusBn)}
                   </div>
                 </div>
@@ -619,7 +655,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
       </section>
 
       {/* 6. Photo Gallery Section with Lightbox */}
-      <section id="gallery" className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+      <section id="gallery" className="cv-auto py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
@@ -664,12 +700,22 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
             {filteredGallery.map((item) => (
               <div
                 key={item.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectGallery(item)}
-                className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectGallery(item);
+                  }
+                }}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-[transform,box-shadow] cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <img
                   src={item.image}
                   alt={item.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-end p-4 sm:p-5 text-white">
@@ -730,7 +776,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
       </section>
 
       {/* 8. Working Contact Section */}
-      <section id="contact" className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="contact" className="cv-auto py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
           
           <div className="lg:col-span-5 space-y-6">
@@ -766,7 +812,18 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Community Hotline', 'যোগাযোগের ফোন')}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-words">{settings.phone}</div>
+                  {settings.phone?.trim() ? (
+                    <a
+                      href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`}
+                      className="text-xs text-emerald-700 dark:text-emerald-300 hover:underline mt-0.5 block break-words"
+                    >
+                      {settings.phone}
+                    </a>
+                  ) : (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('Phone not set yet (configure in Admin Settings)', 'ফোন নম্বর এখনো যুক্ত করা হয়নি (অ্যাডমিন সেটিংস থেকে যুক্ত করুন)')}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -776,7 +833,18 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('Official Email', 'অফিসিয়াল ইমেইল')}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-all">{settings.email}</div>
+                  {settings.email?.trim() ? (
+                    <a
+                      href={`mailto:${settings.email.trim()}`}
+                      className="text-xs text-emerald-700 dark:text-emerald-300 hover:underline mt-0.5 block break-all"
+                    >
+                      {settings.email}
+                    </a>
+                  ) : (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('Email not set yet (configure in Admin Settings)', 'ইমেইল এখনো যুক্ত করা হয়নি (অ্যাডমিন সেটিংস থেকে যুক্ত করুন)')}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -886,7 +954,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                   type="text"
                   value={contactInfo}
                   onChange={(e) => setContactInfo(e.target.value)}
-                  placeholder={t('+880 17... or you@example.com', 'ফোন নম্বর বা ইমেইল')}
+                  placeholder={t('+880 17... or yourname@gmail.com', 'ফোন নম্বর বা ইমেইল')}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-sm"
                 />
               </div>
@@ -920,7 +988,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
       </section>
 
       {/* 9. Site Footer */}
-      <footer className="glass-surface bg-white/85 dark:bg-slate-900 text-slate-900 dark:text-slate-300 py-16 border-t border-white/50 dark:border-slate-800">
+      <footer className="cv-auto glass-surface bg-white/85 dark:bg-slate-900 text-slate-900 dark:text-slate-300 py-16 border-t border-white/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -929,6 +997,8 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
                 <img
                   src={logoImg}
                   alt="Salmikkhang Youth Community Logo"
+                  loading="lazy"
+                  decoding="async"
                   className="w-11 h-11 rounded-full object-contain shadow-md ring-1 ring-emerald-500/30 shrink-0"
                 />
                 <div className="font-display font-extrabold text-slate-950 dark:text-white text-base tracking-tight">
@@ -1011,10 +1081,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
 
           <div className="pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-800 dark:text-slate-400 gap-4">
             <div>
-              © {new Date().getFullYear()} {settings.name}. {t('All rights reserved.', 'সর্বস্বত্ব সংরক্ষিত।')}
+              © {new Date().getFullYear()} {t(settings.name, settings.nameBn)}. {t('All rights reserved.', 'সর্বস্বত্ব সংরক্ষিত।')}
             </div>
             <div>
-              Gaira, Jolchotro · Madhupur, Tangail, Bangladesh
+              {t('Gaira, Jolchotro · Madhupur, Tangail, Bangladesh', 'গাইরা, জলছত্র · মধুপুর, টাঙ্গাইল, বাংলাদেশ')}
             </div>
           </div>
 
@@ -1022,4 +1092,6 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onSelectNews, onSe
       </footer>
     </div>
   );
-};
+});
+
+PublicWebsite.displayName = 'PublicWebsite';

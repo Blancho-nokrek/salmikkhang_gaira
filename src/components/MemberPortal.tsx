@@ -12,6 +12,7 @@ import {
   MEMBER_STATUS_OPTIONS,
   summarizeMemberStatuses,
 } from '../lib/memberStatus';
+import { safeLower } from '../lib/memberAccess';
 import { MemberStatus } from '../types';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
 import { NEWS_CATEGORIES, getNewsCategoryBn, isPresetNewsCategory } from '../data/newsCategories';
@@ -167,27 +168,23 @@ export const MemberPortal: React.FC = () => {
           ) : memberAccessNotice ? (
             <div className="space-y-4">
               <div className={`p-4 rounded-2xl border text-xs space-y-2.5 ${
-                memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive'
+                memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive'
                   ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
                   : 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800'
               }`}>
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 font-extrabold text-sm text-slate-950 dark:text-slate-100">
-                    {memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive' ? (
+                  <div className="flex items-center gap-2 font-extrabold text-sm text-rose-950 dark:text-rose-100">
+                    {memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive' ? (
                       <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
                     ) : (
                       <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                     )}
                     <span>
-                      {memberAccessNotice.status === 'sent'
-                        ? t('Not Registered — Request Sent to Admin', 'নিবন্ধিত নয় — অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে')
-                        : memberAccessNotice.status === 'pending'
-                        ? t('Access Pending Admin Approval', 'অ্যাডমিনের অনুমোদনের অপেক্ষায়')
-                        : memberAccessNotice.status === 'rejected'
-                        ? t('Access Request Declined', 'প্রবেশের আবেদন প্রত্যাখ্যাত হয়েছে')
+                      {memberAccessNotice.status === 'declined'
+                        ? t('Access Declined — Account Not Registered', 'অ্যাক্সেস বাতিল — অ্যাকাউন্ট নিবন্ধিত নয়')
                         : memberAccessNotice.status === 'failed'
                         ? t('Database Connection Unavailable', 'ডেটাবেসের সাথে সংযোগ পাওয়া যায়নি')
-                        : t('Membership Account Inactive', 'সদস্যপদ নিষ্ক্রিয় রয়েছে')}
+                        : t('Access Declined — Account Inactive', 'অ্যাক্সেস বাতিল — সদস্যপদ নিষ্ক্রিয়')}
                     </span>
                   </div>
                   <button
@@ -203,20 +200,10 @@ export const MemberPortal: React.FC = () => {
                   </button>
                 </div>
                 <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
-                  {memberAccessNotice.status === 'sent'
+                  {memberAccessNotice.status === 'declined'
                     ? t(
-                        `Your Google email (${memberAccessNotice.email}) is not in our member database. You cannot enter the Member Portal yet. An access request has been automatically sent to the Council Admin.`,
-                        `আপনার Google ইমেইল (${memberAccessNotice.email}) আমাদের সদস্য ডেটাবেসে নেই। আপনি এখনই সদস্য পোর্টালে ঢুকতে পারবেন না—অ্যাডমিনের কাছে আপনার অ্যাক্সেস রিকোয়েস্ট পাঠানো হয়েছে।`
-                      )
-                    : memberAccessNotice.status === 'pending'
-                    ? t(
-                        `Your Google email (${memberAccessNotice.email}) is not registered in the database yet. Your request is already waiting in the Admin inbox for approval.`,
-                        `আপনার Google ইমেইল (${memberAccessNotice.email}) এখনো ডেটাবেসে যুক্ত হয়নি। আপনার রিকোয়েস্ট অ্যাডমিনের ইনবক্সে অনুমোদনের অপেক্ষায় আছে।`
-                      )
-                    : memberAccessNotice.status === 'rejected'
-                    ? t(
-                        `The access request for ${memberAccessNotice.email} was declined by Admin. Please contact Council Admin or submit a complete membership application.`,
-                        `${memberAccessNotice.email}-এর আবেদনটি অ্যাডমিন কর্তৃক বাতিল করা হয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন অথবা পূর্ণাঙ্গ আবেদন পাঠান।`
+                        `Your Google account (${memberAccessNotice.email}) is not registered in the Salmikkhang database, so access has been declined. No request was sent to Admin. If you wish to join the community, please submit a Membership Application first.`,
+                        `আপনার Google অ্যাকাউন্ট (${memberAccessNotice.email}) সালমিকখাং ডেটাবেসে নিবন্ধিত নয়, তাই প্রবেশাধিকার বাতিল (Access Declined) করা হয়েছে। অ্যাডমিনের কাছে কোনো রিকোয়েস্ট পাঠানো হয়নি। আপনি যদি কমিউনিটিতে যোগ দিতে চান, তবে প্রথমে সদস্যপদের আবেদন ফর্ম পূরণ করে জমা দিন।`
                       )
                     : memberAccessNotice.status === 'failed'
                     ? t(
@@ -224,8 +211,8 @@ export const MemberPortal: React.FC = () => {
                         `${memberAccessNotice.email} দিয়ে সাইন-ইন হয়েছে, কিন্তু এই মুহূর্তে ক্লাউড ডেটাবেসে সংযোগ পাওয়া যাচ্ছে না (অফলাইন বা দৈনিক কোটা পূর্ণ)। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।`
                       )
                     : t(
-                        `Your email (${memberAccessNotice.email}) is currently marked Inactive in the database. Contact Council Admin to reactivate access.`,
-                        `আপনার ইমেইল (${memberAccessNotice.email}) ডেটাবেসে বর্তমানে নিষ্ক্রিয় (Inactive) রয়েছে। সক্রিয় করতে অ্যাডমিনের সাথে যোগাযোগ করুন।`
+                        `Your email (${memberAccessNotice.email}) is currently marked Inactive in the database, so access is declined. Contact Council Admin to reactivate your membership.`,
+                        `আপনার ইমেইল (${memberAccessNotice.email}) ডেটাবেসে বর্তমানে নিষ্ক্রিয় (Inactive) রয়েছে, তাই প্রবেশাধিকার বাতিল করা হয়েছে। সক্রিয় করতে অ্যাডমিনের সাথে যোগাযোগ করুন।`
                       )}
                 </p>
               </div>
@@ -233,10 +220,10 @@ export const MemberPortal: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <button
                   type="button"
-                  onClick={() => openModal('join')}
+                  onClick={() => openModal('join', { prefillEmail: memberAccessNotice.email })}
                   className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md"
                 >
-                  {t('Submit Full Details Form →', 'বিস্তারিত তথ্যের আবেদন দিন →')}
+                  {t('Apply for Membership →', 'সদস্যপদের আবেদন করুন →')}
                 </button>
                 <button
                   type="button"
@@ -264,7 +251,7 @@ export const MemberPortal: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <button
                   type="button"
-                  onClick={() => openModal('join')}
+                  onClick={() => openModal('join', { prefillEmail: firebaseUser.email || '' })}
                   className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md"
                 >
                   {t('Submit Membership Application →', 'সদস্যপদের আবেদন পাঠান →')}
@@ -495,12 +482,19 @@ export const MemberPortal: React.FC = () => {
   });
   const memberStatusSummary = summarizeMemberStatuses(members);
 
-  // Filter notices (search + audience)
+  // Filter notices (null-safe bilingual search + audience)
+  const noticeQ = safeLower(noticeSearch).trim();
   const filteredNotices = news.filter(n => {
     const matchesSearch =
-      n.title.toLowerCase().includes(noticeSearch.toLowerCase()) ||
-      n.content.toLowerCase().includes(noticeSearch.toLowerCase()) ||
-      n.category.toLowerCase().includes(noticeSearch.toLowerCase());
+      !noticeQ ||
+      safeLower(n.title).includes(noticeQ) ||
+      safeLower(n.titleBn).includes(noticeQ) ||
+      safeLower(n.summary).includes(noticeQ) ||
+      safeLower(n.summaryBn).includes(noticeQ) ||
+      safeLower(n.content).includes(noticeQ) ||
+      safeLower(n.contentBn).includes(noticeQ) ||
+      safeLower(n.category).includes(noticeQ) ||
+      safeLower(n.categoryBn).includes(noticeQ);
 
     const matchesAudience =
       noticeAudienceFilter === 'All' ||
@@ -958,7 +952,17 @@ export const MemberPortal: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {filteredNotices.map(item => (
+            {filteredNotices.length === 0 ? (
+              <div className="glass-card p-8 rounded-3xl border border-white/40 dark:border-white/10 text-center space-y-2 backdrop-blur-2xl">
+                <Bell className="w-8 h-8 text-emerald-700/60 dark:text-emerald-400/60 mx-auto" />
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  {t('No notices match your filter.', 'আপনার খোঁজা অনুযায়ী কোনো নোটিশ পাওয়া যায়নি।')}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {t('Official announcements and circulars published by the council will appear here.', 'কমিউনিটি কাউন্সিল থেকে প্রকাশিত নোটিশ ও পরিপত্র এখানে দেখা যাবে।')}
+                </p>
+              </div>
+            ) : filteredNotices.map(item => (
               <div
                 key={item.id}
                 className="glass-card p-4 sm:p-6 rounded-3xl border border-white/40 dark:border-white/10 shadow-lg space-y-4 hover:border-emerald-500/40 backdrop-blur-2xl transition-all"
@@ -1270,9 +1274,21 @@ export const MemberPortal: React.FC = () => {
             )}
           </div>
 
+          {events.length === 0 ? (
+            <div className="glass-card p-8 rounded-3xl border border-white/40 dark:border-white/10 text-center space-y-2 backdrop-blur-2xl">
+              <Calendar className="w-8 h-8 text-emerald-700/60 dark:text-emerald-400/60 mx-auto" />
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {t('No upcoming community events scheduled yet.', 'এখনো কোনো আসন্ন কমিউনিটি ইভেন্ট নির্ধারিত হয়নি।')}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('Check back soon for meetings, drives, and village events.', 'সভা, বৃক্ষরোপণ ও গ্রামের অন্যান্য অনুষ্ঠানের জন্য শীঘ্রই আবার দেখুন।')}
+              </p>
+            </div>
+          ) : (
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
             {events.map(ev => {
-              const isRsvpd = ev.rsvps.includes(currentMember.name);
+              const rsvpList = Array.isArray(ev.rsvps) ? ev.rsvps : [];
+              const isRsvpd = rsvpList.includes(currentMember.name);
               return (
                 <div
                   key={ev.id}
@@ -1331,7 +1347,7 @@ export const MemberPortal: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
-                        <span>{ev.rsvps.length} {t('members attending', 'সদস্য অংশ নিচ্ছেন')}</span>
+                        <span>{rsvpList.length} {t('members attending', 'সদস্য অংশ নিচ্ছেন')}</span>
                       </div>
                     </div>
                   </div>
@@ -1362,6 +1378,7 @@ export const MemberPortal: React.FC = () => {
               );
             })}
           </div>
+          )}
         </div>
       )}
 

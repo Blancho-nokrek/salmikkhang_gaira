@@ -87,7 +87,7 @@ export const DiscussionForum: React.FC<DiscussionForumProps> = ({
                 {posterAvatar ? (
                   <img src={posterAvatar} alt={posterName} className="w-full h-full object-cover" />
                 ) : (
-                  posterName[0]
+                  (posterName || 'M')[0]
                 )}
               </div>
               <div>
@@ -162,7 +162,7 @@ export const DiscussionForum: React.FC<DiscussionForumProps> = ({
                         {author.avatar ? (
                           <img src={author.avatar} alt={author.name} className="w-full h-full object-cover" />
                         ) : (
-                          author.name[0]
+                          (author.name || 'M')[0]
                         )}
                       </div>
                       <div className="min-w-0">
@@ -233,12 +233,12 @@ export const DiscussionForum: React.FC<DiscussionForumProps> = ({
                     </button>
                     <span className="text-slate-400 dark:text-slate-600">·</span>
                     <span className="text-slate-800 dark:text-slate-400">
-                      {post.replies.length} {t('Replies', 'মন্তব্য')}
+                      {(Array.isArray(post.replies) ? post.replies : []).length} {t('Replies', 'মন্তব্য')}
                     </span>
                   </div>
 
                   {/* Replies list */}
-                  {post.replies.length > 0 && (
+                  {Array.isArray(post.replies) && post.replies.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                       {post.replies.map((reply) => {
                         const replyAuthor = resolveReplyAuthor(members, reply);
@@ -327,15 +327,15 @@ export const DiscussionForum: React.FC<DiscussionForumProps> = ({
             <ul className="space-y-2 text-xs text-emerald-100/90 dark:text-slate-300 leading-relaxed">
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Respect all community elders and encourage younger students.</span>
+                <span>{t('Respect all community elders and encourage younger students.', 'গ্রামের সকল প্রবীণদের সম্মান করুন এবং ছোট শিক্ষার্থীদের উৎসাহ দিন।')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Actively care for local trees and keep public spaces clean.</span>
+                <span>{t('Actively care for local trees and keep public spaces clean.', 'স্থানীয় গাছপালার যত্ন নিন এবং এলাকার পরিবেশ পরিচ্ছন্ন রাখুন।')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Honor and preserve Achik cultural heritage and songs.</span>
+                <span>{t('Honor and preserve Achik cultural heritage and songs.', 'আচিক সাংস্কৃতিক ঐতিহ্য, ভাষা ও গান সযত্নে সংরক্ষণ করুন।')}</span>
               </li>
             </ul>
           </div>

@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
+import { safeLower } from '../lib/memberAccess';
+import { resolveActiveNavSection, type NavSectionId, type SectionPosition } from '../lib/scrollSmooth';
 import {
   Search,
   Globe,
@@ -22,6 +24,7 @@ interface HeaderProps {
   onSelectNews?: (newsId: string) => void;
   onOpenAppInstall?: () => void;
   isAppInstallOpen?: boolean;
+  onPreloadPortals?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectNews,
   onOpenAppInstall,
   isAppInstallOpen = false,
+  onPreloadPortals,
 }) => {
   const {
     currentView,
@@ -115,51 +119,52 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     if (currentView !== 'website') return;
 
-    const handleScroll = () => {
+    const orderedIds: Exclude<NavSectionId, 'home'>[] = [
+      'about',
+      'events',
+      'news',
+      'projects',
+      'gallery',
+      'contact',
+    ];
+    let rafId = 0;
+
+    const updateActiveSection = () => {
+      rafId = 0;
       if (Date.now() < manualScrollLockUntilRef.current) return;
-      if (window.scrollY < 100) {
-        setActiveSection('home');
-        return;
-      }
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
-        setActiveSection('contact');
-        return;
-      }
 
       const headerHeight = headerRef.current?.getBoundingClientRect().height || 80;
       const threshold = headerHeight + 80;
-      const orderedIds: ('about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact')[] = [
-        'about',
-        'events',
-        'news',
-        'projects',
-        'gallery',
-        'contact',
-      ];
-
-      let current: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact' = 'home';
+      const sections: SectionPosition[] = [];
       for (const id of orderedIds) {
         const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top <= threshold) {
-          current = id;
+        if (el) {
+          sections.push({ id, top: el.getBoundingClientRect().top });
         }
       }
 
-      setActiveSection(prev => {
-        if (prev === 'news' && current === 'news') return 'news';
-        if (prev === 'events' && current === 'news') {
-          const evEl = document.getElementById('events');
-          const newsEl = document.getElementById('news');
-          if (evEl && newsEl && Math.abs(evEl.getBoundingClientRect().top - newsEl.getBoundingClientRect().top) < 40) {
-            return 'events';
-          }
-        }
-        return current;
-      });
+      setActiveSection((prev) =>
+        resolveActiveNavSection({
+          scrollY: window.scrollY,
+          innerHeight: window.innerHeight,
+          scrollHeight: document.documentElement.scrollHeight,
+          threshold,
+          sections,
+          previousSection: prev,
+        })
+      );
+    };
+
+    const handleScroll = () => {
+      if (rafId !== 0) return;
+      rafId = window.requestAnimationFrame(updateActiveSection);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== 0) window.cancelAnimationFrame(rafId);
+    };
   }, [currentView]);
 
   const handleNavClick = (sectionId: 'home' | 'about' | 'events' | 'news' | 'projects' | 'gallery' | 'contact') => {
@@ -192,39 +197,47 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'contact', labelEn: 'Contact', labelBn: 'যোগাযোগ', mobileLabelEn: 'Contact Us', mobileLabelBn: 'যোগাযোগ' },
   ];
 
-  const q = searchQuery.trim().toLowerCase();
-  const visibleNews = news.filter(n => isMemberUnlocked || isAdminUnlocked || n.visibility !== 'members_only');
-  const visibleEvents = events.filter(ev => isMemberUnlocked || isAdminUnlocked || ev.visibility !== 'members_only');
+  const q = safeLower(searchQuery).trim();
+  const canSeePrivateSearch = isMemberUnlocked || isAdminUnlocked;
 
-  const searchResults = q
-    ? {
-        news: visibleNews.filter(
-          n =>
-            n.title.toLowerCase().includes(q) ||
-            n.titleBn.toLowerCase().includes(q) ||
-            n.summary.toLowerCase().includes(q) ||
-            n.category.toLowerCase().includes(q)
-        ),
-        events: visibleEvents.filter(
-          ev =>
-            ev.title.toLowerCase().includes(q) ||
-            ev.titleBn.toLowerCase().includes(q) ||
-            ev.location.toLowerCase().includes(q)
-        ),
-        projects: projects.filter(
-          p =>
-            p.title.toLowerCase().includes(q) ||
-            p.titleBn.toLowerCase().includes(q) ||
-            p.category.toLowerCase().includes(q)
-        ),
-        members: members.filter(
-          m =>
-            (m.name || '').toLowerCase().includes(q) ||
-            (m.village || '').toLowerCase().includes(q) ||
-            (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(q))
-        ),
-      }
-    : null;
+  const searchResults = useMemo(() => {
+    if (!q) return null;
+    const visibleNews = news.filter(n => canSeePrivateSearch || n.visibility !== 'members_only');
+    const visibleEvents = events.filter(ev => canSeePrivateSearch || ev.visibility !== 'members_only');
+    return {
+      news: visibleNews.filter(
+        n =>
+          safeLower(n.title).includes(q) ||
+          safeLower(n.titleBn).includes(q) ||
+          safeLower(n.summary).includes(q) ||
+          safeLower(n.summaryBn).includes(q) ||
+          safeLower(n.category).includes(q) ||
+          safeLower(n.categoryBn).includes(q)
+      ),
+      events: visibleEvents.filter(
+        ev =>
+          safeLower(ev.title).includes(q) ||
+          safeLower(ev.titleBn).includes(q) ||
+          safeLower(ev.location).includes(q) ||
+          safeLower(ev.locationBn).includes(q)
+      ),
+      projects: projects.filter(
+        p =>
+          safeLower(p.title).includes(q) ||
+          safeLower(p.titleBn).includes(q) ||
+          safeLower(p.category).includes(q) ||
+          safeLower(p.categoryBn).includes(q)
+      ),
+      members: canSeePrivateSearch
+        ? members.filter(
+            m =>
+              safeLower(m.name).includes(q) ||
+              safeLower(m.village).includes(q) ||
+              (Array.isArray(m.skills) ? m.skills : []).some(s => safeLower(s).includes(q))
+          )
+        : [],
+    };
+  }, [q, canSeePrivateSearch, news, events, projects, members]);
 
   const hasSearchMatches = Boolean(
     searchResults &&
@@ -334,11 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => {
                   closeAllSearch();
-                  if (isMemberUnlocked) {
-                    setCurrentView('member');
-                  } else {
-                    onOpenSearch();
-                  }
+                  setCurrentView(isMemberUnlocked ? 'member' : 'admin');
                 }}
                 className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors"
               >
@@ -363,15 +372,16 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-40 bg-white/70 dark:bg-[#080f1d]/75 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-[0_4px_24px_0_rgba(0,0,0,0.25)] transition-colors"
+      className="sticky top-0 z-40 bg-white/70 dark:bg-[#080f1d]/75 border-b border-white/20 dark:border-white/10 shadow-[0_4px_24px_0_rgba(0,0,0,0.25)] transition-colors"
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-3">
           
           {/* Brand Logo & Name */}
-          <div 
+          <button
+            type="button"
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group min-w-0 shrink xl:shrink-0"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group min-w-0 shrink xl:shrink-0 text-left"
           >
             <img
               src={logoImg}
@@ -386,7 +396,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {t('Village Youth Community', 'গ্রাম যুব কমিউনিটি')}
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Center Navigation Links (xl+ to prevent collision on resize across tablet/small laptop) */}
           <nav className="hidden xl:flex items-center gap-3 2xl:gap-4 shrink-0">
@@ -457,7 +467,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {searchFocused && q && (
-                <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/40 dark:border-white/10 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-md rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/40 dark:border-white/10 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   {renderSearchResults()}
                 </div>
               )}
@@ -507,7 +517,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {themeDropdownOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-36 bg-white/85 dark:bg-[#0c1527]/90 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/30 dark:border-white/10 p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                  className="absolute right-0 mt-2 w-36 bg-white/85 dark:bg-[#0c1527]/90 backdrop-blur-md rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/30 dark:border-white/10 p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                   onMouseLeave={() => setThemeDropdownOpen(false)}
                 >
                   <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -542,8 +552,13 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Community Portal Menu Dropdown - shown on sm+ (mobile uses hamburger drawer) */}
             <div className="relative hidden sm:block">
               <button
-                onClick={() => setCommunityDropdownOpen(!communityDropdownOpen)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
+                onMouseEnter={() => onPreloadPortals?.()}
+                onFocus={() => onPreloadPortals?.()}
+                onClick={() => {
+                  onPreloadPortals?.();
+                  setCommunityDropdownOpen(!communityDropdownOpen);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                   currentView !== 'website'
                     ? 'bg-emerald-700 text-white shadow-xs'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -565,7 +580,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {communityDropdownOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-64 bg-white/85 dark:bg-[#0c1527]/90 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/30 dark:border-white/10 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                  className="absolute right-0 mt-2 w-64 bg-white/85 dark:bg-[#0c1527]/90 backdrop-blur-md rounded-2xl shadow-[0_16px_40px_0_rgba(0,0,0,0.4)] border border-white/30 dark:border-white/10 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                   onMouseLeave={() => setCommunityDropdownOpen(false)}
                 >
                   <div className="px-3 py-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
@@ -654,7 +669,11 @@ export const Header: React.FC<HeaderProps> = ({
                           {currentMember.name}
                         </div>
                         <button
-                          onClick={logoutMember}
+                          type="button"
+                          onClick={() => {
+                            setCommunityDropdownOpen(false);
+                            logoutMember();
+                          }}
                           className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline"
                         >
                           {t('Logout', 'লগআউট')}
@@ -723,7 +742,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {q && (
-              <div className="mt-2 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/40 dark:border-white/10">
+              <div className="mt-2 bg-white/95 dark:bg-[#0c1527]/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/40 dark:border-white/10">
                 {renderSearchResults()}
               </div>
             )}

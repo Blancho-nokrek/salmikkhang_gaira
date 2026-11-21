@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { X, Search, Download, ExternalLink, Shield, AlertTriangle, Clock } from 'lucide-react';
+import { safeLower, validateJoinApplication } from '../lib/memberAccess';
 import logoImg from '../assets/images/logo.png';
 
 interface ModalsProps {
@@ -25,9 +26,11 @@ export const Modals: React.FC<ModalsProps> = ({
   const {
     t,
     activeModal,
+    modalPayload,
     openModal,
     closeModal,
     submitJoinRequest,
+    showToast,
     firebaseUser,
     authLoading,
     authError,
@@ -57,21 +60,79 @@ export const Modals: React.FC<ModalsProps> = ({
   const [joinSkills, setJoinSkills] = useState('');
   const [joinInterests, setJoinInterests] = useState('');
   const [joinReason, setJoinReason] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   // Global search input
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Pre-fill Gmail when opening Join modal from an Access Declined screen or signed-in Google session
+  useEffect(() => {
+    if (activeModal === 'join') {
+      setJoinError(null);
+      const prefill =
+        (typeof modalPayload?.prefillEmail === 'string' && modalPayload.prefillEmail.trim()) ||
+        (firebaseUser?.email ? firebaseUser.email.trim() : '');
+      if (prefill && !joinEmail.trim()) {
+        setJoinEmail(prefill);
+      }
+    }
+  }, [activeModal, modalPayload, firebaseUser?.email]);
+
+  // Close active modal on Escape key
+  useEffect(() => {
+    const hasOpenModal = Boolean(activeModal || searchOpen || selectedNewsId || selectedGalleryItem);
+    if (!hasOpenModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (searchOpen) onCloseSearch();
+      else if (selectedGalleryItem) onCloseGallery();
+      else if (selectedNewsId) onCloseNews();
+      else if (activeModal) closeModal();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeModal, searchOpen, selectedNewsId, selectedGalleryItem, closeModal, onCloseGallery, onCloseNews, onCloseSearch]);
+
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitJoinRequest({
+    const validation = validateJoinApplication({
       name: joinName,
-      email: joinEmail || firebaseUser?.email || `${joinName.toLowerCase().replace(/\s+/g, '')}@example.com`,
       phone: joinPhone,
-      village: joinVillage,
-      bloodGroup: joinBlood,
+      email: joinEmail,
       skills: joinSkills,
       interests: joinInterests,
-      reason: joinReason
+      reason: joinReason,
+    });
+
+    if (!validation.valid) {
+      const msg =
+        validation.errorCode === 'missing_name'
+          ? t('Please enter your full name (at least 2 characters).', 'অনুগ্রহ করে আপনার সম্পূর্ণ নাম লিখুন (কমপক্ষে ২ অক্ষর)।')
+          : validation.errorCode === 'missing_phone'
+          ? t('Please enter a valid mobile phone number.', 'অনুগ্রহ করে একটি সঠিক মোবাইল নম্বর লিখুন।')
+          : validation.errorCode === 'placeholder_email'
+          ? t(
+              'Please enter your real Gmail address (placeholder @example.com emails cannot be approved for Google login).',
+              'অনুগ্রহ করে আপনার আসল Gmail ঠিকানা দিন (নমুনা @example.com ইমেইল দিয়ে Google লগইন করা যাবে না)।'
+            )
+          : validation.errorCode === 'invalid_email'
+          ? t('Please enter a valid Gmail / email address so Admin can activate your login.', 'লগইন অনুমোদনের জন্য অনুগ্রহ করে একটি সঠিক Gmail / ইমেইল ঠিকানা লিখুন।')
+          : t('Please tell us briefly why you want to join (at least 5 characters).', 'কমিউনিটিতে যোগদানের কারণ সংক্ষেপে লিখুন (কমপক্ষে ৫ অক্ষর)।');
+      setJoinError(msg);
+      showToast(msg, 'warning');
+      return;
+    }
+
+    setJoinError(null);
+    submitJoinRequest({
+      name: validation.normalized.name,
+      email: validation.normalized.email,
+      phone: validation.normalized.phone,
+      village: joinVillage,
+      bloodGroup: joinBlood,
+      skills: validation.normalized.skills,
+      interests: validation.normalized.interests,
+      reason: validation.normalized.reason,
     });
     setJoinName('');
     setJoinEmail('');
@@ -100,26 +161,70 @@ export const Modals: React.FC<ModalsProps> = ({
 
   const selectedNews = selectedNewsId ? news.find(n => n.id === selectedNewsId) : null;
 
-  // Filtered search results (respect members_only visibility for visitors)
+  // Filtered search results (null-safe bilingual search; respect members_only & directory privacy)
   const canSeePrivate = Boolean((isMemberSessionUnlocked && currentMember) || (isAdminSessionUnlocked && canViewAdminPanel));
   const visibleEvents = events.filter(e => canSeePrivate || e.visibility !== 'members_only');
   const visibleNews = news.filter(n => canSeePrivate || n.visibility !== 'members_only');
-  const q = searchQuery.toLowerCase().trim();
+  const q = safeLower(searchQuery).trim();
   const searchResults = q
     ? {
-        events: visibleEvents.filter(e => (e.title || '').toLowerCase().includes(q) || (e.location || '').toLowerCase().includes(q)),
-        news: visibleNews.filter(n => (n.title || '').toLowerCase().includes(q) || (n.summary || '').toLowerCase().includes(q)),
-        projects: projects.filter(p => (p.title || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)),
-        members: members.filter(m => (m.name || '').toLowerCase().includes(q) || (Array.isArray(m.skills) ? m.skills : []).some(s => s.toLowerCase().includes(q)))
+        events: visibleEvents.filter(
+          e =>
+            safeLower(e.title).includes(q) ||
+            safeLower(e.titleBn).includes(q) ||
+            safeLower(e.location).includes(q) ||
+            safeLower(e.locationBn).includes(q) ||
+            safeLower(e.category).includes(q)
+        ),
+        news: visibleNews.filter(
+          n =>
+            safeLower(n.title).includes(q) ||
+            safeLower(n.titleBn).includes(q) ||
+            safeLower(n.summary).includes(q) ||
+            safeLower(n.summaryBn).includes(q) ||
+            safeLower(n.category).includes(q)
+        ),
+        projects: projects.filter(
+          p =>
+            safeLower(p.title).includes(q) ||
+            safeLower(p.titleBn).includes(q) ||
+            safeLower(p.category).includes(q) ||
+            safeLower(p.categoryBn).includes(q)
+        ),
+        members: canSeePrivate
+          ? members.filter(
+              m =>
+                safeLower(m.name).includes(q) ||
+                safeLower(m.village).includes(q) ||
+                (Array.isArray(m.skills) ? m.skills : []).some(s => safeLower(s).includes(q))
+            )
+          : [],
       }
     : null;
+
+  const hasAnySearchMatch = Boolean(
+    searchResults &&
+      (searchResults.news.length > 0 ||
+        searchResults.events.length > 0 ||
+        searchResults.projects.length > 0 ||
+        searchResults.members.length > 0)
+  );
 
   return (
     <>
       {/* 1. JOIN APPLICATION MODAL (Sent to Admin for enrollment) */}
       {activeModal === 'join' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="glass-surface rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Apply for Salmikkhang Membership', 'সালমিকখাং সদস্যপদের আবেদন')}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={closeModal}
+        >
+          <div
+            className="glass-surface rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-emerald-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <img
@@ -137,14 +242,26 @@ export const Modals: React.FC<ModalsProps> = ({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
+                aria-label={t('Close membership form', 'আবেদন ফর্ম বন্ধ করুন')}
                 className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleJoinSubmit} className="space-y-4 text-xs">
+            {joinError && (
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-xs font-semibold text-rose-800 dark:text-rose-200 flex items-start gap-2"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <span>{joinError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleJoinSubmit} noValidate className="space-y-4 text-xs">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -154,7 +271,7 @@ export const Modals: React.FC<ModalsProps> = ({
                     type="text"
                     required
                     value={joinName}
-                    onChange={e => setJoinName(e.target.value)}
+                    onChange={e => { setJoinName(e.target.value); if (joinError) setJoinError(null); }}
                     placeholder="e.g. Robin Marak"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
                   />
@@ -168,35 +285,36 @@ export const Modals: React.FC<ModalsProps> = ({
                     type="tel"
                     required
                     value={joinPhone}
-                    onChange={e => setJoinPhone(e.target.value)}
+                    onChange={e => { setJoinPhone(e.target.value); if (joinError) setJoinError(null); }}
                     placeholder="+880 1712-XXXXXX"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div>
+              <div className="grid sm:grid-cols-12 gap-4">
+                <div className="sm:col-span-6">
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {t('Email Address', 'ইমেইল অ্যাড্রেস')}
+                    {t('Gmail / Email *', 'Gmail / ইমেইল *')}
                   </label>
                   <input
                     type="email"
+                    required
                     value={joinEmail}
-                    onChange={e => setJoinEmail(e.target.value)}
-                    placeholder="robin@example.com"
+                    onChange={e => { setJoinEmail(e.target.value); if (joinError) setJoinError(null); }}
+                    placeholder="yourname@gmail.com"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-3">
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {t('Village / Area *', 'গ্রাম / এলাকা *')}
                   </label>
                   <select
                     value={joinVillage}
                     onChange={e => setJoinVillage(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-semibold"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-semibold"
                   >
                     <option value="Gaira">Gaira (গাইরা)</option>
                     <option value="Jolchotro">Jolchotro (জলছত্র)</option>
@@ -206,14 +324,14 @@ export const Modals: React.FC<ModalsProps> = ({
                   </select>
                 </div>
 
-                <div>
+                <div className="sm:col-span-3">
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {t('Blood Group *', 'রক্তের গ্রুপ *')}
                   </label>
                   <select
                     value={joinBlood}
                     onChange={e => setJoinBlood(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-bold"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-bold"
                   >
                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => (
                       <option key={b} value={b}>{b}</option>
@@ -222,17 +340,31 @@ export const Modals: React.FC<ModalsProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('Skills & Talents', 'দক্ষতা ও বিশেষ গুণ')}
-                </label>
-                <input
-                  type="text"
-                  value={joinSkills}
-                  onChange={e => setJoinSkills(e.target.value)}
-                  placeholder={t('e.g. Teaching, photography, design, sports, first aid', 'যেমন: শিক্ষকতা, ছবি তোলা, ফার্স্ট এইড')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
-                />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {t('Skills & Talents', 'দক্ষতা ও বিশেষ গুণ')}
+                  </label>
+                  <input
+                    type="text"
+                    value={joinSkills}
+                    onChange={e => setJoinSkills(e.target.value)}
+                    placeholder={t('e.g. Teaching, photography, sports', 'যেমন: শিক্ষকতা, ছবি তোলা, খেলাধুলা')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {t('Community Interests', 'আগ্রহের ক্ষেত্র')}
+                  </label>
+                  <input
+                    type="text"
+                    value={joinInterests}
+                    onChange={e => setJoinInterests(e.target.value)}
+                    placeholder={t('e.g. Tree planting, education, youth club', 'যেমন: বৃক্ষরোপণ, শিক্ষা, যুব ক্লাব')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                  />
+                </div>
               </div>
 
               <div>
@@ -271,8 +403,17 @@ export const Modals: React.FC<ModalsProps> = ({
 
       {/* 2. MEMBER LOGIN MODAL */}
       {activeModal === 'login' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="glass-surface rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Salmikkhang Member Portal Login', 'সদস্য পোর্টালে লগইন')}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={closeModal}
+        >
+          <div
+            className="glass-surface rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <img
@@ -284,7 +425,12 @@ export const Modals: React.FC<ModalsProps> = ({
                   {t('Salmikkhang Member Portal Login', 'সদস্য পোর্টালে লগইন')}
                 </h3>
               </div>
-              <button onClick={closeModal} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button
+                type="button"
+                onClick={closeModal}
+                aria-label={t('Close login dialog', 'লগইন বন্ধ করুন')}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -303,27 +449,23 @@ export const Modals: React.FC<ModalsProps> = ({
             ) : memberAccessNotice ? (
               <div className="space-y-3">
                 <div className={`p-3.5 rounded-2xl border text-xs space-y-2 ${
-                  memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive'
+                  memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive'
                     ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
                     : 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800'
                 }`}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 font-extrabold text-slate-950 dark:text-slate-100">
-                      {memberAccessNotice.status === 'rejected' || memberAccessNotice.status === 'inactive' ? (
+                    <div className="flex items-center gap-2 font-extrabold text-rose-950 dark:text-rose-100">
+                      {memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive' ? (
                         <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                       ) : (
                         <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                       )}
                       <span>
-                        {memberAccessNotice.status === 'sent'
-                          ? t('Not Registered — Request Sent to Admin', 'নিবন্ধিত নয় — অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে')
-                          : memberAccessNotice.status === 'pending'
-                          ? t('Access Pending Admin Approval', 'অ্যাডমিনের অনুমোদনের অপেক্ষায়')
-                          : memberAccessNotice.status === 'rejected'
-                          ? t('Access Request Declined', 'আবেদন প্রত্যাখ্যাত হয়েছে')
+                        {memberAccessNotice.status === 'declined'
+                          ? t('Access Declined — Not Registered', 'অ্যাক্সেস বাতিল — নিবন্ধিত নয়')
                           : memberAccessNotice.status === 'failed'
                           ? t('Database Connection Unavailable', 'ডেটাবেসের সাথে সংযোগ পাওয়া যায়নি')
-                          : t('Membership Inactive', 'সদস্যপদ নিষ্ক্রিয়')}
+                          : t('Access Declined — Inactive', 'অ্যাক্সেস বাতিল — নিষ্ক্রিয়')}
                       </span>
                     </div>
                     <button
@@ -339,20 +481,10 @@ export const Modals: React.FC<ModalsProps> = ({
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-800 dark:text-slate-200 leading-relaxed">
-                    {memberAccessNotice.status === 'sent'
+                    {memberAccessNotice.status === 'declined'
                       ? t(
-                          `"${memberAccessNotice.email}" is not in our member database. You cannot enter the Member Portal—an access request has been sent to Admin.`,
-                          `"${memberAccessNotice.email}" আমাদের ডেটাবেসে নেই। পোর্টালে প্রবেশ করা যাবে না—অ্যাডমিনের কাছে রিকোয়েস্ট পাঠানো হয়েছে।`
-                        )
-                      : memberAccessNotice.status === 'pending'
-                      ? t(
-                          `"${memberAccessNotice.email}" is not registered yet. Your request is already pending Admin approval.`,
-                          `"${memberAccessNotice.email}" এখনো নিবন্ধিত নয়। আপনার রিকোয়েস্ট অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে।`
-                        )
-                      : memberAccessNotice.status === 'rejected'
-                      ? t(
-                          `The request for "${memberAccessNotice.email}" was declined by Admin.`,
-                          `"${memberAccessNotice.email}" আবেদনটি অ্যাডমিন কর্তৃক বাতিল করা হয়েছে।`
+                          `"${memberAccessNotice.email}" is not registered in our database, so access is declined. No request was sent to Admin. Submit a Membership Application if you wish to join.`,
+                          `"${memberAccessNotice.email}" আমাদের ডেটাবেসে নিবন্ধিত নয়, তাই অ্যাক্সেস বাতিল করা হয়েছে। অ্যাডমিনের কাছে কোনো রিকোয়েস্ট পাঠানো হয়নি। যুক্ত হতে চাইলে সদস্যপদের আবেদন জমা দিন।`
                         )
                       : memberAccessNotice.status === 'failed'
                       ? t(
@@ -360,8 +492,8 @@ export const Modals: React.FC<ModalsProps> = ({
                           `"${memberAccessNotice.email}" দিয়ে লগইন হয়েছে, কিন্তু এই মুহূর্তে ক্লাউড ডেটাবেসে সংযোগ পাওয়া যাচ্ছে না।`
                         )
                       : t(
-                          `"${memberAccessNotice.email}" is marked Inactive in the database.`,
-                          `"${memberAccessNotice.email}" ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে।`
+                          `"${memberAccessNotice.email}" is marked Inactive in the database, so access is declined.`,
+                          `"${memberAccessNotice.email}" ডেটাবেসে নিষ্ক্রিয় (Inactive) রয়েছে, তাই অ্যাক্সেস বাতিল করা হয়েছে।`
                         )}
                   </p>
                 </div>
@@ -369,17 +501,17 @@ export const Modals: React.FC<ModalsProps> = ({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => void handleGoogleSignIn()}
-                    className="flex-1 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
+                    onClick={() => openModal('join', { prefillEmail: memberAccessNotice.email })}
+                    className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
                   >
-                    {t('Try Another Google Account', 'অন্য অ্যাকাউন্ট দিন')}
+                    {t('Apply for Membership →', 'আবেদন করুন →')}
                   </button>
                   <button
                     type="button"
-                    onClick={() => openModal('join')}
-                    className="px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                    onClick={() => void handleGoogleSignIn()}
+                    className="px-3.5 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
                   >
-                    {t('Full Form', 'পূর্ণাঙ্গ ফর্ম')}
+                    {t('Other Account', 'অন্য অ্যাকাউন্ট')}
                   </button>
                 </div>
               </div>
@@ -488,8 +620,14 @@ export const Modals: React.FC<ModalsProps> = ({
 
       {/* 3. NEWS READER MODAL WITH PDF DOWNLOAD */}
       {selectedNews && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="glass-surface rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92dvh] overflow-y-auto backdrop-blur-2xl">
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={onCloseNews}
+        >
+          <div
+            className="glass-surface rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92dvh] overflow-y-auto backdrop-blur-2xl"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-lg">
@@ -506,7 +644,12 @@ export const Modals: React.FC<ModalsProps> = ({
                   </span>
                 )}
               </div>
-              <button onClick={onCloseNews} className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+              <button
+                type="button"
+                onClick={onCloseNews}
+                aria-label={t('Close story', 'সংবাদ বন্ধ করুন')}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -608,7 +751,9 @@ export const Modals: React.FC<ModalsProps> = ({
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={onCloseGallery}
+                aria-label={t('Close gallery preview', 'গ্যালারি প্রিভিউ বন্ধ করুন')}
                 className="p-2 text-white/80 hover:text-white rounded-full bg-white/10"
               >
                 <X className="w-6 h-6" />
@@ -662,6 +807,12 @@ export const Modals: React.FC<ModalsProps> = ({
 
             {searchResults && (
               <div className="space-y-4 max-h-[60vh] overflow-y-auto text-xs">
+                {!hasAnySearchMatch && (
+                  <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+                    {t(`No matching results found for "${searchQuery}".`, `"${searchQuery}"-এর সাথে কোনো ফলাফল পাওয়া যায়নি।`)}
+                  </div>
+                )}
+
                 {/* News matches */}
                 {searchResults.news.length > 0 && (
                   <div className="space-y-2">
@@ -670,8 +821,9 @@ export const Modals: React.FC<ModalsProps> = ({
                     </span>
                     <div className="space-y-1">
                       {searchResults.news.map(n => (
-                        <div
+                        <button
                           key={n.id}
+                          type="button"
                           onClick={() => {
                             onCloseSearch();
                             setCurrentView('website');
@@ -681,16 +833,16 @@ export const Modals: React.FC<ModalsProps> = ({
                               setTimeout(() => document.getElementById('news')?.scrollIntoView({ behavior: 'smooth' }), 80);
                             }
                           }}
-                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{n.title}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{n.date} · {n.category}</div>
+                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(n.title, n.titleBn)}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{n.date} · {t(n.category, n.categoryBn)}</div>
                           </div>
                           {n.pdfAttachment && (
                             <span className="text-[10px] px-2 py-0.5 bg-rose-100 text-rose-700 font-bold rounded">PDF</span>
                           )}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -704,20 +856,21 @@ export const Modals: React.FC<ModalsProps> = ({
                     </span>
                     <div className="space-y-1">
                       {searchResults.events.map(ev => (
-                        <div
+                        <button
                           key={ev.id}
+                          type="button"
                           onClick={() => {
                             onCloseSearch();
                             setCurrentView('website');
                             setTimeout(() => document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }), 80);
                           }}
-                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{ev.title}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{ev.date} · {ev.location}</div>
+                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(ev.title, ev.titleBn)}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{ev.date} · {t(ev.location, ev.locationBn)}</div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -731,26 +884,27 @@ export const Modals: React.FC<ModalsProps> = ({
                     </span>
                     <div className="space-y-1">
                       {searchResults.projects.map(p => (
-                        <div
+                        <button
                           key={p.id}
+                          type="button"
                           onClick={() => {
                             onCloseSearch();
                             setCurrentView('website');
                             setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 80);
                           }}
-                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{p.title}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{p.category} · {p.progress}%</div>
+                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(p.title, p.titleBn)}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{t(p.category, p.categoryBn)} · {p.progress}%</div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Member matches */}
+                {/* Member matches (only shown to authorized members/admins) */}
                 {searchResults.members.length > 0 && (
                   <div className="space-y-2">
                     <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
@@ -758,15 +912,20 @@ export const Modals: React.FC<ModalsProps> = ({
                     </span>
                     <div className="space-y-1">
                       {searchResults.members.map(m => (
-                        <div
+                        <button
                           key={m.id}
-                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between"
+                          type="button"
+                          onClick={() => {
+                            onCloseSearch();
+                            setCurrentView('member');
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 flex items-center justify-between"
                         >
                           <div>
                             <div className="font-bold text-slate-900 dark:text-slate-100">{m.name}</div>
                             <div className="text-[10px] text-slate-500 dark:text-slate-400">{m.role} · {m.village} · Blood: {m.bloodGroup}</div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>

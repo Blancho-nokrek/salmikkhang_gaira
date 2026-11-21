@@ -6,9 +6,10 @@ import {
   shouldUsePersistentCache,
 } from './firebaseTransport';
 
-test('getFirestoreTransportSettings enables long polling with safe proxy timeout', () => {
+test('getFirestoreTransportSettings enables auto-detect long polling with safe fallback timeout', () => {
   const settings = getFirestoreTransportSettings();
-  assert.equal(settings.experimentalForceLongPolling, true);
+  assert.equal(settings.experimentalAutoDetectLongPolling, true);
+  assert.equal(settings.ignoreUndefinedProperties, true);
   assert.ok(
     settings.experimentalLongPollingOptions.timeoutSeconds >= 5 &&
       settings.experimentalLongPollingOptions.timeoutSeconds <= 30

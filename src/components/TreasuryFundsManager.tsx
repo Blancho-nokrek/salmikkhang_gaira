@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { FundTransaction } from '../types';
 import { resolvePresidentName, resolveRoleStampedActor } from '../lib/memberDisplay';
+import { nextSequentialCode, safeLower } from '../lib/memberAccess';
 import {
   TrendingUp,
   TrendingDown,
@@ -91,7 +92,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
     if (!canManage) return;
     resetForm();
     setEditingTxn(null);
-    const nextVoucher = `VCH-2026-${String(funds.length + 1).padStart(3, '0')}`;
+    const nextVoucher = nextSequentialCode('VCH', funds.map(f => f.voucherNo));
     setFormData(prev => ({
       ...prev,
       type,
@@ -164,12 +165,13 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
   // Filtered list
   const filtered = funds.filter(f => {
-    const q = searchTerm.toLowerCase();
+    const q = safeLower(searchTerm).trim();
     const matchSearch =
-      f.title.toLowerCase().includes(q) ||
-      (f.titleBn && f.titleBn.toLowerCase().includes(q)) ||
-      f.donorOrBeneficiary.toLowerCase().includes(q) ||
-      (f.voucherNo && f.voucherNo.toLowerCase().includes(q));
+      !q ||
+      safeLower(f.title).includes(q) ||
+      safeLower(f.titleBn).includes(q) ||
+      safeLower(f.donorOrBeneficiary).includes(q) ||
+      safeLower(f.voucherNo).includes(q);
 
     const matchType = typeFilter === 'All' || f.type === typeFilter;
     const matchCat = categoryFilter === 'All' || f.category === categoryFilter;

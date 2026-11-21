@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { CommunityProvider, useCommunity } from './context/CommunityContext';
 import { Header } from './components/Header';
 import { PublicWebsite } from './components/PublicWebsite';
-import { MemberPortal } from './components/MemberPortal';
-import { AdminDashboard } from './components/AdminDashboard';
 import { Modals } from './components/Modals';
 import { PWAInstallModal, OfflineIndicator } from './components/PWAInstallBanner';
 import { GmailNotifyConfirmModal } from './components/GmailNotifyConfirmModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import natureBgImg from './assets/images/nature_glass_bg_1794467445710.jpg';
+
+const loadMemberPortal = () => import('./components/MemberPortal');
+const loadAdminDashboard = () => import('./components/AdminDashboard');
+
+const MemberPortal = lazy(() =>
+  loadMemberPortal().then((m) => ({ default: m.MemberPortal }))
+);
+const AdminDashboard = lazy(() =>
+  loadAdminDashboard().then((m) => ({ default: m.AdminDashboard }))
+);
+
+const PortalLoadingFallback: React.FC<{ label: string }> = ({ label }) => (
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="glass-card rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center gap-3 text-center">
+      <div className="w-8 h-8 rounded-full border-2 border-emerald-600/30 border-t-emerald-600 dark:border-emerald-400/30 dark:border-t-emerald-400 animate-spin" />
+      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{label}</p>
+    </div>
+  </div>
+);
 
 const MainApp: React.FC = () => {
   const {
@@ -26,6 +43,26 @@ const MainApp: React.FC = () => {
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
+
+  const preloadPortals = useCallback(() => {
+    void loadMemberPortal();
+    void loadAdminDashboard();
+  }, []);
+
+  useEffect(() => {
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === 'function') {
+      const id = win.requestIdleCallback(() => preloadPortals(), { timeout: 2500 });
+      return () => {
+        if (typeof win.cancelIdleCallback === 'function') win.cancelIdleCallback(id);
+      };
+    }
+    const timer = window.setTimeout(() => preloadPortals(), 1800);
+    return () => window.clearTimeout(timer);
+  }, [preloadPortals]);
 
   const handleDownloadClick = async () => {
     if (isInstallable) {
@@ -50,18 +87,34 @@ const MainApp: React.FC = () => {
   return (
     <div className="min-h-screen overflow-x-clip relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
       
-      {/* Background Nature Glassmorphism Layer */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* Background Nature Glassmorphism Layer (GPU-isolated, zero live blur filters) */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        style={{ contain: 'strict', transform: 'translateZ(0)' }}
+      >
         {/* Full Cinematic Nature Landscape */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-transform duration-1000 ease-out"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${settings.siteBackground || natureBgImg})` }}
         />
 
         {/* Atmosphere: crisp bright veil in light mode for black text contrast, deep forest depth in dark mode */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-100/80 via-white/75 to-emerald-50/85 dark:from-[#021210]/80 dark:via-[#06281f]/75 dark:to-[#021210]/92" />
-        <div className="absolute -top-40 right-0 w-[40rem] h-[40rem] rounded-full bg-[#A3E635]/15 dark:bg-[#38BDF8]/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-24 w-[36rem] h-[36rem] rounded-full bg-[#047857]/15 dark:bg-[#047857]/25 blur-3xl" />
+        {/* Soft ambient radial glows (pure CSS gradient — zero GPU blur pass) */}
+        <div
+          className="absolute inset-0 opacity-90 dark:opacity-0"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle 34rem at 92% 4%, rgba(163, 230, 53, 0.16), transparent 70%), radial-gradient(circle 30rem at 6% 96%, rgba(4, 120, 87, 0.15), transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-0 dark:opacity-90"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle 34rem at 92% 4%, rgba(56, 189, 248, 0.12), transparent 70%), radial-gradient(circle 30rem at 6% 96%, rgba(4, 120, 87, 0.24), transparent 70%)',
+          }}
+        />
       </div>
 
       {/* Main Content Area */}
@@ -69,7 +122,7 @@ const MainApp: React.FC = () => {
         {/* Toast Notification Pill */}
         {toast && (
           <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
-            <div className={`px-4 py-3 rounded-2xl shadow-[0_18px_40px_-14px_rgba(0,0,0,0.5)] backdrop-blur-2xl border flex items-center gap-2.5 text-xs font-semibold ${
+            <div className={`px-4 py-3 rounded-2xl shadow-[0_18px_40px_-14px_rgba(0,0,0,0.5)] backdrop-blur-md border flex items-center gap-2.5 text-xs font-semibold ${
               toast.type === 'warning'
                 ? 'bg-amber-950/90 border-amber-500/30 text-amber-100'
                 : toast.type === 'info'
@@ -94,6 +147,7 @@ const MainApp: React.FC = () => {
           onSelectNews={(id) => setSelectedNewsId(id)}
           onOpenAppInstall={() => void handleDownloadClick()}
           isAppInstallOpen={installModalOpen}
+          onPreloadPortals={preloadPortals}
         />
 
         {/* Main View Router */}
@@ -105,9 +159,17 @@ const MainApp: React.FC = () => {
             />
           )}
 
-          {currentView === 'member' && <MemberPortal />}
+          {currentView === 'member' && (
+            <Suspense fallback={<PortalLoadingFallback label={t('Opening Member Portal...', 'সদস্য পোর্টাল খোলা হচ্ছে...')} />}>
+              <MemberPortal />
+            </Suspense>
+          )}
 
-          {currentView === 'admin' && <AdminDashboard />}
+          {currentView === 'admin' && (
+            <Suspense fallback={<PortalLoadingFallback label={t('Opening Admin Panel...', 'অ্যাডমিন প্যানেল খোলা হচ্ছে...')} />}>
+              <AdminDashboard />
+            </Suspense>
+          )}
         </main>
 
         {/* Global Interactive Modals */}

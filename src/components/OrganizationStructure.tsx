@@ -130,7 +130,7 @@ export const OrganizationStructure: React.FC<OrganizationStructureProps> = ({ is
                     <div className="flex items-center gap-1.5 pt-1">
                       {holders.length > 0 ? (
                         <span className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                          {holders.length} {t('Holding:', 'নিয়োগপ্রাপ্ত:')} {holders.map(h => h.name.split(' ')[0]).join(', ')}
+                          {holders.length} {t('Holding:', 'নিয়োগপ্রাপ্ত:')} {holders.map(h => (h.name || 'Member').split(' ')[0]).join(', ')}
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-700 dark:text-slate-400 italic">
@@ -269,7 +269,7 @@ export const OrganizationStructure: React.FC<OrganizationStructureProps> = ({ is
                     <div key={m.id} className="p-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                          {m.name[0]}
+                          {(m.name || 'M')[0]}
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -280,17 +280,20 @@ export const OrganizationStructure: React.FC<OrganizationStructureProps> = ({ is
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => {
-                            quickSwitchMember(m.id);
-                            setCurrentView('member');
-                          }}
-                          className="w-full sm:w-auto px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-xs"
-                        >
-                          {t('Test View →', 'ভিউ টেস্ট →')}
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              quickSwitchMember(m.id);
+                              setCurrentView('member');
+                            }}
+                            className="w-full sm:w-auto px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-xs"
+                          >
+                            {t('Test View →', 'ভিউ টেস্ট →')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
