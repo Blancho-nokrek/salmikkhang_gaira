@@ -74,7 +74,6 @@ const firebaseConfig: FirebaseClientConfig = {
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
-export const workspaceOAuthConfig = rawFirebaseConfig;
 const app = firebaseApp;
 
 function createFirestoreInstance(): Firestore {

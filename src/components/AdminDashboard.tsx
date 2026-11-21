@@ -6,15 +6,9 @@ import { TreasuryFundsManager } from './TreasuryFundsManager';
 import { OrganizationStructure } from './OrganizationStructure';
 import { BackgroundSettings } from './BackgroundSettings';
 import { DiscussionForum } from './DiscussionForum';
-import { AdminGmailSettingsCard } from './GmailAlertsPanel';
 import { MemberStatusBadge } from './MemberStatusBadge';
 import { getMemberStatusMeta, MEMBER_STATUS_OPTIONS } from '../lib/memberStatus';
 import { safeLower } from '../lib/memberAccess';
-import {
-  buildDraftFromEvent,
-  buildDraftFromNews,
-  buildDraftFromProject,
-} from '../lib/gmailNotifications';
 import { compressImage } from '../lib/imageUpload';
 import { GALLERY_CATEGORIES, getGalleryCategoryBn } from '../data/galleryCategories';
 import { EVENT_CATEGORIES, getEventCategoryBn, isPresetEventCategory } from '../data/eventCategories';
@@ -101,7 +95,6 @@ export const AdminDashboard: React.FC = () => {
     clearAuthError,
     adminAccessWarning,
     clearAdminAccessWarning,
-    requestGmailNotification,
     showToast
   } = useCommunity();
 
@@ -1233,22 +1226,6 @@ export const AdminDashboard: React.FC = () => {
                       {isAdminLoggedIn && (
                         <>
                           <button
-                            type="button"
-                            onClick={() =>
-                              requestGmailNotification(
-                                buildDraftFromNews(
-                                  item,
-                                  typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
-                                )
-                              )
-                            }
-                            className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors cursor-pointer"
-                            title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
-                          >
-                            <Mail className="w-3.5 h-3.5" />
-                            <span>{t('Gmail', 'Gmail')}</span>
-                          </button>
-                          <button
                             onClick={() => openEditModal('news', item)}
                             className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
                             title="Edit News"
@@ -1332,22 +1309,6 @@ export const AdminDashboard: React.FC = () => {
 
                     {isAdminLoggedIn && (
                       <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            requestGmailNotification(
-                              buildDraftFromEvent(
-                                ev,
-                                typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
-                              )
-                            )
-                          }
-                          className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
-                          title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          <span>{t('Gmail', 'Gmail')}</span>
-                        </button>
                         <button
                           onClick={() => openEditModal('event', ev)}
                           className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors"
@@ -1508,22 +1469,6 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                     {isAdminLoggedIn && (
                       <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            requestGmailNotification(
-                              buildDraftFromProject(
-                                proj,
-                                typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
-                              )
-                            )
-                          }
-                          className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-                          title={t('Send Gmail Alert', 'Gmail নোটিফিকেশন পাঠান')}
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          <span>{t('Gmail', 'Gmail')}</span>
-                        </button>
                         <button
                           onClick={() => openEditModal('project', proj)}
                           className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-950 dark:text-slate-200 rounded-lg text-xs font-bold"
@@ -1913,8 +1858,6 @@ export const AdminDashboard: React.FC = () => {
                   })}
                 </div>
               </div>
-
-              <AdminGmailSettingsCard readOnly={isPresidentViewOnly} />
 
               <BackgroundSettings readOnly={isPresidentViewOnly} />
             </div>

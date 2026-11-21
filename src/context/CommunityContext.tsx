@@ -66,24 +66,13 @@ import {
   filterOutLegacyDemoMembers,
 } from '../lib/legacyDemoData';
 import {
-  clearCachedGmailAccessToken,
-  connectGmailSender,
-  disconnectGmailSender,
-  getCachedGmailAccessToken,
-  getGmailAuthSession,
-  GMAIL_SENDER_EMAIL,
-  subscribeGmailAuthState,
-  type GmailAuthSession,
-} from '../lib/gmailOAuth';
-import {
+  buildDefaultSubject,
   buildDraftFromEvent,
   buildDraftFromNews,
   buildDraftFromProject,
-  GMAIL_SUBSCRIBER_MARKER,
-  normalizeEmail,
-  sendGmailNotificationBatch,
+  collectNotificationRecipients,
+  DEFAULT_GMAIL_SENDER,
   type GmailNotificationDraft,
-  type GmailSendResult,
 } from '../lib/gmailNotifications';
 import {
   detectNewCommunityUpdates,
@@ -278,22 +267,6 @@ interface CommunityContextType {
   resetAllData: () => void;
   exportDataJSON: () => void;
 
-  // Gmail Notifications (salmikkhang@gmail.com) & Phone Background Alerts
-  gmailSession: GmailAuthSession;
-  gmailConnecting: boolean;
-  connectGmailForAlerts: (preferredEmail?: string) => Promise<boolean>;
-  disconnectGmailForAlerts: () => Promise<void>;
-  pendingGmailDraft: GmailNotificationDraft | null;
-  requestGmailNotification: (draft: GmailNotificationDraft) => void;
-  dismissGmailNotification: () => void;
-  confirmAndSendGmailNotification: (params: {
-    draft: GmailNotificationDraft;
-    recipients: string[];
-    subject: string;
-    customNote?: string;
-  }) => Promise<GmailSendResult>;
-  subscribeGmailAlerts: (params: { name: string; email: string }) => Promise<boolean>;
-
   deviceAlertsEnabled: boolean;
   deviceNotificationPermission: NotificationPermission | 'unsupported';
   enableDeviceAlerts: () => Promise<boolean>;
@@ -407,10 +380,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [heroBgAsset, setHeroBgAsset] = useState<string | undefined>(undefined);
   const [siteBgAsset, setSiteBgAsset] = useState<string | undefined>(undefined);
 
-  // Gmail Workspace OAuth & Phone Background Notification State
-  const [gmailSession, setGmailSession] = useState<GmailAuthSession>(() => getGmailAuthSession());
-  const [gmailConnecting, setGmailConnecting] = useState(false);
-  const [pendingGmailDraft, setPendingGmailDraft] = useState<GmailNotificationDraft | null>(null);
+  // Phone Background Notification State
   const [deviceAlertsEnabled, setDeviceAlertsEnabled] = useState<boolean>(() =>
     isDeviceAlertsPreferenceEnabled()
   );
@@ -423,10 +393,6 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     safeStorage.remove(STORAGE_KEY);
     seenAlertIdsRef.current = loadSeenAlertIds();
-    const unsubGmail = subscribeGmailAuthState((session) => {
-      setGmailSession(session);
-    });
-    return () => unsubGmail();
   }, []);
 
   const settings: CommunitySettings = {
@@ -2616,7 +2582,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         );
         const appUrl =
           typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://salmikkhang.vercel.app/';
-        setPendingGmailDraft(buildDraftFromEvent(newEvent, appUrl));
+        void dispatchAutomaticEmailAlert(buildDraftFromEvent(newEvent, appUrl));
       } catch {
         setEvents(prevEvents);
         setNotifications(prevNotifications);
@@ -2697,7 +2663,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         );
         const appUrl =
           typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://salmikkhang.vercel.app/';
-        setPendingGmailDraft(buildDraftFromNews(newItem, appUrl));
+        void dispatchAutomaticEmailAlert(buildDraftFromNews(newItem, appUrl));
       } catch {
         setNews(prevNews);
         setNotifications(prevNotifications);
@@ -2805,7 +2771,7 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         showToast(t('Project added', 'নতুন উদ্যোগ যুক্ত হয়েছে'), 'success');
         const appUrl =
           typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://salmikkhang.vercel.app/';
-        setPendingGmailDraft(buildDraftFromProject(newProj, appUrl));
+        void dispatchAutomaticEmailAlert(buildDraftFromProject(newProj, appUrl));
       } catch {
         setProjects(prevProjects);
         setNotifications(prevNotifications);
@@ -3135,158 +3101,51 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(t('Data exported as JSON file', 'সকল তথ্য JSON ফাইলে রপ্তানি করা হয়েছে'), 'success');
   };
 
-  // Gmail Workspace OAuth & Notification Actions
-  const connectGmailForAlerts = async (
-    preferredEmail: string = GMAIL_SENDER_EMAIL
-  ): Promise<boolean> => {
-    setGmailConnecting(true);
+  // Automatic background email delivery to all active members (zero login popup or manual confirmation)
+  const dispatchAutomaticEmailAlert = async (draft: GmailNotificationDraft): Promise<void> => {
     try {
-      const res = await connectGmailSender(preferredEmail);
-      setGmailSession(getGmailAuthSession());
-      showToast(
-        t(
-          `Gmail sender connected: ${res.email}`,
-          `Gmail প্রেরক সংযুক্ত হয়েছে: ${res.email}`
-        ),
-        'success'
-      );
-      return true;
-    } catch (err: any) {
-      const msg =
-        err?.code === 'auth/popup-closed-by-user'
-          ? t('Google sign-in popup was closed before completing.', 'Google সাইন-ইন পপআপ সম্পন্ন হওয়ার আগেই বন্ধ করা হয়েছে।')
-          : err?.message || t('Could not connect Gmail sender.', 'Gmail সংযুক্ত করা যায়নি।');
-      showToast(msg, 'warning');
-      return false;
-    } finally {
-      setGmailConnecting(false);
-    }
-  };
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) return;
 
-  const disconnectGmailForAlerts = async () => {
-    await disconnectGmailSender();
-    setGmailSession(getGmailAuthSession());
-    showToast(t('Gmail sender disconnected.', 'Gmail সংযোগ বিচ্ছিন্ন করা হয়েছে।'), 'info');
-  };
+      const recipientInfo = collectNotificationRecipients({
+        members: membersRef.current,
+        messages,
+        joinRequests,
+        visibility: draft.visibility,
+        excludeSenderEmail: DEFAULT_GMAIL_SENDER,
+      });
+      if (recipientInfo.allEmails.length === 0) return;
 
-  const requestGmailNotification = (draft: GmailNotificationDraft) => {
-    setPendingGmailDraft(draft);
-  };
+      const response = await fetch('/api/auto-notify', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipients: recipientInfo.allEmails,
+          subject: buildDefaultSubject(draft),
+          draft,
+        }),
+      });
 
-  const dismissGmailNotification = () => {
-    setPendingGmailDraft(null);
-  };
+      if (!response.ok) return;
+      const data = (await response.json().catch(() => null)) as {
+        configured?: boolean;
+        sentCount?: number;
+      } | null;
 
-  const confirmAndSendGmailNotification = async (params: {
-    draft: GmailNotificationDraft;
-    recipients: string[];
-    subject: string;
-    customNote?: string;
-  }): Promise<GmailSendResult> => {
-    const accessToken = getCachedGmailAccessToken();
-    const senderEmail = gmailSession.email || GMAIL_SENDER_EMAIL;
-    if (!accessToken) {
-      return {
-        senderEmail,
-        totalRecipients: params.recipients.length,
-        sentCount: 0,
-        failedRecipients: params.recipients.length,
-        messageIds: [],
-        authExpired: true,
-        errorMessage: t(
-          `Please reconnect ${GMAIL_SENDER_EMAIL} to authorize sending Gmail alerts.`,
-          `ইমেইল পাঠাতে আবার ${GMAIL_SENDER_EMAIL} সংযুক্ত করুন।`
-        ),
-      };
-    }
-
-    const result = await sendGmailNotificationBatch({
-      accessToken,
-      senderEmail,
-      recipients: params.recipients,
-      subject: params.subject,
-      draft: params.draft,
-      customNote: params.customNote,
-    });
-
-    if (result.authExpired) {
-      clearCachedGmailAccessToken();
-      setGmailSession(getGmailAuthSession());
-      showToast(
-        t(
-          'Gmail authorization expired. Please reconnect salmikkhang@gmail.com.',
-          'Gmail অনুমতির মেয়াদ শেষ হয়েছে। আবার salmikkhang@gmail.com সংযুক্ত করুন।'
-        ),
-        'warning'
-      );
-      return result;
-    }
-
-    if (result.sentCount > 0 && result.failedRecipients === 0) {
-      showToast(
-        t(
-          `Gmail notification sent from ${result.senderEmail} to ${result.sentCount} recipient(s)!`,
-          `${result.senderEmail} থেকে ${result.sentCount} জনের Gmail-এ নোটিফিকেশন পাঠানো হয়েছে!`
-        ),
-        'success'
-      );
-    } else if (result.sentCount > 0) {
-      showToast(
-        t(
-          `Sent to ${result.sentCount} recipient(s), ${result.failedRecipients} failed.`,
-          `${result.sentCount} জনকে পাঠানো হয়েছে, ${result.failedRecipients} জন ব্যর্থ হয়েছে।`
-        ),
-        'warning'
-      );
-    } else {
-      showToast(
-        result.errorMessage || t('Could not send Gmail notification.', 'Gmail নোটিফিকেশন পাঠানো যায়নি।'),
-        'warning'
-      );
-    }
-
-    return result;
-  };
-
-  const subscribeGmailAlerts = async (params: {
-    name: string;
-    email: string;
-  }): Promise<boolean> => {
-    const cleanEmail = normalizeEmail(params.email);
-    if (!cleanEmail) {
-      showToast(
-        t('Please enter a valid Gmail or email address.', 'সঠিক একটি Gmail বা ইমেইল ঠিকানা লিখুন।'),
-        'warning'
-      );
-      return false;
-    }
-
-    const cleanName = clampStr(params.name.trim() || cleanEmail.split('@')[0], 120);
-    const subDoc: ContactMessage = {
-      id: `sub-${Date.now()}`,
-      name: cleanName,
-      contact: cleanEmail,
-      message: `${GMAIL_SUBSCRIBER_MARKER} Subscribed for Notice, News, Event & Project Gmail notifications`,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Unread',
-    };
-
-    try {
-      await fsSet(`messages/${sanitizeId(subDoc.id)}`, toMessagePayload(subDoc), OperationType.CREATE);
-      if (canViewAdminInbox) {
-        setMessages((prev) => [subDoc, ...prev]);
+      if (data?.configured && typeof data.sentCount === 'number' && data.sentCount > 0) {
+        showToast(
+          t(
+            `Automatic email notification delivered to ${data.sentCount} member(s).`,
+            `সকল সদস্যকে (${data.sentCount} জন) স্বয়ংক্রিয়ভাবে ইমেইল পাঠানো হয়েছে।`
+          ),
+          'success'
+        );
       }
-      showToast(
-        t(
-          `${cleanEmail} subscribed to Salmikkhang Gmail alerts!`,
-          `${cleanEmail} সালমিকখাং Gmail নোটিফিকেশনে যুক্ত হয়েছে!`
-        ),
-        'success'
-      );
-      return true;
     } catch {
-      notifyCloudSyncFailure();
-      return false;
+      // Never block or disrupt notice/event/project publishing if email network is temporarily offline
     }
   };
 
@@ -3309,12 +3168,12 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(
       permission === 'unsupported'
         ? t(
-            'Browser alerts are not supported here. Subscribe with your Gmail for automatic phone notifications!',
-            'এই ব্রাউজারে সরাসরি নোটিফিকেশন সাপোর্ট নেই। ফোনে সবসময় অ্যালার্ট পেতে Gmail সাবস্ক্রাইব করুন!'
+            'Browser alerts are not supported on this device.',
+            'এই ব্রাউজারে সরাসরি নোটিফিকেশন সাপোর্ট নেই।'
           )
         : t(
-            'Notification permission was blocked. Allow notifications in browser/phone settings or use Gmail alerts.',
-            'নোটিফিকেশন অনুমতি ব্লক করা আছে। ফোনের সেটিংস থেকে চালু করুন অথবা Gmail অ্যালার্ট ব্যবহার করুন।'
+            'Notification permission was blocked. Allow notifications in browser/phone settings.',
+            'নোটিফিকেশন অনুমতি ব্লক করা আছে। ফোনের সেটিংস থেকে চালু করুন।'
           ),
       'warning'
     );
@@ -3478,15 +3337,6 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateSettings,
         resetAllData,
         exportDataJSON,
-        gmailSession,
-        gmailConnecting,
-        connectGmailForAlerts,
-        disconnectGmailForAlerts,
-        pendingGmailDraft,
-        requestGmailNotification,
-        dismissGmailNotification,
-        confirmAndSendGmailNotification,
-        subscribeGmailAlerts,
         deviceAlertsEnabled,
         deviceNotificationPermission,
         enableDeviceAlerts,
