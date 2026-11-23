@@ -50,6 +50,28 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
   const [selectedVoucher, setSelectedVoucher] = useState<FundTransaction | null>(null);
   const [deletingTxn, setDeletingTxn] = useState<FundTransaction | null>(null);
   const [assignCashierModalOpen, setAssignCashierModalOpen] = useState(false);
+  const [receiptFormat, setReceiptFormat] = useState<'80mm' | '58mm' | 'A5'>('80mm');
+
+  const handlePrintReceipt = () => {
+    if (typeof window === 'undefined') return;
+    document.body.classList.add('printing-cashier-receipt');
+    document.body.classList.remove('receipt-width-80mm', 'receipt-width-58mm', 'receipt-width-a5');
+    document.body.classList.add(`receipt-width-${receiptFormat.toLowerCase()}`);
+
+    window.print();
+
+    const cleanup = () => {
+      document.body.classList.remove(
+        'printing-cashier-receipt',
+        'receipt-width-80mm',
+        'receipt-width-58mm',
+        'receipt-width-a5'
+      );
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2500);
+  };
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -416,7 +438,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
             </div>
           ) : (
             filtered.map(txn => (
-              <div key={txn.id} className="p-4 space-y-2.5 text-xs">
+              <div key={txn.id} className="p-4 space-y-2.5 text-xs row-enter">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-mono font-bold text-[11px] text-slate-700 dark:text-slate-400">
@@ -504,7 +526,7 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
                 </tr>
               ) : (
                 filtered.map(txn => (
-                  <tr key={txn.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr key={txn.id} className="hover:bg-emerald-500/10 dark:hover:bg-emerald-950/30 transition-colors row-enter">
                     <td className="py-3.5 px-4">
                       <div className="font-mono font-bold text-slate-900 dark:text-slate-100">
                         {txn.voucherNo || txn.id}
@@ -787,121 +809,212 @@ export const TreasuryFundsManager: React.FC<TreasuryFundsManagerProps> = ({ isAd
 
       {/* VIEW VOUCHER RECEIPT SLIP MODAL */}
       {selectedVoucher && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92dvh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold">
-                  {selectedVoucher.voucherNo || selectedVoucher.id}
-                </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
-                  {t('Official Community Cash Voucher', 'অফিসিয়াল ক্যাশ ভাউচার ও রসিদ')}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static print:inset-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 space-y-4 my-auto max-h-[92dvh] overflow-y-auto modal-enter print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:w-full print:max-w-none">
+            
+            {/* Modal Screen Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 no-print">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-xl">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold tracking-wider uppercase block">
+                    {selectedVoucher.voucherNo || selectedVoucher.id}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100">
+                    {t('Cashier Memo & Official Receipt', 'ক্যাশিয়ার মেমো ও অফিসিয়াল রসিদ')}
+                  </h3>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedVoucher(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Voucher Slip Layout */}
-            <div className="p-5 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl space-y-4 bg-slate-50/50 dark:bg-slate-800/30 text-xs">
-              <div className="text-center space-y-0.5 border-b border-slate-200 dark:border-slate-700 pb-3">
-                <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">
-                  SALMIKKHANG VILLAGE YOUTH COMMUNITY
+            {/* Print Size Presets Bar (Screen Only) */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl no-print text-xs border border-slate-200/80 dark:border-slate-700/60">
+              <span className="font-bold text-slate-700 dark:text-slate-300 pl-1">
+                {t('Receipt Print Size:', 'প্রিন্ট পেপার সাইজ:')}
+              </span>
+              <div className="inline-flex p-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                {(['80mm', '58mm', 'A5'] as const).map(fmt => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    onClick={() => setReceiptFormat(fmt)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      receiptFormat === fmt
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {fmt === '80mm' ? '80mm (Thermal POS)' : fmt === '58mm' ? '58mm (Mini)' : 'A5 (Slip)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* PRINTABLE CASHIER RECEIPT / MEMO CONTAINER */}
+            <div
+              id="cashier-receipt-print-area"
+              className={`cashier-receipt-memo receipt-${receiptFormat.toLowerCase()} mx-auto bg-white text-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-300 shadow-sm transition-all text-xs`}
+            >
+              {/* Header */}
+              <div className="text-center space-y-1 pb-3 border-b-2 border-dashed border-slate-400">
+                <div className="font-black text-sm tracking-widest uppercase text-slate-950">
+                  SALMIKKHANG
                 </div>
-                <div className="text-[10px] text-slate-500">
-                  Gaira, Jolchotro, Madhupur, Tangail · Treasury & Finance Dept
+                <div className="font-bold text-[11px] text-slate-800 tracking-tight">
+                  VILLAGE YOUTH COMMUNITY
+                </div>
+                <div className="text-[10px] text-slate-600 leading-tight">
+                  Gaira, Jolchotro, Madhupur, Tangail · Treasury & Cash Desk
+                </div>
+                <div className="text-[9.5px] text-slate-500 font-mono pt-0.5">
+                  salmikkhang.vercel.app · Official Cashier Receipt
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block font-bold">{t('Voucher Serial:', 'ভাউচার নং:')}</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{selectedVoucher.voucherNo || selectedVoucher.id}</span>
+              {/* Receipt / Invoice Metadata */}
+              <div className="py-2.5 border-b border-dashed border-slate-300 space-y-1 text-[11px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 font-bold">{t('MEMO / VOUCHER NO:', 'ভাউচার / মেমো নং:')}</span>
+                  <span className="font-mono font-black text-slate-950">
+                    {selectedVoucher.voucherNo || selectedVoucher.id}
+                  </span>
                 </div>
-                <div className="text-right">
-                  <span className="text-slate-400 block font-bold">{t('Date:', 'তারিখ:')}</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{selectedVoucher.date}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">{t('DATE:', 'তারিখ:')}</span>
+                  <span className="font-semibold text-slate-900">{selectedVoucher.date}</span>
                 </div>
-              </div>
-
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl space-y-1.5 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-bold">{t('Type:', 'ধরন:')}</span>
-                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">
+                    {selectedVoucher.type === 'Inflow' ? t('RECEIVED FROM:', 'আদায় / জমাকারী:') : t('PAID TO / PAYEE:', 'প্রাপক / প্রদানকারী:')}
+                  </span>
+                  <span className="font-bold text-slate-950">{selectedVoucher.donorOrBeneficiary}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">{t('CASHIER / OPERATOR:', 'ক্যাশিয়ার:')}</span>
+                  <span className="font-semibold text-slate-900">
+                    {resolveRoleStampedActor(members, selectedVoucher.recordedBy, selectedVoucher.recordedByUid, 'Treasury Desk')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-slate-600">{t('TXN TYPE:', 'লেনদেনের ধরন:')}</span>
+                  <span className={`px-2 py-0.5 text-[9.5px] font-black uppercase rounded ${
                     selectedVoucher.type === 'Inflow'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                      ? 'bg-emerald-100 text-emerald-950 print:bg-slate-200 print:text-black'
+                      : 'bg-rose-100 text-rose-950 print:bg-slate-200 print:text-black'
                   }`}>
                     {selectedVoucher.type === 'Inflow' ? t('CASH INFLOW / RECEIPT (+)', 'জমা / চাঁদা গ্রহণ (+)') : t('CASH OUTFLOW / EXPENSE (-)', 'ব্যয় / খরচ ভাউচার (-)')}
                   </span>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-bold">{t('Purpose:', 'উদ্দেশ্য:')}</span>
-                  <span className="font-extrabold text-slate-900 dark:text-slate-100 text-right">
-                    {t(selectedVoucher.title, selectedVoucher.titleBn)}
-                  </span>
+              {/* Itemized Table */}
+              <div className="py-2.5 border-b-2 border-dashed border-slate-400">
+                <table className="w-full text-left text-[11px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-400 text-[10px] uppercase font-bold text-slate-700">
+                      <th className="py-1 pr-1">{t('Item / Purpose', 'বিবরণ')}</th>
+                      <th className="py-1 px-1 text-center">{t('Category', 'খাত')}</th>
+                      <th className="py-1 pl-1 text-right">{t('Amount (৳)', 'পরিমাণ (৳)')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-slate-200">
+                      <td className="py-2 pr-1 font-semibold text-slate-950 leading-tight">
+                        {t(selectedVoucher.title, selectedVoucher.titleBn)}
+                      </td>
+                      <td className="py-2 px-1 text-center text-[10px] text-slate-600">
+                        {selectedVoucher.category}
+                      </td>
+                      <td className="py-2 pl-1 text-right font-mono font-black text-slate-950">
+                        ৳ {selectedVoucher.amount.toLocaleString()}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Subtotal & Grand Total */}
+              <div className="py-2.5 border-b border-dashed border-slate-300 space-y-1 text-[11px]">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>{t('Subtotal:', 'উপ-মোট:')}</span>
+                  <span className="font-mono">৳ {selectedVoucher.amount.toLocaleString()}</span>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-bold">{t('Category:', 'হিসাব খাত:')}</span>
-                  <span className="text-slate-700 dark:text-slate-300">{selectedVoucher.category}</span>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>{t('Processing / Fee:', 'ফি / কর্তন:')}</span>
+                  <span className="font-mono">৳ 0.00</span>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-bold">{selectedVoucher.type === 'Inflow' ? t('Received From:', 'গ্রহণকারী:') : t('Paid To / Payee:', 'প্রাপক:')}</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{selectedVoucher.donorOrBeneficiary}</span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-sm">
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{t('Total Amount:', 'মোট টাকা:')}</span>
-                  <span className="font-black font-mono text-emerald-700 dark:text-emerald-400 text-base">
+                <div className="flex justify-between items-center pt-1.5 border-t border-slate-400 font-black text-sm text-slate-950">
+                  <span className="tracking-tight uppercase">{t('GRAND TOTAL:', 'সর্বমোট টাকা:')}</span>
+                  <span className="font-mono text-base tracking-tight">
                     ৳ {selectedVoucher.amount.toLocaleString()}
                   </span>
                 </div>
               </div>
 
               {selectedVoucher.notes && (
-                <div className="text-[11px] text-slate-500 italic">
-                  <strong>{t('Memo:', 'নোট:')}</strong> {selectedVoucher.notes}
+                <div className="py-2 text-[10px] text-slate-600 italic border-b border-dashed border-slate-300">
+                  <strong className="not-italic text-slate-800">{t('Remarks / Notes:', 'মন্তব্য:')}</strong> {selectedVoucher.notes}
                 </div>
               )}
 
               {/* Signature Blocks */}
               <div className="grid grid-cols-2 gap-4 pt-6 text-[10px] text-center">
-                <div className="border-t border-slate-300 dark:border-slate-700 pt-1">
-                  <div className="font-bold text-slate-700 dark:text-slate-300">
+                <div className="border-t border-slate-400 pt-1">
+                  <div className="font-bold text-slate-900">
                     {resolveRoleStampedActor(members, selectedVoucher.recordedBy, selectedVoucher.recordedByUid, 'Treasurer / Cashier')}
                   </div>
-                  <div className="text-slate-400">{t('Cashier / Treasury Desk', 'কোষাধ্যক্ষ / সহকারী ক্যাশিয়ার')}</div>
+                  <div className="text-[9px] text-slate-500 uppercase tracking-wider">{t('Cashier / Treasury Desk', 'কোষাধ্যক্ষ / ক্যাশিয়ার')}</div>
                 </div>
-                <div className="border-t border-slate-300 dark:border-slate-700 pt-1">
-                  <div className="font-bold text-slate-700 dark:text-slate-300">
+                <div className="border-t border-slate-400 pt-1">
+                  <div className="font-bold text-slate-900">
                     {resolvePresidentName(members, t('Council President', 'সভাপতি'))}
                   </div>
-                  <div className="text-slate-400">{t('President / Council Counter-Seal', 'সভাপতি / নিরীক্ষা সিল')}</div>
+                  <div className="text-[9px] text-slate-500 uppercase tracking-wider">{t('Council Counter-Seal', 'সভাপতি / নিরীক্ষা সিল')}</div>
+                </div>
+              </div>
+
+              {/* Footer Notice & Tear Line */}
+              <div className="pt-4 text-center space-y-1 text-[9.5px] text-slate-500 border-t border-slate-200 mt-3">
+                <div className="font-bold tracking-widest text-slate-700">*** THANK YOU ***</div>
+                <div>{t('Please retain this computer-generated receipt for official verification.', 'দয়া করে ভবিষ্যৎ হিসাব নিরীক্ষার জন্য এই রসিদ সংরক্ষণ করুন।')}</div>
+                <div className="font-mono tracking-widest text-slate-400 pt-1">
+                  - - - - - - - - - - - - - - - - - - - - - - - -
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setSelectedVoucher(null)}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl"
-              >
-                {t('Close', 'বন্ধ করুন')}
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>{t('Print Slip', 'রসিদ প্রিন্ট করুন')}</span>
-              </button>
+            {/* Modal Screen Footer Actions */}
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 no-print">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
+                {t('Shortcuts: Click Print or press Ctrl+P', 'শর্টকাট: প্রিন্ট বাটনে চাপুন বা Ctrl+P চাপুন')}
+              </span>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setSelectedVoucher(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  {t('Close', 'বন্ধ করুন')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>{t('Print Cashier Memo', 'মেমো প্রিন্ট করুন')}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

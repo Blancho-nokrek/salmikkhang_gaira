@@ -242,3 +242,162 @@ section#projects {
 @media (prefers-reduced-motion: reduce) {
   .animate-in { animation: none !important; }
 }
+
+/* ───────── Modern UI Smooth Animations & Transitions ───────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale3d(0.96, 0.96, 1); }
+  to { opacity: 1; transform: scale3d(1, 1, 1); }
+}
+@keyframes rowFadeIn {
+  0% { opacity: 0; background-color: rgba(16, 185, 129, 0.16); }
+  100% { opacity: 1; background-color: transparent; }
+}
+@keyframes toastSlide {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.fade-enter { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.modal-enter { animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.row-enter { animation: rowFadeIn 0.5s ease-out both; }
+.toast-enter { animation: toastSlide 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ───────── Fast & Ergonomic Cashier UI Utilities ───────── */
+.cashier-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+.cashier-table th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.cashier-table tr {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ───────── Cashier Memo / Receipt Printing (Strict 1-Page Guarantee) ───────── */
+@media print {
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide screen-only web elements */
+  header, footer, nav, aside, .glass-dock, .no-print,
+  button:not(.allow-print), .modal-backdrop, [role="navigation"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset fixed modal overlay to standard print document flow */
+  div.fixed.inset-0.z-50 {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* If printing memo, hide all surrounding app sections */
+  body.printing-cashier-receipt > div:not(:has(#cashier-receipt-print-area)) {
+    display: none !important;
+  }
+
+  /* Printable Cashier Memo / Receipt Container */
+  #cashier-receipt-print-area {
+    display: block !important;
+    position: relative !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Sizing: 80mm Thermal Receipt (Default Standard) */
+  #cashier-receipt-print-area.receipt-80mm,
+  .receipt-width-80mm #cashier-receipt-print-area {
+    width: 76mm !important;
+    max-width: 76mm !important;
+    padding: 4mm 3mm !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Sizing: 58mm Thermal Receipt (Compact Mini POS) */
+  #cashier-receipt-print-area.receipt-58mm,
+  .receipt-width-58mm #cashier-receipt-print-area {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    padding: 3mm 2mm !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Sizing: A5 Slip / Official Voucher */
+  #cashier-receipt-print-area.receipt-a5,
+  .receipt-width-a5 #cashier-receipt-print-area {
+    width: 138mm !important;
+    max-width: 138mm !important;
+    padding: 10mm 8mm !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  #cashier-receipt-print-area * {
+    color: #000000 !important;
+    background: transparent !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  #cashier-receipt-print-area table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  #cashier-receipt-print-area th,
+  #cashier-receipt-print-area td {
+    border-color: #000000 !important;
+  }
+}
