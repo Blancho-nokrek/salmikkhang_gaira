@@ -20,7 +20,7 @@ export default defineConfig(() => {
         ],
         manifest: {
           id: '/',
-          name: 'Salmikkhang Village Youth Community',
+          name: 'Salmikkhang',
           short_name: 'Salmikkhang',
           description:
             'Salmikkhang village youth community portal with news, events, projects, gallery, member directory, and treasury.',

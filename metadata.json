@@ -1,5 +1,5 @@
 {
-  "name": "Salmikkhang Nature Glassmorphism Community Portal",
+  "name": "Salmikkhang",
   "description": "Salmikkhang village youth community portal with nature glassmorphism aesthetic, member directory, village census, treasury funds ledger, and role management.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

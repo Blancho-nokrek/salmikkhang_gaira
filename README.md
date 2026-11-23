@@ -1,4 +1,4 @@
-# Salmikkhang Community Portal
+# Salmikkhang
 
 Village youth community portal with a nature glassmorphism look: public website, member portal,
 admin dashboard, village census, treasury ledger and role management. English / Bengali, light / dark.
