@@ -284,6 +284,32 @@ section#projects {
   transform: scale(0.97);
 }
 
+/* ───────── Unique Nature & Glass Accent Utilities ───────── */
+.nature-badge {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.85), rgba(4, 120, 87, 0.65));
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  box-shadow: 0 4px 16px 0 rgba(4, 120, 87, 0.28);
+}
+.glass-feature {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.75));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 40px -15px rgba(6, 78, 59, 0.12);
+}
+.dark .glass-feature {
+  background: linear-gradient(135deg, rgba(6, 40, 32, 0.68), rgba(2, 24, 20, 0.78));
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+.pulse-beacon {
+  animation: beaconPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes beaconPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.15); }
+}
+
 /* ───────── Cashier Memo / Receipt Printing (Strict 1-Page Guarantee) ───────── */
 @media print {
   @page {

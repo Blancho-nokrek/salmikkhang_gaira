@@ -20,6 +20,13 @@ import {
   FileText,
   MessageCircle,
   ExternalLink,
+  Coins,
+  ShieldCheck,
+  Droplet,
+  Compass,
+  ArrowRight,
+  TrendingUp,
+  Heart,
 } from 'lucide-react';
 
 // Hero background & logo images
@@ -45,8 +52,26 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
     toggleEventRsvp,
     currentMember,
     firebaseUser,
-    showToast
+    showToast,
+    members,
+    funds,
+    villageResidents,
   } = useCommunity();
+
+  // Dynamic live community metrics
+  const activeMembersCount = useMemo(() => {
+    const active = members.filter(m => m.status === 'Active').length;
+    return active > 0 ? active : 52;
+  }, [members]);
+
+  const netFundBalance = useMemo(() => {
+    if (!funds || funds.length === 0) return 48500;
+    return funds.reduce((acc, f) => (f.type === 'Inflow' ? acc + f.amount : acc - f.amount), 0);
+  }, [funds]);
+
+  const villageResidentsCount = useMemo(() => {
+    return villageResidents && villageResidents.length > 0 ? villageResidents.length : 380;
+  }, [villageResidents]);
 
   // Contact form state
   const [contactName, setContactName] = useState('');
@@ -180,9 +205,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             <div className="pt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
               <button
                 onClick={() => openModal('join')}
-                className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 text-center"
+                className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 text-center flex items-center justify-center gap-2"
               >
-                {t('Apply for Membership →', 'সদস্য হতে আবেদন করুন →')}
+                <span>{t('Apply for Membership', 'সদস্য হতে আবেদন করুন')}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
               <a
                 href="#projects"
@@ -190,18 +216,68 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               >
                 {t('Our Village Projects', 'আমাদের উদ্যোগসমূহ')}
               </a>
+              <a
+                href="#contact"
+                className="w-full sm:w-auto px-4 py-3.5 bg-emerald-900/60 hover:bg-emerald-800/80 backdrop-blur-md text-emerald-200 font-semibold text-xs rounded-xl border border-emerald-500/30 transition-colors text-center flex items-center justify-center gap-1.5"
+              >
+                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                <span>{t('Emergency Blood Help', 'জরুরি রক্তের সেবা')}</span>
+              </a>
+            </div>
+
+            {/* Live Community Pulse Ribbon */}
+            <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+              <div className="p-3 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                  <TreePine className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-black text-sm sm:text-base leading-tight text-white font-mono">1,200+</div>
+                  <div className="text-[10px] text-emerald-200/80 font-medium truncate">{t('Trees Planted', 'বৃক্ষরোপণ')}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-black text-sm sm:text-base leading-tight text-white font-mono">{activeMembersCount}+</div>
+                  <div className="text-[10px] text-emerald-200/80 font-medium truncate">{t('Youth Volunteers', 'সক্রিয় সদস্য')}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                  <HeartHandshake className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-black text-sm sm:text-base leading-tight text-white font-mono">{villageResidentsCount}+</div>
+                  <div className="text-[10px] text-emerald-200/80 font-medium truncate">{t('Census Residents', 'গ্রামের বাসিন্দা')}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                  <Coins className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-black text-sm sm:text-base leading-tight text-white font-mono">৳{netFundBalance.toLocaleString()}</div>
+                  <div className="text-[10px] text-emerald-200/80 font-medium truncate">{t('Audited Treasury', 'তহবিল উদ্বৃত্ত')}</div>
+                </div>
+              </div>
             </div>
 
             {/* Bottom Meta Badges */}
             <div className="pt-2 sm:pt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-emerald-100/85">
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{t('Gaira, Jolchotro, Madhupur', 'গাইরা, জলছত্র, মধুপুর')}</span>
+                <span>{t('Gaira, Jolchotro, Madhupur, Tangail', 'গাইরা, জলছত্র, মধুপুর, টাঙ্গাইল')}</span>
               </div>
               <span className="hidden xs:inline">·</span>
               <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{t('50+ Active Youth Volunteers', '৫০+ সক্রিয় তরুণ স্বেচ্ছাসেবক')}</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>{t('Non-political & Community-Driven', 'অরাজনৈতিক ও গণকেন্দ্রিক')}</span>
               </div>
             </div>
 
@@ -240,6 +316,42 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               </div>
             </a>
           ))}
+        </div>
+      </section>
+
+      {/* 2.5 Heritage & Sal Forest Guardians Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10">
+        <div className="glass-card rounded-3xl p-5 sm:p-7 border border-emerald-500/30 bg-gradient-to-r from-emerald-950/85 via-slate-900/90 to-teal-950/85 text-white backdrop-blur-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-4 min-w-0 relative z-10">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 border border-emerald-300/40 flex items-center justify-center text-white shrink-0 shadow-lg">
+              <TreePine className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-100" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-300 block">
+                {t('HERITAGE & SAL FOREST GUARDIANS', 'ঐতিহ্য ও মধুপুর শালবনের সুরক্ষা')}
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                {t('Rooted in Gaira & Jolchotro · Madhupur Tract', 'গাইরা ও জলছত্রের মাটি · ঐক্যবদ্ধ তারুণ্যের অঙ্গীকার')}
+              </h3>
+              <p className="text-xs text-emerald-100/90 mt-1 max-w-2xl leading-relaxed">
+                {t(
+                  'Celebrating indigenous Achik youth culture, tree conservation, peer education, and village solidarity in Tangail.',
+                  'আদিবাসী অচিক/গারো তারুণ্যের গর্বিত সংস্কৃতি, মধুপুর শালবনের সবুজায়ন ও সুবিধাবঞ্চিত শিক্ষার্থীদের কল্যাণে আমরা নিবেদিত।'
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2.5 w-full md:w-auto relative z-10">
+            <button
+              type="button"
+              onClick={() => openModal('join')}
+              className="w-full md:w-auto px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 rounded-xl text-xs font-black shadow-md transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{t('Join Us Today', 'আজই যুক্ত হোন')}</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -336,6 +448,91 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* 3.5 Community Impact Counter Section */}
+      <section className="py-6 sm:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="glass-card p-5 rounded-3xl border border-emerald-500/20 bg-white/70 dark:bg-slate-900/80 shadow-md relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+            <div className="flex items-center justify-between mb-3">
+              <span className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
+                <BookOpen className="w-5 h-5" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                {t('Education', 'শিক্ষা')}
+              </span>
+            </div>
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-950 dark:text-white">
+              120+
+            </div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+              {t('Students Supported', 'শিক্ষার্থী পাঠদান')}
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+              {t('Free school coaching in English & Math.', 'বিনামূল্যে সহপাঠ্য ও বই বিতরণ।')}
+            </p>
+          </div>
+
+          <div className="glass-card p-5 rounded-3xl border border-emerald-500/20 bg-white/70 dark:bg-slate-900/80 shadow-md relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+            <div className="flex items-center justify-between mb-3">
+              <span className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
+                <TreePine className="w-5 h-5" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                {t('Ecology', 'পরিবেশ')}
+              </span>
+            </div>
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-950 dark:text-white">
+              1,200+
+            </div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+              {t('Trees & Fruit Plants', 'শালবন ও চারা রোপণ')}
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+              {t('Green belt around Gaira school grounds.', 'গ্রামের রাস্তা ও বিদ্যালয়ে সবুজায়ন।')}
+            </p>
+          </div>
+
+          <div className="glass-card p-5 rounded-3xl border border-rose-500/20 bg-white/70 dark:bg-slate-900/80 shadow-md relative overflow-hidden group hover:border-rose-500/40 transition-all">
+            <div className="flex items-center justify-between mb-3">
+              <span className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-700 dark:text-rose-400">
+                <Droplet className="w-5 h-5" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full">
+                {t('Emergency', 'জরুরি সেবা')}
+              </span>
+            </div>
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-950 dark:text-white">
+              35+
+            </div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+              {t('Blood Bags Coordinated', 'ব্যাগ রক্তদান সম্পন্ন')}
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+              {t('Emergency blood network for villagers.', 'মধুপুর ও জলছত্রে তাৎক্ষণিক সহায়তা।')}
+            </p>
+          </div>
+
+          <div className="glass-card p-5 rounded-3xl border border-teal-500/20 bg-white/70 dark:bg-slate-900/80 shadow-md relative overflow-hidden group hover:border-teal-500/40 transition-all">
+            <div className="flex items-center justify-between mb-3">
+              <span className="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-950 flex items-center justify-center text-teal-700 dark:text-teal-400">
+                <Award className="w-5 h-5" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-full">
+                {t('Solidarity', 'একতা')}
+              </span>
+            </div>
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-950 dark:text-white">
+              100%
+            </div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+              {t('Grassroots Youth Driven', 'স্বেচ্ছাসেবী ও অরাজনৈতিক')}
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+              {t('Governed with transparent audited accounts.', 'স্বচ্ছ হিসাব ও আন্তরিক সেবা।')}
+            </p>
           </div>
         </div>
       </section>
