@@ -218,25 +218,25 @@ export const Modals: React.FC<ModalsProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={t('Apply for Salmikkhang Membership', 'সালমিকখাং সদস্যপদের আবেদন')}
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[#050a0e]/85 backdrop-blur-2xl flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
           onClick={closeModal}
         >
           <div
-            className="glass-surface rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto"
+            className="glass-card rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.85)] border border-cyan-400/30 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto text-slate-100"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-cyan-400/20">
               <div className="flex items-center gap-2.5">
                 <img
                   src={logoImg}
                   alt="Salmikkhang Logo"
-                  className="w-10 h-10 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
+                  className="w-10 h-10 rounded-full object-contain shadow-sm ring-1 ring-cyan-400/50 shrink-0"
                 />
                 <div>
-                  <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100 leading-tight">
+                  <h3 className="font-extrabold text-lg text-white leading-tight">
                     {t('Apply for Salmikkhang Membership', 'সালমিকখাং সদস্যপদের আবেদন')}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-400">
                     {t('Applications are reviewed and registered by Council Admins', 'আবেদন পর্যালোচনা করে অ্যাডমিন সদস্য হিসেবে নিবন্ধন করবেন')}
                   </p>
                 </div>
@@ -245,7 +245,7 @@ export const Modals: React.FC<ModalsProps> = ({
                 type="button"
                 onClick={closeModal}
                 aria-label={t('Close membership form', 'আবেদন ফর্ম বন্ধ করুন')}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -254,9 +254,9 @@ export const Modals: React.FC<ModalsProps> = ({
             {joinError && (
               <div
                 role="alert"
-                className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-xs font-semibold text-rose-800 dark:text-rose-200 flex items-start gap-2"
+                className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs font-semibold text-rose-200 flex items-start gap-2"
               >
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                 <span>{joinError}</span>
               </div>
             )}
@@ -264,7 +264,7 @@ export const Modals: React.FC<ModalsProps> = ({
             <form onSubmit={handleJoinSubmit} noValidate className="space-y-4 text-xs">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Full Name *', 'সম্পূর্ণ নাম *')}
                   </label>
                   <input
@@ -273,12 +273,12 @@ export const Modals: React.FC<ModalsProps> = ({
                     value={joinName}
                     onChange={e => { setJoinName(e.target.value); if (joinError) setJoinError(null); }}
                     placeholder="e.g. Robin Marak"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Mobile Phone *', 'মোবাইল নম্বর *')}
                   </label>
                   <input
@@ -287,14 +287,14 @@ export const Modals: React.FC<ModalsProps> = ({
                     value={joinPhone}
                     onChange={e => { setJoinPhone(e.target.value); if (joinError) setJoinError(null); }}
                     placeholder="+880 1712-XXXXXX"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                   />
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-12 gap-4">
                 <div className="sm:col-span-6">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Gmail / Email *', 'Gmail / ইমেইল *')}
                   </label>
                   <input
@@ -303,38 +303,38 @@ export const Modals: React.FC<ModalsProps> = ({
                     value={joinEmail}
                     onChange={e => { setJoinEmail(e.target.value); if (joinError) setJoinError(null); }}
                     placeholder="yourname@gmail.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                   />
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Village / Area *', 'গ্রাম / এলাকা *')}
                   </label>
                   <select
                     value={joinVillage}
                     onChange={e => setJoinVillage(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-semibold"
+                    className="w-full px-3 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm font-semibold"
                   >
-                    <option value="Gaira">Gaira (গাইরা)</option>
-                    <option value="Jolchotro">Jolchotro (জলছত্র)</option>
-                    <option value="Pirgachha">Pirgachha (পীরগাছা)</option>
-                    <option value="Aronkhola">Aronkhola (অরণখোলা)</option>
-                    <option value="Madhupur">Madhupur (মধুপুর)</option>
+                    <option value="Gaira" className="bg-[#050a0e]">Gaira (গাইরা)</option>
+                    <option value="Jolchotro" className="bg-[#050a0e]">Jolchotro (জলছত্র)</option>
+                    <option value="Pirgachha" className="bg-[#050a0e]">Pirgachha (পীরগাছা)</option>
+                    <option value="Aronkhola" className="bg-[#050a0e]">Aronkhola (অরণখোলা)</option>
+                    <option value="Madhupur" className="bg-[#050a0e]">Madhupur (মধুপুর)</option>
                   </select>
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Blood Group *', 'রক্তের গ্রুপ *')}
                   </label>
                   <select
                     value={joinBlood}
                     onChange={e => setJoinBlood(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-bold"
+                    className="w-full px-3 py-2.5 rounded-xl border border-rose-500/40 bg-[#050a0e]/70 text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400 text-sm font-bold"
                   >
                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => (
-                      <option key={b} value={b}>{b}</option>
+                      <option key={b} value={b} className="bg-[#050a0e] text-rose-300">{b}</option>
                     ))}
                   </select>
                 </div>
@@ -342,7 +342,7 @@ export const Modals: React.FC<ModalsProps> = ({
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Skills & Talents', 'দক্ষতা ও বিশেষ গুণ')}
                   </label>
                   <input
@@ -350,11 +350,11 @@ export const Modals: React.FC<ModalsProps> = ({
                     value={joinSkills}
                     onChange={e => setJoinSkills(e.target.value)}
                     placeholder={t('e.g. Teaching, photography, sports', 'যেমন: শিক্ষকতা, ছবি তোলা, খেলাধুলা')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1">
                     {t('Community Interests', 'আগ্রহের ক্ষেত্র')}
                   </label>
                   <input
@@ -362,13 +362,13 @@ export const Modals: React.FC<ModalsProps> = ({
                     value={joinInterests}
                     onChange={e => setJoinInterests(e.target.value)}
                     placeholder={t('e.g. Tree planting, education, youth club', 'যেমন: বৃক্ষরোপণ, শিক্ষা, যুব ক্লাব')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-bold text-slate-300 mb-1">
                   {t('Why do you want to join? *', 'কমিউনিটিতে যোগদানের কারণ *')}
                 </label>
                 <textarea
@@ -377,7 +377,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   value={joinReason}
                   onChange={e => setJoinReason(e.target.value)}
                   placeholder={t('Tell us how you would like to help our village community...', 'কীভাবে গ্রামের সেবায় অংশ নিতে চান...')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-cyan-400/20 bg-[#050a0e]/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
                 />
               </div>
 
@@ -385,13 +385,13 @@ export const Modals: React.FC<ModalsProps> = ({
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2.5 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                  className="px-4 py-2.5 text-slate-400 hover:text-white font-semibold hover:bg-white/5 rounded-xl"
                 >
                   {t('Cancel', 'বাতিল')}
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-md transition-transform hover:-translate-y-0.5"
+                  className="btn-radiant px-6 py-2.5 rounded-xl cursor-pointer"
                 >
                   {t('Submit Application to Admin →', 'অ্যাডমিনের কাছে আবেদন পাঠান →')}
                 </button>
@@ -407,21 +407,21 @@ export const Modals: React.FC<ModalsProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={t('Salmikkhang Member Portal Login', 'সদস্য পোর্টালে লগইন')}
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[#050a0e]/85 backdrop-blur-2xl flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
           onClick={closeModal}
         >
           <div
-            className="glass-surface rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto"
+            className="glass-card rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.85)] border border-cyan-400/30 my-4 sm:my-0 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-h-[92dvh] overflow-y-auto text-slate-100"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-cyan-400/20">
               <div className="flex items-center gap-2.5">
                 <img
                   src={logoImg}
                   alt="Salmikkhang Logo"
-                  className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-emerald-500/30 shrink-0"
+                  className="w-9 h-9 rounded-full object-contain shadow-sm ring-1 ring-cyan-400/50 shrink-0"
                 />
-                <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
+                <h3 className="font-extrabold text-base text-white">
                   {t('Salmikkhang Member Portal Login', 'সদস্য পোর্টালে লগইন')}
                 </h3>
               </div>
@@ -429,13 +429,13 @@ export const Modals: React.FC<ModalsProps> = ({
                 type="button"
                 onClick={closeModal}
                 aria-label={t('Close login dialog', 'লগইন বন্ধ করুন')}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed">
               {t(
                 'Continue with Google using your registered Gmail address to unlock the Member Portal. Admin Panel requires a separate Continue with Google verification.',
                 'সদস্য পোর্টালে প্রবেশ করতে আপনার নিবন্ধিত Gmail দিয়ে Google সাইন-ইন করুন। অ্যাডমিন প্যানেলের জন্য আলাদাভাবে প্রবেশ করতে হবে।'
@@ -443,22 +443,22 @@ export const Modals: React.FC<ModalsProps> = ({
             </p>
 
             {authLoading ? (
-              <div className="py-4 text-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
+              <div className="py-4 text-center text-xs font-bold text-cyan-400 animate-pulse">
                 {t('Checking Google session...', 'Google সেশন যাচাই করা হচ্ছে...')}
               </div>
             ) : memberAccessNotice ? (
               <div className="space-y-3">
                 <div className={`p-3.5 rounded-2xl border text-xs space-y-2 ${
                   memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive'
-                    ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
-                    : 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800'
+                    ? 'bg-rose-950/60 border-rose-500/50 text-rose-200'
+                    : 'bg-amber-950/60 border-amber-500/50 text-amber-200'
                 }`}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 font-extrabold text-rose-950 dark:text-rose-100">
+                    <div className="flex items-center gap-2 font-extrabold text-white">
                       {memberAccessNotice.status === 'declined' || memberAccessNotice.status === 'inactive' ? (
-                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                       ) : (
-                        <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <Clock className="w-4 h-4 text-amber-400 shrink-0" />
                       )}
                       <span>
                         {memberAccessNotice.status === 'declined'
@@ -474,13 +474,13 @@ export const Modals: React.FC<ModalsProps> = ({
                         clearMemberAccessNotice();
                         clearAuthError();
                       }}
-                      className="p-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 shrink-0"
+                      className="p-0.5 text-slate-400 hover:text-white shrink-0"
                       aria-label="Dismiss notice"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-800 dark:text-slate-200 leading-relaxed">
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
                     {memberAccessNotice.status === 'declined'
                       ? t(
                           `"${memberAccessNotice.email}" is not registered in our database, so access is declined. No request was sent to Admin. Submit a Membership Application if you wish to join.`,
@@ -502,14 +502,14 @@ export const Modals: React.FC<ModalsProps> = ({
                   <button
                     type="button"
                     onClick={() => openModal('join', { prefillEmail: memberAccessNotice.email })}
-                    className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs rounded-xl shadow-md cursor-pointer"
                   >
                     {t('Apply for Membership →', 'আবেদন করুন →')}
                   </button>
                   <button
                     type="button"
                     onClick={() => void handleGoogleSignIn()}
-                    className="px-3.5 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
+                    className="px-3.5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl border border-white/15"
                   >
                     {t('Other Account', 'অন্য অ্যাকাউন্ট')}
                   </button>
@@ -517,11 +517,11 @@ export const Modals: React.FC<ModalsProps> = ({
               </div>
             ) : isMemberSessionUnlocked && firebaseUser ? (
               <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
-                  <div className="font-bold text-slate-900 dark:text-slate-100">
-                    {t('Signed in as:', 'বর্তমান অ্যাকাউন্ট:')} <span className="font-mono">{firebaseUser.email}</span>
+                <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-400/30 text-xs space-y-1">
+                  <div className="font-bold text-white">
+                    {t('Signed in as:', 'বর্তমান অ্যাকাউন্ট:')} <span className="font-mono text-cyan-300">{firebaseUser.email}</span>
                   </div>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                  <div className="text-[11px] text-slate-300">
                     {currentMember
                       ? t(`Active role: ${currentMember.role}`, `সক্রিয় পদবি: ${currentMember.role}`)
                       : t('Not registered as an approved member yet.', 'এখনো অনুমোদিত সদস্য তালিকায় যুক্ত নয়।')}
@@ -536,7 +536,7 @@ export const Modals: React.FC<ModalsProps> = ({
                         closeModal();
                         setCurrentView('member');
                       }}
-                      className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                      className="flex-1 py-2.5 btn-radiant text-xs font-bold rounded-xl cursor-pointer"
                     >
                       {t('Open Member Portal →', 'সদস্য পোর্টালে যান →')}
                     </button>
@@ -544,7 +544,7 @@ export const Modals: React.FC<ModalsProps> = ({
                     <button
                       type="button"
                       onClick={() => openModal('join')}
-                      className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                      className="flex-1 py-2.5 btn-radiant text-xs font-bold rounded-xl cursor-pointer"
                     >
                       {t('Apply for Membership →', 'সদস্যপদের আবেদন করুন →')}
                     </button>
@@ -552,7 +552,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   <button
                     type="button"
                     onClick={logoutMember}
-                    className="px-3.5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl"
+                    className="px-3.5 py-2.5 bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs rounded-xl border border-white/15"
                   >
                     {t('Sign Out', 'লগআউট')}
                   </button>
@@ -561,12 +561,12 @@ export const Modals: React.FC<ModalsProps> = ({
             ) : (
               <div className="space-y-3">
                 {authError && (
-                  <div className="p-3 rounded-2xl bg-rose-50/90 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-xs text-rose-950 dark:text-rose-200 flex items-start justify-between gap-2">
+                  <div className="p-3 rounded-2xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-200 flex items-start justify-between gap-2">
                     <span className="leading-relaxed break-words">{authError}</span>
                     <button
                       type="button"
                       onClick={clearAuthError}
-                      className="p-0.5 text-rose-600 dark:text-rose-300 hover:text-rose-900 shrink-0"
+                      className="p-0.5 text-rose-400 hover:text-white shrink-0"
                       aria-label="Dismiss error"
                     >
                       <X className="w-4 h-4" />
@@ -579,7 +579,7 @@ export const Modals: React.FC<ModalsProps> = ({
                     <button
                       type="button"
                       onClick={() => void handleExistingGoogleLink()}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 px-3"
+                      className="w-full py-3 btn-radiant rounded-xl shadow-md flex items-center justify-center gap-2 px-3 text-xs font-bold cursor-pointer"
                     >
                       <Shield className="w-4 h-4 shrink-0" />
                       <span className="truncate">
@@ -589,7 +589,7 @@ export const Modals: React.FC<ModalsProps> = ({
                     <button
                       type="button"
                       onClick={() => void handleGoogleSignIn()}
-                      className="w-full py-2.5 bg-slate-900/90 dark:bg-slate-800 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl"
+                      className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs rounded-xl border border-white/15"
                     >
                       {t('Use Another Google Account', 'অন্য Google অ্যাকাউন্ট দিন')}
                     </button>
@@ -598,7 +598,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   <button
                     type="button"
                     onClick={() => void handleGoogleSignIn()}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+                    className="w-full py-3 btn-radiant rounded-xl shadow-md flex items-center justify-center gap-2 text-xs font-bold cursor-pointer"
                   >
                     <Shield className="w-4 h-4" />
                     <span>{t('Continue with Google →', 'Google দিয়ে এগিয়ে যান →')}</span>
@@ -608,7 +608,7 @@ export const Modals: React.FC<ModalsProps> = ({
                 <button
                   type="button"
                   onClick={() => openModal('join')}
-                  className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-white/10 transition-colors"
                 >
                   {t('New here? Apply for Membership', 'নতুন সদস্য? আবেদন পাঠান')}
                 </button>
@@ -621,25 +621,25 @@ export const Modals: React.FC<ModalsProps> = ({
       {/* 3. NEWS READER MODAL WITH PDF DOWNLOAD */}
       {selectedNews && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[#050a0e]/85 backdrop-blur-2xl flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
           onClick={onCloseNews}
         >
           <div
-            className="glass-surface rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-white/40 dark:border-white/10 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92dvh] overflow-y-auto backdrop-blur-2xl"
+            className="glass-card rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.85)] border border-cyan-400/30 my-4 sm:my-8 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92dvh] overflow-y-auto backdrop-blur-2xl text-slate-100"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-cyan-400/20">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-lg">
+                <span className="text-xs font-bold px-2.5 py-1 bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 rounded-lg">
                   {t(selectedNews.category, selectedNews.categoryBn)}
                 </span>
                 {selectedNews.visibility === 'members_only' ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-md flex items-center gap-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-950/60 text-amber-300 border border-amber-500/40 rounded-md flex items-center gap-1">
                     <span>🔒</span>
                     <span>{t('Members Only (Private)', 'শুধুমাত্র সদস্য')}</span>
                   </span>
                 ) : (
-                  <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <span className="text-[10px] font-medium px-2 py-0.5 bg-cyan-950/40 text-cyan-300 border border-cyan-400/30 rounded-md">
                     {t('Public Notice', 'সার্বজনীন')}
                   </span>
                 )}
@@ -648,17 +648,17 @@ export const Modals: React.FC<ModalsProps> = ({
                 type="button"
                 onClick={onCloseNews}
                 aria-label={t('Close story', 'সংবাদ বন্ধ করুন')}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 leading-snug">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-extrabold text-white leading-snug">
                 {t(selectedNews.title, selectedNews.titleBn)}
               </h2>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-slate-400 font-mono">
                 {t('Published on', 'প্রকাশিত')} {selectedNews.date} · Salmikkhang Youth Council
               </div>
             </div>
@@ -667,22 +667,22 @@ export const Modals: React.FC<ModalsProps> = ({
               <img
                 src={selectedNews.image}
                 alt={selectedNews.title}
-                className="w-full h-64 sm:h-80 object-cover rounded-2xl bg-slate-100 dark:bg-slate-800"
+                className="w-full h-64 sm:h-80 object-cover rounded-2xl bg-black/60 border border-cyan-400/20"
               />
             )}
 
             {/* Attached PDF in News Reader */}
             {selectedNews.pdfAttachment && (
-              <div className="p-4 bg-rose-50/80 dark:bg-rose-950/40 rounded-2xl border border-rose-200 dark:border-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 bg-rose-950/40 rounded-2xl border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center justify-center font-bold text-xs shrink-0">
                     PDF
                   </div>
                   <div>
-                    <div className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                    <div className="font-bold text-xs text-white">
                       {selectedNews.pdfAttachment.fileName}
                     </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="text-[11px] text-slate-400">
                       {selectedNews.pdfAttachment.fileSize} · {t('Official signed circular document', 'অফিসিয়াল স্বাক্ষরিত পরিপত্র')}
                     </div>
                   </div>
@@ -693,7 +693,7 @@ export const Modals: React.FC<ModalsProps> = ({
                     href={selectedNews.pdfAttachment.dataUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>{t('Open PDF', 'PDF খুলুন')}</span>
@@ -701,7 +701,7 @@ export const Modals: React.FC<ModalsProps> = ({
                   <a
                     href={selectedNews.pdfAttachment.dataUrl}
                     download={selectedNews.pdfAttachment.fileName}
-                    className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-1.5"
+                    className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl border border-white/15 flex items-center gap-1.5 transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>{t('Download', 'ডাউনলোড')}</span>
@@ -710,8 +710,8 @@ export const Modals: React.FC<ModalsProps> = ({
               </div>
             )}
 
-            <div className="prose prose-sm dark:prose-invert text-slate-700 dark:text-slate-300 leading-relaxed text-sm space-y-4">
-              <p className="font-medium text-slate-900 dark:text-slate-100">
+            <div className="text-slate-300 leading-relaxed text-sm space-y-4">
+              <p className="font-medium text-white">
                 {t(selectedNews.summary, selectedNews.summaryBn)}
               </p>
               <p>
@@ -719,10 +719,10 @@ export const Modals: React.FC<ModalsProps> = ({
               </p>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <div className="pt-4 border-t border-cyan-400/20 flex justify-end">
               <button
                 onClick={onCloseNews}
-                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl"
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl border border-white/10"
               >
                 {t('Close Story', 'বন্ধ করুন')}
               </button>
@@ -734,19 +734,19 @@ export const Modals: React.FC<ModalsProps> = ({
       {/* 4. GALLERY LIGHTBOX MODAL */}
       {selectedGalleryItem && (
         <div 
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[#050a0e]/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={onCloseGallery}
         >
           <div 
-            className="max-w-4xl w-full space-y-4 relative"
+            className="max-w-4xl w-full bg-[#071318]/90 border border-cyan-400/30 rounded-3xl p-5 sm:p-6 shadow-[0_0_60px_rgba(34,211,238,0.25)] space-y-4 relative"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between text-white pb-2">
+            <div className="flex items-center justify-between text-white pb-2 border-b border-cyan-400/20">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">
                   {t(selectedGalleryItem.category, selectedGalleryItem.categoryBn)}
                 </span>
-                <h3 className="text-lg font-bold">
+                <h3 className="text-lg font-bold text-white">
                   {t(selectedGalleryItem.title, selectedGalleryItem.titleBn)}
                 </h3>
               </div>
@@ -754,13 +754,13 @@ export const Modals: React.FC<ModalsProps> = ({
                 type="button"
                 onClick={onCloseGallery}
                 aria-label={t('Close gallery preview', 'গ্যালারি প্রিভিউ বন্ধ করুন')}
-                className="p-2 text-white/80 hover:text-white rounded-full bg-white/10"
+                className="p-2 text-slate-300 hover:text-white rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden max-h-[75vh] flex items-center justify-center bg-black">
+            <div className="rounded-2xl overflow-hidden max-h-[75vh] flex items-center justify-center bg-black/60 border border-white/10">
               <img
                 src={selectedGalleryItem.image}
                 alt={selectedGalleryItem.title}
@@ -768,8 +768,9 @@ export const Modals: React.FC<ModalsProps> = ({
               />
             </div>
 
-            <div className="text-xs text-slate-400 text-center">
-              Salmikkhang Community Moments · {selectedGalleryItem.date}
+            <div className="text-xs text-slate-400 text-center flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>
+              <span>Salmikkhang Community Moments · {selectedGalleryItem.date}</span>
             </div>
           </div>
         </div>
@@ -778,27 +779,27 @@ export const Modals: React.FC<ModalsProps> = ({
       {/* 5. INSTANT SEARCH MODAL */}
       {searchOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-start justify-center p-3 sm:p-4 pt-12 sm:pt-20 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[#050a0e]/85 backdrop-blur-2xl flex items-start justify-center p-3 sm:p-4 pt-12 sm:pt-20 overflow-y-auto animate-in fade-in duration-150"
           onClick={onCloseSearch}
         >
           <div 
-            className="glass-surface rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-white/40 dark:border-white/10 space-y-4 animate-in fade-in slide-in-from-top-4 duration-150 backdrop-blur-2xl"
+            className="bg-[#071318]/95 border border-cyan-400/30 rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-[0_0_60px_rgba(34,211,238,0.25)] space-y-4 backdrop-blur-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="relative">
-              <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
+              <Search className="w-5 h-5 text-cyan-400 absolute left-4 top-3.5" />
               <input
                 type="search"
                 autoFocus
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={t('Search news, events, tree planting, members, sports...', 'খবর, অনুষ্ঠান, গাছ লাগানো, সদস্য বা খেলা খুঁজুন...')}
-                className="w-full pl-12 pr-10 py-3 text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                className="w-full pl-12 pr-10 py-3 text-sm rounded-2xl border border-cyan-400/30 bg-black/40 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 focus:border-cyan-400 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -806,9 +807,9 @@ export const Modals: React.FC<ModalsProps> = ({
             </div>
 
             {searchResults && (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto text-xs">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto text-xs pr-1">
                 {!hasAnySearchMatch && (
-                  <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+                  <div className="py-8 text-center text-slate-400">
                     {t(`No matching results found for "${searchQuery}".`, `"${searchQuery}"-এর সাথে কোনো ফলাফল পাওয়া যায়নি।`)}
                   </div>
                 )}
@@ -816,10 +817,11 @@ export const Modals: React.FC<ModalsProps> = ({
                 {/* News matches */}
                 {searchResults.news.length > 0 && (
                   <div className="space-y-2">
-                    <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
+                    <span className="font-bold text-cyan-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                       {t('News & Notices', 'খবর ও নোটিশ')} ({searchResults.news.length})
                     </span>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {searchResults.news.map(n => (
                         <button
                           key={n.id}
@@ -833,14 +835,14 @@ export const Modals: React.FC<ModalsProps> = ({
                               setTimeout(() => document.getElementById('news')?.scrollIntoView({ behavior: 'smooth' }), 80);
                             }
                           }}
-                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-400/40 transition-all cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(n.title, n.titleBn)}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{n.date} · {t(n.category, n.categoryBn)}</div>
+                            <div className="font-bold text-white">{t(n.title, n.titleBn)}</div>
+                            <div className="text-[10px] text-slate-400">{n.date} · {t(n.category, n.categoryBn)}</div>
                           </div>
                           {n.pdfAttachment && (
-                            <span className="text-[10px] px-2 py-0.5 bg-rose-100 text-rose-700 font-bold rounded">PDF</span>
+                            <span className="text-[10px] px-2 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold rounded">PDF</span>
                           )}
                         </button>
                       ))}
@@ -851,10 +853,11 @@ export const Modals: React.FC<ModalsProps> = ({
                 {/* Event matches */}
                 {searchResults.events.length > 0 && (
                   <div className="space-y-2">
-                    <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
+                    <span className="font-bold text-emerald-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                       {t('Events', 'অনুষ্ঠান')} ({searchResults.events.length})
                     </span>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {searchResults.events.map(ev => (
                         <button
                           key={ev.id}
@@ -864,11 +867,11 @@ export const Modals: React.FC<ModalsProps> = ({
                             setCurrentView('website');
                             setTimeout(() => document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }), 80);
                           }}
-                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-400/40 transition-all cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(ev.title, ev.titleBn)}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{ev.date} · {t(ev.location, ev.locationBn)}</div>
+                            <div className="font-bold text-white">{t(ev.title, ev.titleBn)}</div>
+                            <div className="text-[10px] text-slate-400">{ev.date} · {t(ev.location, ev.locationBn)}</div>
                           </div>
                         </button>
                       ))}
@@ -879,10 +882,11 @@ export const Modals: React.FC<ModalsProps> = ({
                 {/* Project matches */}
                 {searchResults.projects.length > 0 && (
                   <div className="space-y-2">
-                    <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
+                    <span className="font-bold text-cyan-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                       {t('Projects', 'উদ্যোগ')} ({searchResults.projects.length})
                     </span>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {searchResults.projects.map(p => (
                         <button
                           key={p.id}
@@ -892,11 +896,11 @@ export const Modals: React.FC<ModalsProps> = ({
                             setCurrentView('website');
                             setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 80);
                           }}
-                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between"
+                          className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-400/40 transition-all cursor-pointer flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{t(p.title, p.titleBn)}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{t(p.category, p.categoryBn)} · {p.progress}%</div>
+                            <div className="font-bold text-white">{t(p.title, p.titleBn)}</div>
+                            <div className="text-[10px] text-slate-400">{t(p.category, p.categoryBn)} · {p.progress}%</div>
                           </div>
                         </button>
                       ))}
@@ -907,10 +911,11 @@ export const Modals: React.FC<ModalsProps> = ({
                 {/* Member matches (only shown to authorized members/admins) */}
                 {searchResults.members.length > 0 && (
                   <div className="space-y-2">
-                    <span className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">
+                    <span className="font-bold text-emerald-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                       {t('Community Members', 'সদস্যবৃন্দ')} ({searchResults.members.length})
                     </span>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {searchResults.members.map(m => (
                         <button
                           key={m.id}
@@ -919,11 +924,11 @@ export const Modals: React.FC<ModalsProps> = ({
                             onCloseSearch();
                             setCurrentView('member');
                           }}
-                          className="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 flex items-center justify-between"
+                          className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-400/40 transition-all flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{m.name}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{m.role} · {m.village} · Blood: {m.bloodGroup}</div>
+                            <div className="font-bold text-white">{m.name}</div>
+                            <div className="text-[10px] text-slate-400">{m.role} · {m.village} · Blood: {m.bloodGroup}</div>
                           </div>
                         </button>
                       ))}
