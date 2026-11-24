@@ -342,8 +342,13 @@ export const CommunityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [theme]);
 
   const setTheme = (tVal: Theme) => {
+    const root = document.documentElement;
+    root.classList.add('theme-anim');
     setThemeState(tVal);
     safeStorage.set('salmikkhang_theme', tVal);
+    window.setTimeout(() => {
+      root.classList.remove('theme-anim');
+    }, 420);
   };
 
   // Firebase Auth State

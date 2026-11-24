@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { PublicWebsite } from './components/PublicWebsite';
 import { Modals } from './components/Modals';
 import { PWAInstallModal, OfflineIndicator } from './components/PWAInstallBanner';
+import { ScrollRuler } from './components/ScrollRuler';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import natureBgImg from './assets/images/nature_glass_bg_1794467445710.jpg';
@@ -170,6 +171,8 @@ const MainApp: React.FC = () => {
             </Suspense>
           )}
         </main>
+
+        {currentView === 'website' && <ScrollRuler />}
 
         {/* Global Interactive Modals */}
         <Modals

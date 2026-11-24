@@ -871,7 +871,7 @@ export const MemberPortal: React.FC = () => {
         </aside>
 
         {/* 3. Tab Contents */}
-        <div className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6">
+        <div key={activeTab} className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6 tab-enter">
 
       {/* TAB A: Youth Discussion Wall */}
       {activeTab === 'wall' && (

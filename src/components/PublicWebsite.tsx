@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useCommunity } from '../context/CommunityContext';
 import { GALLERY_CATEGORIES } from '../data/galleryCategories';
 import { parseLocalIsoDate } from '../lib/memberAccess';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 import {
   Calendar,
   Clock,
@@ -136,8 +137,14 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
   const facebookHref = formatFacebookHref(settings.facebookUrl);
   const whatsappHref = formatWhatsAppHref(settings.whatsapp);
 
+  const websiteRef = useRef<HTMLDivElement>(null);
+  useScrollReveal(
+    websiteRef,
+    `${publicEvents.length}-${publicNews.length}-${projects.length}-${filteredGallery.length}`
+  );
+
   return (
-    <div className="w-full transition-colors">
+    <div ref={websiteRef} className="w-full transition-colors">
       {/* 1. Hero Section */}
       <section 
         id="home"
@@ -152,17 +159,23 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
           <div className="max-w-2xl space-y-4 sm:space-y-6">
             
             {/* Top Eyebrow Tag */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-800/60 backdrop-blur-md rounded-lg border border-emerald-500/30 text-emerald-100 text-[10px] sm:text-xs font-bold tracking-widest uppercase">
+            <div
+              className="hero-stagger inline-flex items-center gap-2 px-3 py-1 bg-emerald-800/60 backdrop-blur-md rounded-lg border border-emerald-500/30 text-emerald-100 text-[10px] sm:text-xs font-bold tracking-widest uppercase"
+              style={{ '--hero-delay': '40ms' } as React.CSSProperties}
+            >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <span>GAIRA · JOLCHOTRO · MADHUPUR · TANGAIL</span>
             </div>
 
             {/* Main Headline with Official Emblem */}
-            <div className="flex items-center gap-3.5 sm:gap-5">
+            <div
+              className="hero-stagger flex items-center gap-3.5 sm:gap-5"
+              style={{ '--hero-delay': '120ms' } as React.CSSProperties}
+            >
               <img
                 src={logoImg}
                 alt="Salmikkhang Youth Community Logo"
-                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-contain shadow-xl ring-2 ring-white/40 shrink-0"
+                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-contain shadow-xl ring-2 ring-white/40 shrink-0 transition-transform duration-500 hover:scale-105"
               />
               <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.16] text-white min-w-0">
                 {language === 'bn' ? 'সালমিকখাং' : 'SALMIKKHANG'}
@@ -173,7 +186,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </div>
 
             {/* Subtitle Prose */}
-            <p className="text-sm sm:text-lg text-emerald-100/95 leading-relaxed max-w-xl font-normal">
+            <p
+              className="hero-stagger text-sm sm:text-lg text-emerald-100/95 leading-relaxed max-w-xl font-normal"
+              style={{ '--hero-delay': '200ms' } as React.CSSProperties}
+            >
               {t(
                 'Together for a greener, kinder and stronger village in Gaira, Jolchotro, Madhupur, Tangail. Empowering local youth through education, nature conservation, and cultural unity.',
                 'গাইরা ও জলছত্র, মধুপুর, টাঙ্গাইলে একটি সবুজ, মানবিক ও ঐক্যবদ্ধ গ্রাম গড়ে তুলতে আমরা একসঙ্গে কাজ করি। শিক্ষা, পরিবেশ সংরক্ষণ ও সংস্কৃতির বিকাশে তরুণদের শক্তি।'
@@ -181,24 +197,30 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </p>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+            <div
+              className="hero-stagger pt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4"
+              style={{ '--hero-delay': '280ms' } as React.CSSProperties}
+            >
               <button
                 onClick={() => openModal('join')}
-                className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 text-center flex items-center justify-center gap-2"
+                className="group w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{t('Apply for Membership', 'সদস্য হতে আবেদন করুন')}</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </button>
               <a
                 href="#projects"
-                className="w-full sm:w-auto px-5 py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-semibold text-sm rounded-xl border border-white/25 transition-colors text-center"
+                className="w-full sm:w-auto px-5 py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-semibold text-sm rounded-xl border border-white/25 transition-all duration-300 hover:-translate-y-0.5 text-center"
               >
                 {t('Our Village Projects', 'আমাদের উদ্যোগসমূহ')}
               </a>
             </div>
 
             {/* Bottom Meta Badges */}
-            <div className="pt-2 sm:pt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-emerald-100/85">
+            <div
+              className="hero-stagger pt-2 sm:pt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-emerald-100/85"
+              style={{ '--hero-delay': '350ms' } as React.CSSProperties}
+            >
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>{t('Gaira, Jolchotro, Madhupur, Tangail', 'গাইরা, জলছত্র, মধুপুর, টাঙ্গাইল')}</span>
@@ -226,17 +248,20 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             { id: 'projects', icon: '⌂', labelEn: 'Projects', labelBn: 'উদ্যোগ', descEn: 'Green & school', descBn: 'চলমান কাজ' },
             { id: 'gallery', icon: '▧', labelEn: 'Gallery', labelBn: 'গ্যালারি', descEn: 'Photos & moments', descBn: 'স্মৃতি ও ছবি' },
             { id: 'contact', icon: '✉', labelEn: 'Contact', labelBn: 'যোগাযোগ', descEn: 'Reach organizers', descBn: 'বার্তা পাঠান' },
-          ].map((item) => (
+          ].map((item, idx) => (
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="glass-card hover:border-emerald-500/40 p-3.5 sm:p-4 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg transition-[transform,border-color,box-shadow] group flex flex-col justify-between"
+              data-reveal="true"
+              style={{ '--reveal-delay': `${idx * 55}ms` } as React.CSSProperties}
+              className="glass-card relative overflow-hidden hover:border-emerald-500/40 p-3.5 sm:p-4 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg transition-[transform,border-color,box-shadow] group flex flex-col justify-between"
             >
-              <div className="text-lg sm:text-xl text-emerald-800 dark:text-emerald-400 font-bold mb-1.5 sm:mb-2 group-hover:scale-110 transition-transform">
+              <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+              <div className="text-lg sm:text-xl text-emerald-800 dark:text-emerald-400 font-bold mb-1.5 sm:mb-2 group-hover:scale-110 group-hover:-translate-y-0.5 transition-transform duration-300">
                 {item.icon}
               </div>
               <div>
-                <div className="font-bold text-xs sm:text-sm text-slate-950 dark:text-slate-100 group-hover:text-emerald-800 dark:group-hover:text-emerald-300">
+                <div className="font-bold text-xs sm:text-sm text-slate-950 dark:text-slate-100 group-hover:text-emerald-800 dark:group-hover:text-emerald-300 transition-colors">
                   {t(item.labelEn, item.labelBn)}
                 </div>
                 <div className="text-[11px] text-slate-700 dark:text-slate-400 mt-0.5 font-medium">
@@ -250,7 +275,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
 
       {/* 3. About & Goals Strip */}
       <section id="about" className="py-12 sm:py-16 lg:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-card bg-white/85 dark:bg-slate-900 text-slate-950 dark:text-white rounded-3xl p-5 sm:p-8 lg:p-12 shadow-xl border border-white/50 dark:border-slate-800 relative overflow-hidden">
+        <div
+          data-reveal="true"
+          className="glass-card group bg-white/85 dark:bg-slate-900 text-slate-950 dark:text-white rounded-3xl p-5 sm:p-8 lg:p-12 shadow-xl border border-white/50 dark:border-slate-800 relative overflow-hidden"
+        >
+          <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
           <div className="grid lg:grid-cols-12 gap-8 items-center">
             
             <div className="lg:col-span-5 space-y-4">
@@ -272,7 +301,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               <div className="pt-2">
                 <button
                   onClick={() => openModal('join')}
-                  className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 dark:bg-white text-white dark:text-emerald-950 font-bold text-xs rounded-lg dark:hover:bg-emerald-50 transition-colors"
+                  className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 dark:bg-white text-white dark:text-emerald-950 font-bold text-xs rounded-lg dark:hover:bg-emerald-50 transition-all hover:-translate-y-0.5 cursor-pointer"
                 >
                   {t('Volunteer With Us →', 'স্বেচ্ছাসেবক হিসেবে যুক্ত হোন →')}
                 </button>
@@ -280,8 +309,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </div>
 
             <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
-              <div className="bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '60ms' } as React.CSSProperties}
+                className="group relative overflow-hidden bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200 transition-transform duration-300 group-hover:scale-110">
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-slate-950 dark:text-white">
@@ -295,8 +329,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 </p>
               </div>
 
-              <div className="bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '135ms' } as React.CSSProperties}
+                className="group relative overflow-hidden bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200 transition-transform duration-300 group-hover:scale-110">
                   <TreePine className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-slate-950 dark:text-white">
@@ -310,8 +349,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 </p>
               </div>
 
-              <div className="bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '210ms' } as React.CSSProperties}
+                className="group relative overflow-hidden bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200 transition-transform duration-300 group-hover:scale-110">
                   <HeartHandshake className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-slate-950 dark:text-white">
@@ -325,8 +369,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 </p>
               </div>
 
-              <div className="bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '285ms' } as React.CSSProperties}
+                className="group relative overflow-hidden bg-white/75 dark:bg-slate-800/80 border border-emerald-900/10 dark:border-slate-700 p-5 rounded-2xl space-y-2 shadow-xs transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-900 dark:text-emerald-200 transition-transform duration-300 group-hover:scale-110">
                   <Award className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-slate-950 dark:text-white">
@@ -351,7 +400,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
           
           {/* Left Column: Public Events */}
           <div id="events" className="lg:col-span-7 space-y-5 sm:space-y-6 min-w-0">
-            <div className="flex flex-wrap items-end justify-between gap-2 pb-3 border-b border-emerald-900/15 dark:border-slate-800">
+            <div
+              data-reveal="true"
+              className="flex flex-wrap items-end justify-between gap-2 pb-3 border-b border-emerald-900/15 dark:border-slate-800"
+            >
               <div>
                 <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
                   {t('CALENDAR & ACTIVITIES', 'অনুষ্ঠান ও কর্মসূচি')}
@@ -362,7 +414,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               </div>
               <button
                 onClick={() => openModal('join')}
-                className="text-xs font-bold text-emerald-900 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-300"
+                className="text-xs font-bold text-emerald-900 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-300 transition-colors cursor-pointer"
               >
                 {t('Volunteer for an event →', 'স্বেচ্ছাসেবক হোন →')}
               </button>
@@ -373,22 +425,25 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
                   {t('No public events published yet.', 'এখনো কোনো প্রকাশ্য অনুষ্ঠান যুক্ত হয়নি।')}
                 </div>
-              ) : publicEvents.map((event) => {
+              ) : publicEvents.map((event, idx) => {
                 const userIdentifier = currentMember?.name || firebaseUser?.displayName || 'Guest Volunteer';
                 const rsvpList = Array.isArray(event.rsvps) ? event.rsvps : [];
                 const isRsvpd = rsvpList.includes(userIdentifier);
                 return (
                   <div
                     key={event.id}
-                    className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-4 sm:p-5 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center"
+                    data-reveal="true"
+                    style={{ '--reveal-delay': `${idx * 70}ms` } as React.CSSProperties}
+                    className="glass-card group relative overflow-hidden border border-white/40 dark:border-white/10 rounded-3xl p-4 sm:p-5 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center"
                   >
+                    <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
                     <div className="flex items-start gap-3.5 sm:contents w-full">
                       {/* Date Badge */}
                       {(() => {
                         const parsed = parseLocalIsoDate(event.date);
                         const isValidDate = parsed !== null;
                         return (
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-slate-950 dark:text-emerald-300 flex flex-col items-center justify-center shrink-0">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-slate-950 dark:text-emerald-300 flex flex-col items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-[1.03]">
                             <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400">
                               {isValidDate ? parsed.toLocaleString('default', { month: 'short' }) : 'EVENT'}
                             </span>
@@ -467,7 +522,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
 
           {/* Right Column: News & Announcements */}
           <div id="news" className="lg:col-span-5 space-y-5 sm:space-y-6 min-w-0">
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-900/15 dark:border-slate-800">
+            <div
+              data-reveal="true"
+              className="flex items-center justify-between pb-3 border-b border-emerald-900/15 dark:border-slate-800"
+            >
               <div>
                 <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
                   {t('BULLETIN & STORIES', 'নোটিশ ও খবর')}
@@ -483,9 +541,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-slate-800 p-8 text-center text-xs text-slate-700 dark:text-slate-400">
                   {t('No public notices or news published yet.', 'এখনো কোনো প্রকাশ্য খবর বা নোটিশ যুক্ত হয়নি।')}
                 </div>
-              ) : publicNews.map((item) => (
+              ) : publicNews.map((item, idx) => (
                 <article
                   key={item.id}
+                  data-reveal="true"
+                  style={{ '--reveal-delay': `${idx * 70}ms` } as React.CSSProperties}
                   role="button"
                   tabIndex={0}
                   onClick={() => onSelectNews(item.id)}
@@ -495,20 +555,23 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                       onSelectNews(item.id);
                     }
                   }}
-                  className="glass-card border border-white/40 dark:border-white/10 rounded-3xl p-3.5 sm:p-4 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] cursor-pointer group focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="glass-card relative overflow-hidden border border-white/40 dark:border-white/10 rounded-3xl p-3.5 sm:p-4 hover:border-emerald-500/40 shadow-lg transition-[transform,border-color,box-shadow] cursor-pointer group focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
+                  <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
                   <div className="flex items-start gap-3 sm:gap-4">
                     {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-slate-100 dark:bg-slate-800 group-hover:opacity-90 transition-opacity"
-                      />
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+                        />
+                      </div>
                     ) : (
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-50 dark:bg-slate-800 p-1.5 flex items-center justify-center shrink-0">
-                        <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-full h-full object-contain rounded-lg" />
+                        <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0 space-y-1">
@@ -541,7 +604,10 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </div>
 
             {/* Support Callout Box */}
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800/80 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-700 rounded-2xl p-4 sm:p-5 text-slate-950 dark:text-emerald-200 space-y-2">
+            <div
+              data-reveal="true"
+              className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800/80 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-700 rounded-2xl p-4 sm:p-5 text-slate-950 dark:text-emerald-200 space-y-2 transition-transform duration-300 hover:-translate-y-0.5"
+            >
               <h4 className="font-bold text-sm text-slate-950 dark:text-emerald-200">
                 {t('Have a notice or village story to share?', 'কোনো খবর বা নোটিশ জানাতে চান?')}
               </h4>
@@ -568,7 +634,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
       <section id="projects" className="cv-auto py-12 sm:py-16 bg-slate-50/70 dark:bg-slate-950 border-y border-slate-200/60 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
           
-          <div className="max-w-2xl">
+          <div data-reveal="true" className="max-w-2xl">
             <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
               {t('ACTIVE INITIATIVES', 'আমাদের উদ্যোগসমূহ')}
             </span>
@@ -589,11 +655,14 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </div>
           ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {projects.map((proj) => (
+            {projects.map((proj, idx) => (
               <div
                 key={proj.id}
-                className="glass-card rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl hover:border-emerald-500/40 transition-[transform,border-color,box-shadow] flex flex-col"
+                data-reveal="true"
+                style={{ '--reveal-delay': `${idx * 75}ms` } as React.CSSProperties}
+                className="glass-card group relative rounded-3xl border border-white/40 dark:border-white/10 overflow-hidden shadow-xl hover:border-emerald-500/40 transition-[transform,border-color,box-shadow] flex flex-col"
               >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
                 <div className="relative h-44 overflow-hidden bg-emerald-50 dark:bg-slate-800">
                   {proj.image ? (
                     <img
@@ -601,11 +670,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                       alt={t(proj.title, proj.titleBn)}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100/80 to-teal-100/80 dark:from-emerald-950/60 dark:to-slate-800">
-                      <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-16 h-16 object-contain opacity-80" />
+                      <img src={logoImg} alt="Salmikkhang Logo" loading="lazy" decoding="async" className="w-16 h-16 object-contain opacity-80 group-hover:scale-105 transition-transform duration-300" />
                     </div>
                   )}
                   <div className="absolute top-3 left-3 bg-white/95 dark:bg-slate-900/90 px-2.5 py-1 rounded-md text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
@@ -618,7 +687,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                     <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-400">
                       {t(proj.category, proj.categoryBn)}
                     </span>
-                    <h3 className="font-bold text-base text-slate-950 dark:text-slate-100 line-clamp-1">
+                    <h3 className="font-bold text-base text-slate-950 dark:text-slate-100 line-clamp-1 group-hover:text-emerald-800 dark:group-hover:text-emerald-300 transition-colors">
                       {t(proj.title, proj.titleBn)}
                     </h3>
                     <p className="text-xs text-slate-800 dark:text-slate-300 line-clamp-3 leading-relaxed">
@@ -634,7 +703,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                       </div>
                       <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                          className="h-full bg-emerald-600 rounded-full transition-all duration-700 ease-out"
                           style={{ width: `${proj.progress}%` }}
                         />
                       </div>
@@ -644,7 +713,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                       <span>{proj.volunteersEnrolled} / {proj.volunteersNeeded} {t('Volunteers', 'স্বেচ্ছাসেবক')}</span>
                       <button
                         onClick={() => openModal('join')}
-                        className="text-xs font-bold text-emerald-900 dark:text-emerald-400 hover:underline"
+                        className="text-xs font-bold text-emerald-900 dark:text-emerald-400 hover:underline cursor-pointer"
                       >
                         {t('Support →', 'যুক্ত হোন →')}
                       </button>
@@ -661,7 +730,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
 
       {/* 6. Photo Gallery Section with Lightbox */}
       <section id="gallery" className="cv-auto py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div data-reveal="true" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
               {t('VISUAL MOMENTS', 'আমাদের মুহূর্তগুলো')}
@@ -683,7 +752,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
               <button
                 key={cat.value}
                 onClick={() => setGalleryFilter(cat.value)}
-                className={`px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                className={`px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
                   galleryFilter.toLowerCase() === cat.value.toLowerCase()
                     ? 'bg-white dark:bg-slate-700 text-slate-950 dark:text-emerald-300 shadow-xs font-bold'
                     : 'text-slate-800 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
@@ -702,9 +771,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredGallery.map((item) => (
+            {filteredGallery.map((item, idx) => (
               <div
                 key={item.id}
+                data-reveal="true"
+                style={{ '--reveal-delay': `${(idx % 3) * 75}ms` } as React.CSSProperties}
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectGallery(item)}
@@ -714,16 +785,17 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                     onSelectGallery(item);
                   }
                 }}
-                className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-[transform,box-shadow] cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="group relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-[transform,box-shadow,border-color] duration-300 cursor-pointer bg-slate-100 dark:bg-slate-800 aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-400 to-lime-300" />
                 <img
                   src={item.image}
                   alt={item.title}
                   loading="lazy"
                   decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-end p-4 sm:p-5 text-white">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity duration-300 flex flex-col justify-end p-4 sm:p-5 text-white">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
                     {t(item.category, item.categoryBn)}
                   </span>
@@ -732,7 +804,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                   </h3>
                   <div className="flex items-center justify-between text-xs text-slate-200 mt-2">
                     <span>{item.date}</span>
-                    <span className="flex items-center gap-1 text-emerald-300 font-semibold group-hover:translate-x-1 transition-transform">
+                    <span className="flex items-center gap-1 text-emerald-300 font-semibold group-hover:translate-x-1 transition-transform duration-200">
                       <Eye className="w-3.5 h-3.5" />
                       <span>{t('View Photo', 'ছবি দেখুন')}</span>
                     </span>
@@ -747,7 +819,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
       {/* 7. Join Banner */}
       <section className="bg-white/45 dark:bg-slate-900 text-slate-950 dark:text-white py-12 sm:py-16 border-y border-emerald-900/10 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="glass-card flex flex-col md:flex-row items-start md:items-center justify-between gap-6 sm:gap-8 bg-white/85 dark:bg-slate-800/80 border border-white/50 dark:border-slate-700 rounded-3xl p-6 sm:p-12">
+          <div
+            data-reveal="true"
+            className="glass-card group relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 sm:gap-8 bg-white/85 dark:bg-slate-800/80 border border-white/50 dark:border-slate-700 rounded-3xl p-6 sm:p-12"
+          >
+            <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
             <div className="space-y-3 max-w-xl">
               <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-900 dark:text-emerald-300">
                 {t('YOUR VILLAGE. YOUR FUTURE.', 'তোমার গ্রাম। তোমার ভবিষ্যৎ।')}
@@ -765,13 +841,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full md:w-auto">
               <button
                 onClick={() => openModal('join')}
-                className="w-full sm:w-auto px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 dark:bg-white text-white dark:text-emerald-950 font-bold text-sm rounded-xl dark:hover:bg-emerald-50 shadow-md transition-transform hover:-translate-y-0.5 text-center"
+                className="w-full sm:w-auto px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 dark:bg-white text-white dark:text-emerald-950 font-bold text-sm rounded-xl dark:hover:bg-emerald-50 shadow-md transition-all duration-300 hover:-translate-y-0.5 text-center cursor-pointer"
               >
                 {t('Apply for Membership →', 'সদস্য হতে আবেদন করুন →')}
               </button>
               <a
                 href="#contact"
-                className="w-full sm:w-auto px-6 py-3.5 bg-white/85 hover:bg-white dark:bg-emerald-700 dark:hover:bg-emerald-600 text-slate-950 dark:text-white font-semibold text-sm rounded-xl border border-slate-300 dark:border-emerald-500/50 text-center transition-colors"
+                className="w-full sm:w-auto px-6 py-3.5 bg-white/85 hover:bg-white dark:bg-emerald-700 dark:hover:bg-emerald-600 text-slate-950 dark:text-white font-semibold text-sm rounded-xl border border-slate-300 dark:border-emerald-500/50 text-center transition-all duration-300 hover:-translate-y-0.5"
               >
                 {t('Contact Organizers', 'আয়োজকদের সাথে যোগাযোগ')}
               </a>
@@ -785,7 +861,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
           
           <div className="lg:col-span-5 space-y-6">
-            <div>
+            <div data-reveal="true">
               <span className="text-xs font-bold text-emerald-950 dark:text-emerald-400 uppercase tracking-wider block">
                 {t("LET'S TALK & COLLABORATE", 'যোগাযোগ করি')}
               </span>
@@ -801,8 +877,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
             </div>
 
             <div className="space-y-4 pt-2">
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '40ms' } as React.CSSProperties}
+                className="group relative overflow-hidden flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -811,8 +892,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '105ms' } as React.CSSProperties}
+                className="group relative overflow-hidden flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                   <Phone className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -832,8 +918,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+              <div
+                data-reveal="true"
+                style={{ '--reveal-delay': '170ms' } as React.CSSProperties}
+                className="group relative overflow-hidden flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+              >
+                <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -858,10 +949,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                   href={facebookHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-colors min-w-0 group"
+                  data-reveal="true"
+                  style={{ '--reveal-delay': '235ms' } as React.CSSProperties}
+                  className="relative overflow-hidden flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-0.5 min-w-0 group"
                 >
+                  <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-sky-500 to-blue-500" />
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
                         <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
                       </svg>
@@ -876,8 +970,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                   <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-1" />
                 </a>
               ) : (
-                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                <div
+                  data-reveal="true"
+                  style={{ '--reveal-delay': '235ms' } as React.CSSProperties}
+                  className="group relative overflow-hidden flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-blue-400/40"
+                >
+                  <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-sky-500 to-blue-500" />
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
                       <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
                     </svg>
@@ -896,10 +995,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-colors min-w-0 group"
+                  data-reveal="true"
+                  style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
+                  className="relative overflow-hidden flex items-start justify-between gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-0.5 min-w-0 group"
                 >
+                  <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                       <MessageCircle className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -912,8 +1014,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
                   <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 shrink-0 mt-1" />
                 </a>
               ) : (
-                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                <div
+                  data-reveal="true"
+                  style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
+                  className="group relative overflow-hidden flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 min-w-0 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+                >
+                  <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                     <MessageCircle className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
@@ -928,7 +1035,12 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
           </div>
 
           {/* Interactive Working Form */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-emerald-100 dark:border-slate-800 shadow-md">
+          <div
+            data-reveal="true"
+            style={{ '--reveal-delay': '120ms' } as React.CSSProperties}
+            className="lg:col-span-7 group relative overflow-hidden bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-emerald-100 dark:border-slate-800 shadow-md"
+          >
+            <span aria-hidden="true" className="artcraft-sweep bg-gradient-to-r from-emerald-500 to-lime-400" />
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">
               {t('Send a Message to Youth Council', 'বার্তা পাঠান')}
             </h3>
@@ -996,7 +1108,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = React.memo(({ onSelec
       <footer className="cv-auto glass-surface bg-white/85 dark:bg-slate-900 text-slate-900 dark:text-slate-300 py-16 border-t border-white/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div data-reveal="true" style={{ '--reveal-delay': '60ms' } as React.CSSProperties} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-4 sm:col-span-2">
               <div className="flex items-center gap-3">
                 <img

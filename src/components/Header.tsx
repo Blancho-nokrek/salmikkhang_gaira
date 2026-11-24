@@ -407,13 +407,19 @@ export const Header: React.FC<HeaderProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => handleNavClick(item.id)}
-                  className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 whitespace-nowrap cursor-pointer ${
+                  className={`group relative text-xs uppercase tracking-wider font-semibold transition-colors duration-200 py-2 whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? 'text-emerald-800 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 border-b-2 border-transparent'
+                      ? 'text-emerald-800 dark:text-emerald-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
                   }`}
                 >
-                  {t(item.labelEn, item.labelBn)}
+                  <span>{t(item.labelEn, item.labelBn)}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-emerald-600 dark:bg-emerald-400 origin-left transition-transform duration-300 ease-out ${
+                      isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                    }`}
+                  />
                 </button>
               );
             })}
@@ -424,13 +430,19 @@ export const Header: React.FC<HeaderProps> = ({
                   setMobileMenuOpen(false);
                   onOpenAppInstall();
                 }}
-                className={`text-xs uppercase tracking-wider font-semibold transition-colors py-2 whitespace-nowrap cursor-pointer ${
+                className={`group relative text-xs uppercase tracking-wider font-semibold transition-colors duration-200 py-2 whitespace-nowrap cursor-pointer ${
                   isAppInstallOpen
-                    ? 'text-emerald-800 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 border-b-2 border-transparent'
+                    ? 'text-emerald-800 dark:text-emerald-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
                 }`}
               >
-                {t('Download', 'ডাউনলোড')}
+                <span>{t('Download', 'ডাউনলোড')}</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-emerald-600 dark:bg-emerald-400 origin-left transition-transform duration-300 ease-out ${
+                    isAppInstallOpen ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  }`}
+                />
               </button>
             )}
           </nav>
@@ -512,7 +524,7 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Change theme"
               >
                 <CurrentThemeIcon className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
-                <ChevronDown className="w-3 h-3 opacity-60" />
+                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {themeDropdownOpen && (
@@ -575,7 +587,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {isAdminUnlocked && pendingRequestsCount > 0 && currentView !== 'admin' && (
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
                 )}
-                <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                <ChevronDown className={`w-3.5 h-3.5 opacity-80 transition-transform duration-200 ${communityDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {communityDropdownOpen && (

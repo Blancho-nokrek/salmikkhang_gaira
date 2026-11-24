@@ -107,13 +107,13 @@ html:not(.dark) .text-slate-900:not(footer *):not([class*="bg-slate-900"] *):not
   box-shadow: var(--g-shadow);
 }
 .glass-card {
-  transition: transform .22s cubic-bezier(.16,1,.3,1), box-shadow .22s ease, border-color .22s ease;
+  transition: transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s cubic-bezier(.16,1,.3,1), border-color .28s ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .glass-card:hover {
-    transform: translate3d(0, -2px, 0);
-    border-color: rgba(163,230,53,.45);
-    box-shadow: var(--g-shadow), 0 20px 38px -20px rgba(34,197,94,.32);
+    transform: translate3d(0, -3px, 0);
+    border-color: rgba(163,230,53,.48);
+    box-shadow: var(--g-shadow), 0 22px 42px -18px rgba(34,197,94,.34);
   }
 }
 .glass-pill {
@@ -189,15 +189,108 @@ section#projects {
   border-color: var(--g-line) !important;
 }
 
-/* Crisp, responsive portal entrance transition */
-@keyframes view-in {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+/* Smooth theme cross-fade transition */
+html.theme-anim,
+html.theme-anim body,
+html.theme-anim header,
+html.theme-anim main,
+html.theme-anim section,
+html.theme-anim footer,
+html.theme-anim .glass-card,
+html.theme-anim .glass-surface {
+  transition: background-color 0.38s cubic-bezier(.16,1,.3,1), color 0.38s cubic-bezier(.16,1,.3,1), border-color 0.38s cubic-bezier(.16,1,.3,1) !important;
 }
-.view-enter { animation: view-in .26s cubic-bezier(.16,1,.3,1) both; }
+
+/* ArtCraft-inspired Scroll Reveal (blur + vertical glide, zero layout shift) */
+[data-reveal="true"] {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translate3d(0, 26px, 0);
+  transition:
+    opacity 0.65s cubic-bezier(.16,1,.3,1) var(--reveal-delay, 0ms),
+    transform 0.65s cubic-bezier(.16,1,.3,1) var(--reveal-delay, 0ms),
+    filter 0.65s cubic-bezier(.16,1,.3,1) var(--reveal-delay, 0ms);
+  will-change: transform, opacity, filter;
+}
+[data-reveal="true"][data-revealed="true"] {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
+}
+
+/* Staggered Hero entrance choreography */
+@keyframes heroBlurIn {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate3d(0, 0, 0);
+  }
+}
+.hero-stagger {
+  animation: heroBlurIn 0.56s cubic-bezier(.16,1,.3,1) var(--hero-delay, 0ms) both;
+}
+
+/* Signature ArtCraft top-edge accent sweep on interactive cards */
+.artcraft-sweep {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 20;
+  height: 2px;
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 0.32s cubic-bezier(.16,1,.3,1);
+  pointer-events: none;
+}
+.group:hover .artcraft-sweep,
+.group:focus-visible .artcraft-sweep {
+  transform: scaleX(1);
+}
+
+/* Architectural Scroll Ruler odometer digit columns */
+.ruler-digits {
+  height: 1em;
+  line-height: 1em;
+  display: inline-flex;
+  align-items: flex-start;
+  overflow: hidden;
+}
+.ruler-digit-col {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.ruler-digit-col > span {
+  height: 1em;
+  line-height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Crisp, responsive portal, tab & modal entrance transitions */
+@keyframes view-in {
+  from { opacity: 0; filter: blur(6px); transform: translate3d(0, 14px, 0) scale(0.992); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+@keyframes tab-in {
+  from { opacity: 0; filter: blur(4px); transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+.view-enter { animation: view-in .34s cubic-bezier(.16,1,.3,1) both; }
+.tab-enter { animation: tab-in .26s cubic-bezier(.16,1,.3,1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .view-enter { animation: none; }
+  .view-enter, .tab-enter, .hero-stagger { animation: none; }
+  [data-reveal="true"] { opacity: 1 !important; filter: none !important; transform: none !important; transition: none !important; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 @media (max-width: 768px) {
@@ -224,12 +317,18 @@ section#projects {
 @keyframes enter {
   from {
     opacity: var(--tw-enter-opacity, 1);
+    filter: blur(4px);
     transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
   }
 }
 @utility animate-in {
   animation-name: enter;
-  animation-duration: var(--tw-duration, 150ms);
+  animation-duration: var(--tw-duration, 200ms);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: both;
 }
@@ -240,7 +339,7 @@ section#projects {
 @utility slide-in-from-bottom-3 { --tw-enter-translate-y: 0.75rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-in { animation: none !important; }
+  .animate-in, .modal-enter, .backdrop-enter, .fade-enter, .toast-enter { animation: none !important; }
 }
 
 /* ───────── Modern UI Smooth Animations & Transitions ───────── */
@@ -249,22 +348,23 @@ section#projects {
   to { opacity: 1; }
 }
 @keyframes modalPop {
-  from { opacity: 0; transform: scale3d(0.96, 0.96, 1); }
-  to { opacity: 1; transform: scale3d(1, 1, 1); }
+  from { opacity: 0; filter: blur(6px); transform: translate3d(0, 12px, 0) scale3d(0.96, 0.96, 1); }
+  to { opacity: 1; filter: none; transform: none; }
 }
 @keyframes rowFadeIn {
   0% { opacity: 0; background-color: rgba(16, 185, 129, 0.16); }
   100% { opacity: 1; background-color: transparent; }
 }
 @keyframes toastSlide {
-  from { opacity: 0; transform: translate3d(0, 14px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { opacity: 0; filter: blur(4px); transform: translate3d(0, 14px, 0) scale3d(0.97, 0.97, 1); }
+  to { opacity: 1; filter: none; transform: none; }
 }
 
-.fade-enter { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.modal-enter { animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.backdrop-enter { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fade-enter { animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.modal-enter { animation: modalPop 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .row-enter { animation: rowFadeIn 0.5s ease-out both; }
-.toast-enter { animation: toastSlide 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.toast-enter { animation: toastSlide 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* ───────── Fast & Ergonomic Cashier UI Utilities ───────── */
 .cashier-table {

@@ -632,7 +632,7 @@ export const AdminDashboard: React.FC = () => {
         </aside>
 
         {/* Content Area */}
-        <div className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6">
+        <div key={activeAdminTab} className="md:col-span-8 lg:col-span-9 min-w-0 space-y-6 tab-enter">
           
           {/* 1. OVERVIEW DASHBOARD */}
           {activeAdminTab === 'overview' && (
