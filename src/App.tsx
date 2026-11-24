@@ -42,23 +42,6 @@ const MainApp: React.FC = () => {
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  // Top scroll progress tracker
-  useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (totalHeight <= 0) {
-        setScrollProgress(0);
-        return;
-      }
-      const progress = (window.scrollY / totalHeight) * 100;
-      setScrollProgress(Math.min(100, Math.max(0, progress)));
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const preloadPortals = useCallback(() => {
     void loadMemberPortal();
@@ -101,59 +84,36 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-x-clip relative text-slate-100 flex flex-col font-sans selection:bg-cyan-400/30 selection:text-cyan-100 transition-colors bg-[#050a0e]">
+    <div className="min-h-screen overflow-x-clip relative text-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-400/30 selection:text-emerald-950 dark:selection:text-emerald-100 transition-colors">
       
-      {/* Top Scroll-Progress Bar with Glowing Cyan-to-Emerald Gradient */}
+      {/* Background Nature Glassmorphism Layer (GPU-isolated, zero live blur filters) */}
       <div
-        className="fixed top-0 left-0 right-0 h-1 z-[70] pointer-events-none transition-all duration-75 ease-out"
-        style={{
-          width: `${scrollProgress}%`,
-          background: 'linear-gradient(90deg, #22d3ee 0%, #14b8a6 50%, #10b981 100%)',
-          boxShadow: '0 0 16px rgba(34, 211, 238, 0.8), 0 0 28px rgba(16, 185, 129, 0.5)'
-        }}
-      />
-
-      {/* Deep Midnight Obsidian Background Layer with slow-moving ambient Cyan & Emerald radial glow blobs */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-gradient-to-b from-[#050a0e] via-[#071318] to-[#04080c]"
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
         style={{ contain: 'strict', transform: 'translateZ(0)' }}
       >
-        {/* Optional Custom Admin Background (softly blended if configured) */}
-        {settings.siteBackground && (
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-luminosity"
-            style={{ backgroundImage: `url(${settings.siteBackground})` }}
-          />
-        )}
-
-        {/* Ambient Radial Cyan Glow Blob 1 */}
-        <div
-          className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-cyan-500/12 blur-[140px] animate-blob-1 pointer-events-none"
+        {/* Full Cinematic Nature Landscape */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${settings.siteBackground || natureBgImg})` }}
         />
 
-        {/* Ambient Radial Emerald Glow Blob 2 */}
+        {/* Atmosphere: crisp bright veil in light mode for black text contrast, deep forest depth in dark mode */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-100/80 via-white/75 to-emerald-50/85 dark:from-[#021210]/80 dark:via-[#06281f]/75 dark:to-[#021210]/92" />
+        {/* Soft ambient radial glows (pure CSS gradient — zero GPU blur pass) */}
         <div
-          className="absolute top-1/3 -right-40 w-[650px] h-[650px] rounded-full bg-emerald-500/12 blur-[150px] animate-blob-2 pointer-events-none"
-        />
-
-        {/* Ambient Radial Teal Glow Blob 3 */}
-        <div
-          className="absolute -bottom-40 left-1/4 w-[550px] h-[550px] rounded-full bg-teal-500/10 blur-[130px] animate-blob-3 pointer-events-none"
-        />
-
-        {/* Subtle Cyber Grid & Soft Neon Light Trails */}
-        <div
-          className="absolute inset-0 opacity-25 pointer-events-none"
+          className="absolute inset-0 opacity-90 dark:opacity-0"
           style={{
-            backgroundImage: `radial-gradient(ellipse at 50% 0%, rgba(34, 211, 238, 0.14), transparent 75%),
-                              linear-gradient(to right, rgba(34, 211, 238, 0.035) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(16, 185, 129, 0.035) 1px, transparent 1px)`,
-            backgroundSize: '100% 100%, 72px 72px, 72px 72px'
+            backgroundImage:
+              'radial-gradient(circle 34rem at 92% 4%, rgba(163, 230, 53, 0.16), transparent 70%), radial-gradient(circle 30rem at 6% 96%, rgba(4, 120, 87, 0.15), transparent 70%)',
           }}
         />
-
-        {/* Soft Obsidian Vignette */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050a0e]/30 to-[#050a0e]/85 pointer-events-none" />
+        <div
+          className="absolute inset-0 opacity-0 dark:opacity-90"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle 34rem at 92% 4%, rgba(56, 189, 248, 0.12), transparent 70%), radial-gradient(circle 30rem at 6% 96%, rgba(4, 120, 87, 0.24), transparent 70%)',
+          }}
+        />
       </div>
 
       {/* Main Content Area */}
