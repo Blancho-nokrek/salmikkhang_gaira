@@ -7,38 +7,25 @@
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
-/* ───────── Dark Obsidian Glassmorphism Design Tokens ───────── */
+/* ───────── Design tokens ───────── */
 :root {
   --font-display: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif;
   --font-body: 'DM Sans', 'Noto Sans Bengali', system-ui, sans-serif;
 
-  --obsidian-base: #050a0e;
-  --obsidian-deep: #071318;
-  --obsidian-surface: #0a1b24;
+  --forest: #064E3B; --emerald: #047857; --fresh: #22C55E; --lime: #A3E635;
+  --sky: #38BDF8; --ocean: #075985; --frost: #F8FAFC; --neutral: #E2E8F0;
 
-  --cyan-neon: #22d3ee;
-  --emerald-neon: #10b981;
-  --teal-neon: #14b8a6;
-  --sky: #38bdf8;
-  --forest: #064e3b;
-
-  /* Frosted Dark Glass Defaults */
-  --g-card: rgba(7, 20, 27, 0.72);
-  --g-well: rgba(255, 255, 255, 0.04);
-  --g-field: rgba(5, 12, 17, 0.75);
-  --g-line: rgba(34, 211, 238, 0.22);
-  --g-line-soft: rgba(34, 211, 238, 0.12);
-  --g-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(34, 211, 238, 0.18);
-  --g-shine: linear-gradient(135deg, rgba(34, 211, 238, 0.12) 0%, rgba(16, 185, 129, 0.04) 50%, transparent 100%);
-  --g-ring: 0 0 0 3px rgba(34, 211, 238, 0.35);
-
-  --glass-bg: var(--g-card);
-  --glass-border: var(--g-line);
-  --glass-shadow: var(--g-shadow);
-  --glass-card-bg: var(--g-card);
-  --glass-card-border: var(--g-line);
+  --g-card: rgba(255, 255, 255, 0.84);
+  --g-well: rgba(248, 250, 252, 0.72);
+  --g-field: rgba(255, 255, 255, 0.88);
+  --g-line: rgba(255, 255, 255, 0.75);
+  --g-line-soft: rgba(6, 78, 59, 0.14);
+  --g-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -1px 0 rgba(6,78,59,.06) inset, 0 18px 40px -18px rgba(6,60,45,.22), 0 2px 6px rgba(6,60,45,.06);
+  --g-shine: linear-gradient(135deg, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 38%);
+  --g-ring: 0 0 0 3px rgba(56, 189, 248, .45);
+  --glass-bg: var(--g-card); --glass-border: var(--g-line); --glass-shadow: var(--g-shadow);
+  --glass-card-bg: var(--g-card); --glass-card-border: var(--g-line);
 }
-
 html[data-font="editorial"],
 html[data-font="botanical"] {
   --font-display: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif;
@@ -57,31 +44,20 @@ html[data-font="classic"] {
   --font-display: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
   --font-body: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
 }
-
 .dark {
-  --g-card: rgba(5, 15, 21, 0.75);
-  --g-well: rgba(255, 255, 255, 0.035);
-  --g-field: rgba(3, 9, 13, 0.85);
-  --g-line: rgba(34, 211, 238, 0.2);
-  --g-line-soft: rgba(34, 211, 238, 0.1);
-  --g-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(34, 211, 238, 0.15);
-  --g-ring: 0 0 0 3px rgba(34, 211, 238, 0.4);
+  --g-card: rgba(6, 40, 32, 0.52);
+  --g-well: rgba(255, 255, 255, 0.05);
+  --g-field: rgba(2, 20, 18, 0.45);
+  --g-line: rgba(226, 232, 240, 0.14);
+  --g-line-soft: rgba(226, 232, 240, 0.1);
+  --g-shadow: 0 1px 0 rgba(255,255,255,.09) inset, 0 22px 48px -20px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.25);
+  --g-shine: linear-gradient(135deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 40%);
+  --g-ring: 0 0 0 3px rgba(56, 189, 248, .5);
 }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  background-color: #050a0e;
-}
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 section[id], div[id] { scroll-margin-top: 5.5rem; }
-body {
-  overflow-x: clip;
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  -webkit-overflow-scrolling: touch;
-  background-color: #050a0e;
-  color: #f1f5f9;
-}
+body { overflow-x: clip; font-family: var(--font-body); -webkit-font-smoothing: antialiased; -webkit-overflow-scrolling: touch; }
 img { max-width: 100%; }
 h1, h2, h3, .font-display { font-family: var(--font-display); }
 h1, h2 { text-wrap: balance; }
@@ -89,49 +65,96 @@ h1, h2 { text-wrap: balance; }
 .font-preview-youthful { font-family: 'Urbanist', 'Baloo Da 2', system-ui, sans-serif; }
 .font-preview-heritage { font-family: 'Fraunces', 'Noto Serif Bengali', Georgia, serif; }
 .font-preview-classic { font-family: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif; }
-::selection { background: rgba(34, 211, 238, 0.35); color: #ecfeff; }
+::selection { background: rgba(163, 230, 53, .45); color: var(--forest); }
+
+/* Light mode: make muted slate text crisp dark/black on light & glass surfaces (preserving dark-surface sections) */
+html:not(.dark) :is(header, main, .glass-card, .glass-surface) :not(footer):not(.bg-emerald-950):not(.bg-emerald-900):not(.bg-emerald-800):not([class*="bg-slate-900"]):not([class*="from-emerald-9"]):not([class*="from-emerald-8"]) {
+  --tw-text-opacity: 1;
+}
+html:not(.dark) .text-slate-400:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *):not(.bg-rose-950\/70 *) {
+  color: #334155;
+}
+html:not(.dark) .text-slate-500:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #0f172a;
+}
+html:not(.dark) .text-slate-600:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
+html:not(.dark) .text-slate-700:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
+html:not(.dark) .text-slate-800:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *),
+html:not(.dark) .text-slate-900:not(footer *):not([class*="bg-slate-900"] *):not(.bg-emerald-950 *):not(.bg-emerald-900 *):not(.bg-emerald-800 *):not([class*="from-emerald-8"] *):not([class*="from-emerald-9"] *) {
+  color: #020617;
+}
 
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
-/* Off-screen rendering optimization for smooth scrolling */
+/* Off-screen rendering optimization for smooth long-page scrolling */
 .cv-auto {
   content-visibility: auto;
   contain-intrinsic-size: auto 520px;
 }
 
-/* ───────── Core Frosted Obsidian Glass Surfaces ───────── */
+/* ───────── Core glass surfaces (GPU-tuned blur budget for 60fps scroll) ───────── */
 .glass-surface, .glass-card {
   position: relative;
   background: var(--g-shine), var(--g-card);
-  backdrop-filter: blur(16px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(135%) !important;
   border: 1px solid var(--g-line);
   box-shadow: var(--g-shadow);
 }
-
 .glass-card {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.28s ease,
-              border-color 0.28s ease,
-              background-color 0.28s ease;
+  transition: transform .22s cubic-bezier(.16,1,.3,1), box-shadow .22s ease, border-color .22s ease;
 }
-
 @media (hover: hover) and (pointer: fine) {
   .glass-card:hover {
-    transform: translate3d(0, -3px, 0);
-    border-color: rgba(16, 185, 129, 0.5);
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.2), 0 16px 40px -10px rgba(0, 0, 0, 0.6);
+    transform: translate3d(0, -2px, 0);
+    border-color: rgba(163,230,53,.45);
+    box-shadow: var(--g-shadow), 0 20px 38px -20px rgba(34,197,94,.32);
   }
 }
-
 .glass-pill {
   background: var(--g-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--g-line);
 }
 
+/* ───────── Remap existing solid utilities → translucent glass (no nested blur passes) ───────── */
+[class~="bg-white"], [class~="bg-white/60"], [class~="bg-white/80"], [class~="bg-white/70"],
+.dark [class~="dark:bg-slate-800"], .dark [class~="dark:bg-slate-900"], .dark [class~="dark:bg-slate-900/60"] {
+  background-color: var(--g-card);
+  box-shadow: var(--g-shadow);
+}
+[class~="bg-slate-50"], [class~="bg-slate-100"], [class~="bg-white/40"], [class~="bg-slate-50/70"],
+.dark [class~="dark:bg-slate-800/40"], .dark [class~="dark:bg-slate-800/60"], .dark [class~="dark:bg-slate-800/80"], .dark [class~="dark:bg-slate-900/40"] {
+  background-color: var(--g-well);
+  box-shadow: none;
+}
+[class~="border-slate-200"], [class~="border-slate-100"], .dark [class~="dark:border-slate-700"], .dark [class~="dark:border-slate-800"],
+[class~="border-white/40"], [class~="border-white/30"], .dark [class~="dark:border-white/10"] { border-color: var(--g-line) !important; }
+[class~="hover:bg-slate-100"]:hover, [class~="hover:bg-slate-50"]:hover, [class~="hover:bg-white/40"]:hover,
+.dark [class~="dark:hover:bg-slate-800"]:hover { background-color: rgba(163,230,53,.16); }
+
+/* Primary buttons: emerald → forest with a glass sheen */
+[class~="bg-emerald-600"], [class~="bg-emerald-700"] {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 55%), linear-gradient(135deg, var(--emerald), var(--forest));
+  box-shadow: 0 1px 0 rgba(255,255,255,.35) inset, 0 10px 22px -10px rgba(4,120,87,.7);
+}
+button, a, [role="button"] { transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .2s ease, transform .18s cubic-bezier(.16,1,.3,1); }
+button:active:not(:disabled) { transform: scale(.98); }
+
+/* Header, dock, modals, forms */
+header.sticky {
+  background: var(--g-card) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  border-bottom: 1px solid var(--g-line);
+  box-shadow: 0 8px 28px -16px rgba(6,60,45,.32);
+}
 .glass-dock {
   background: var(--g-card);
   backdrop-filter: blur(14px) saturate(145%);
@@ -139,155 +162,65 @@ h1, h2 { text-wrap: balance; }
   border: 1px solid var(--g-line);
   box-shadow: var(--g-shadow), 0 18px 40px -14px rgba(0,0,0,.42);
 }
-
-/* Glowing Neon Borders & Accents */
-.border-neon-cyan {
-  border-color: rgba(34, 211, 238, 0.4) !important;
-  box-shadow: 0 0 15px rgba(34, 211, 238, 0.25);
+[class~="fixed"][class~="inset-0"][class~="z-50"] {
+  background: radial-gradient(ellipse at 50% 0%, rgba(7,89,133,.35), rgba(2,18,16,.72)) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-.border-neon-emerald {
-  border-color: rgba(16, 185, 129, 0.4) !important;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
-}
-
-/* Glowing Pill Button for Community Hub */
-.hub-pill-btn {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(16, 185, 129, 0.2));
-  border: 1px solid rgba(34, 211, 238, 0.4);
-  color: #a5f3fc;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.2);
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.hub-pill-btn:hover {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.28), rgba(16, 185, 129, 0.32));
-  border-color: rgba(16, 185, 129, 0.7);
-  color: #ffffff;
-  box-shadow: 0 0 26px rgba(16, 185, 129, 0.45), 0 0 12px rgba(34, 211, 238, 0.3);
-  transform: translateY(-1px);
-}
-
-/* Primary Radiant CTA Buttons */
-.btn-radiant {
-  background: linear-gradient(135deg, #22d3ee 0%, #10b981 100%);
-  color: #050a0e;
-  font-weight: 700;
-  box-shadow: 0 0 22px rgba(34, 211, 238, 0.4), 0 4px 16px rgba(16, 185, 129, 0.3);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.btn-radiant:hover {
-  background: linear-gradient(135deg, #38bdf8 0%, #34d399 100%);
-  box-shadow: 0 0 32px rgba(34, 211, 238, 0.6), 0 0 20px rgba(16, 185, 129, 0.5);
-  transform: translateY(-1px);
-}
-.btn-radiant:active {
-  transform: scale(0.98);
-}
-
-/* Inputs, Selects & Textareas in Dark Obsidian */
 input, select, textarea {
   background-color: var(--g-field) !important;
   border: 1px solid var(--g-line) !important;
-  color: #f1f5f9 !important;
   border-radius: 0.85rem;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow .18s ease, border-color .18s ease;
 }
-input::placeholder, textarea::placeholder { color: rgba(148, 163, 184, 0.55); }
-:is(input, select, textarea):focus {
-  outline: none;
-  border-color: #22d3ee !important;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.3), 0 0 15px rgba(34, 211, 238, 0.2);
+input::placeholder, textarea::placeholder { color: rgba(30,41,59,.68); }
+.dark input::placeholder, .dark textarea::placeholder { color: rgba(203,213,225,.5); }
+:is(input, select, textarea):focus { outline: none; border-color: var(--sky) !important; box-shadow: var(--g-ring); }
+:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 0.5rem; }
+
+/* Dark bands (stats strip, footer) become deep-forest glass in dark mode; keep light-mode glass bright without double-blurring section children */
+.dark section[class~="bg-emerald-800"], .dark footer[class~="bg-slate-900"] {
+  background: linear-gradient(180deg, rgba(6,78,59,.68), rgba(7,89,133,.54)) !important;
+  border-color: var(--g-line) !important;
+}
+.dark footer[class~="bg-slate-900"] { background: linear-gradient(180deg, rgba(6,40,32,.78), rgba(3,22,20,.9)) !important; }
+section#projects {
+  background: var(--g-well) !important;
+  border-color: var(--g-line) !important;
 }
 
-/* ───────── Ambient Background Glow Drift Animations ───────── */
-@keyframes blobDrift1 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(60px, 40px, 0) scale(1.12); }
-  100% { transform: translate3d(-30px, 20px, 0) scale(0.95); }
+/* Crisp, responsive portal entrance transition */
+@keyframes view-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-@keyframes blobDrift2 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-50px, -45px, 0) scale(1.18); }
-  100% { transform: translate3d(40px, -20px, 0) scale(0.92); }
+.view-enter { animation: view-in .26s cubic-bezier(.16,1,.3,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .view-enter { animation: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
-@keyframes blobDrift3 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(35px, -50px, 0) scale(1.08); }
-  100% { transform: translate3d(-40px, 35px, 0) scale(0.96); }
-}
-
-.animate-blob-1 {
-  animation: blobDrift1 22s ease-in-out infinite alternate;
-  will-change: transform;
-}
-.animate-blob-2 {
-  animation: blobDrift2 26s ease-in-out infinite alternate;
-  will-change: transform;
-}
-.animate-blob-3 {
-  animation: blobDrift3 20s ease-in-out infinite alternate;
-  will-change: transform;
+@media (max-width: 768px) {
+  .glass-surface, .glass-card {
+    backdrop-filter: blur(8px) saturate(125%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(125%) !important;
+  }
+  header.sticky, .glass-dock {
+    backdrop-filter: blur(10px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  }
 }
 
-/* Ken Burns slow cinematic float */
-@keyframes kenBurns {
-  0% { transform: scale(1) translate3d(0, 0, 0); }
-  50% { transform: scale(1.06) translate3d(-1%, -1%, 0); }
-  100% { transform: scale(1) translate3d(0, 0, 0); }
-}
-.animate-ken-burns {
-  animation: kenBurns 18s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-/* Neon Pulse Glow */
-@keyframes neonPulse {
-  0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.4)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.6)); }
-}
-.animate-neon-pulse {
-  animation: neonPulse 3s ease-in-out infinite;
-}
-
-/* ───────── Scroll Reveal Animations ───────── */
-.scroll-reveal {
-  opacity: 0;
-  transform: translate3d(0, 24px, 0);
-  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-.scroll-reveal.revealed {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.delay-100 { transition-delay: 100ms; }
-.delay-150 { transition-delay: 150ms; }
-.delay-200 { transition-delay: 200ms; }
-.delay-300 { transition-delay: 300ms; }
-.delay-400 { transition-delay: 400ms; }
-
-/* Circular Progress Rings */
-.stat-ring-circle {
-  transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Scrollbar in Dark Obsidian */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #050a0e; }
-::-webkit-scrollbar-thumb {
-  background: rgba(34, 211, 238, 0.25);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(4,120,87,.35); border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,.55); border: 2px solid transparent; background-clip: padding-box; }
 
-/* Entrance Animations & Keyframes */
+/* ───────── Entrance animation utilities ─────────
+   Components use animate-in / fade-in / zoom-in-95 / slide-in-from-*.
+   Those come from the tw-animate-css plugin, which is not installed, so they did nothing.
+   Defined here so no extra dependency is needed. */
 @keyframes enter {
   from {
     opacity: var(--tw-enter-opacity, 1);
@@ -306,7 +239,15 @@ input::placeholder, textarea::placeholder { color: rgba(148, 163, 184, 0.55); }
 @utility slide-in-from-top-4 { --tw-enter-translate-y: -1rem; }
 @utility slide-in-from-bottom-3 { --tw-enter-translate-y: 0.75rem; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .animate-in { animation: none !important; }
+}
+
+/* ───────── Modern UI Smooth Animations & Transitions ───────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @keyframes modalPop {
   from { opacity: 0; transform: scale3d(0.96, 0.96, 1); }
   to { opacity: 1; transform: scale3d(1, 1, 1); }
@@ -319,41 +260,170 @@ input::placeholder, textarea::placeholder { color: rgba(148, 163, 184, 0.55); }
   from { opacity: 0; transform: translate3d(0, 14px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-@keyframes view-in {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
 
 .fade-enter { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .modal-enter { animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .row-enter { animation: rowFadeIn 0.5s ease-out both; }
 .toast-enter { animation: toastSlide 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.view-enter { animation: view-in .26s cubic-bezier(.16,1,.3,1) both; }
-.btn-press:active:not(:disabled) { transform: scale(0.97); }
 
-.cashier-table { border-collapse: separate; border-spacing: 0; width: 100%; }
-.cashier-table th { position: sticky; top: 0; z-index: 5; }
-.cashier-table tr { transition: background-color 0.15s ease, border-color 0.15s ease; }
-
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  .view-enter, .animate-in, .scroll-reveal { animation: none !important; transition-duration: .01ms !important; }
-  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+/* ───────── Fast & Ergonomic Cashier UI Utilities ───────── */
+.cashier-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+.cashier-table th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.cashier-table tr {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-press:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
-/* Cashier receipt print guarantees preserved */
+/* ───────── Unique Nature & Glass Accent Utilities ───────── */
+.nature-badge {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.85), rgba(4, 120, 87, 0.65));
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  box-shadow: 0 4px 16px 0 rgba(4, 120, 87, 0.28);
+}
+.glass-feature {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.75));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 40px -15px rgba(6, 78, 59, 0.12);
+}
+.dark .glass-feature {
+  background: linear-gradient(135deg, rgba(6, 40, 32, 0.68), rgba(2, 24, 20, 0.78));
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+.pulse-beacon {
+  animation: beaconPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes beaconPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.15); }
+}
+
+/* ───────── Cashier Memo / Receipt Printing (Strict 1-Page Guarantee) ───────── */
 @media print {
-  @page { size: auto; margin: 0mm; }
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+
   html, body {
-    width: 100% !important; height: auto !important; margin: 0 !important;
-    padding: 0 !important; background: #ffffff !important; color: #000000 !important;
-  }
-  header, footer, nav, aside, .no-print, button:not(.allow-print) {
-    display: none !important;
-  }
-  #cashier-receipt-print-area {
-    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    overflow: visible !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide screen-only web elements */
+  header, footer, nav, aside, .glass-dock, .no-print,
+  button:not(.allow-print), .modal-backdrop, [role="navigation"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset fixed modal overlay to standard print document flow */
+  div.fixed.inset-0.z-50 {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* If printing memo, hide all surrounding app sections */
+  body.printing-cashier-receipt > div:not(:has(#cashier-receipt-print-area)) {
+    display: none !important;
+  }
+
+  /* Printable Cashier Memo / Receipt Container */
+  #cashier-receipt-print-area {
+    display: block !important;
+    position: relative !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Sizing: 80mm Thermal Receipt (Default Standard) */
+  #cashier-receipt-print-area.receipt-80mm,
+  .receipt-width-80mm #cashier-receipt-print-area {
+    width: 76mm !important;
+    max-width: 76mm !important;
+    padding: 4mm 3mm !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Sizing: 58mm Thermal Receipt (Compact Mini POS) */
+  #cashier-receipt-print-area.receipt-58mm,
+  .receipt-width-58mm #cashier-receipt-print-area {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    padding: 3mm 2mm !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Sizing: A5 Slip / Official Voucher */
+  #cashier-receipt-print-area.receipt-a5,
+  .receipt-width-a5 #cashier-receipt-print-area {
+    width: 138mm !important;
+    max-width: 138mm !important;
+    padding: 10mm 8mm !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  #cashier-receipt-print-area * {
+    color: #000000 !important;
+    background: transparent !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  #cashier-receipt-print-area table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  #cashier-receipt-print-area th,
+  #cashier-receipt-print-area td {
+    border-color: #000000 !important;
   }
 }
